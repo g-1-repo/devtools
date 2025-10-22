@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0] - 2025-10-22
+
+### Features
+
+- Repository restructure: Established devtools as independent monorepo
+- Separated from main G1 Studio repository for better modularity
+- Updated Git configuration for standalone devtools monorepo
+
+### Other Changes
+
+- chore: Initial commit for standalone G1 Studio DevTools monorepo
+
 ## [1.2.0] - 2025-10-21
 
 ### Documentation
