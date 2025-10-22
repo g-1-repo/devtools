@@ -1,0 +1,41 @@
+{
+  "name": "@g-1/devtools",
+  "private": true,
+  "version": "1.2.0",
+  "description": "G1 Development Tools - Monorepo containing util, workflow, and test packages",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun --cwd packages/util run build && bun --cwd packages/workflow run build && bun --cwd packages/test run build",
+    "test": "bun --cwd packages/util run test && bun --cwd packages/workflow run test && bun --cwd packages/test run test",
+    "test:ci": "bun --cwd packages/util run test:ci && bun --cwd packages/workflow run test:ci && bun --cwd packages/test run test:ci",
+    "lint": "bun --cwd packages/util run lint && bun --cwd packages/workflow run lint && bun --cwd packages/test run lint",
+    "lint:fix": "bun --cwd packages/util run lint:fix && bun --cwd packages/workflow run lint:fix && bun --cwd packages/test run lint:fix",
+    "typecheck": "bun --cwd packages/util run typecheck && bun --cwd packages/workflow run typecheck && bun --cwd packages/test run typecheck",
+    "clean": "bun --cwd packages/util run clean && bun --cwd packages/workflow run clean && bun --cwd packages/test run clean",
+    "dev": "bun --cwd packages/util run dev & bun --cwd packages/workflow run dev & bun --cwd packages/test run dev & wait",
+    "size-check": "bun --cwd packages/util run size-check && bun --cwd packages/workflow run size-check && bun --cwd packages/test run size-check",
+    "analyze": "bun --cwd packages/util run analyze && bun --cwd packages/workflow run analyze && bun --cwd packages/test run analyze",
+    "ci:optimized": "bun run typecheck && bun run test:ci && bun run build && bun run size-check && bun run analyze",
+    "release": "changeset publish",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:status": "changeset status"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/g-1-repo/studio.git",
+    "directory": "devtools"
+  },
+  "bugs": {
+    "url": "https://github.com/g-1-repo/studio/issues"
+  },
+  "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools#readme"
+}

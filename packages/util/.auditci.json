@@ -1,0 +1,23 @@
+{
+  "allowlist": [],
+  "low": true,
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "report-type": "summary",
+  "pass-enoaudit": false,
+  "show-found": true,
+  "show-not-found": false,
+  "registry": "https://registry.npmjs.org/",
+  "retry": {
+    "retries": 3,
+    "retryDelay": 3000
+  },
+  "advisories": {
+    "skip-dev": false
+  },
+  "whitelist": [],
+  "output": {
+    "format": "text"
+  }
+}

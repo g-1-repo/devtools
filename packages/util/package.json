@@ -1,0 +1,252 @@
+{
+  "name": "@g-1/util",
+  "type": "module",
+  "version": "2.1.1",
+  "description": "G1 Shared Utilities. The centralized library for common G1 business logic and utilities. Designed for high-performance and Cloudflare Workers compatibility. The single source of truth for shared functions across all products.",
+  "author": "G1 <dev@golive.me>",
+  "license": "MIT",
+  "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/util#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/g-1-repo/studio.git",
+    "directory": "devtools/packages/util"
+  },
+  "bugs": {
+    "url": "https://github.com/g-1-repo/studio/issues"
+  },
+  "keywords": [
+    "utils",
+    "utilities",
+    "typescript",
+    "javascript",
+    "cloudflare-workers",
+    "edge-computing",
+    "tree-shaking",
+    "esm",
+    "cjs"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./array": {
+      "types": "./dist/array/index.d.ts",
+      "import": "./dist/array/index.js",
+      "require": "./dist/array/index.cjs"
+    },
+    "./async": {
+      "types": "./dist/async/index.d.ts",
+      "import": "./dist/async/index.js",
+      "require": "./dist/async/index.cjs"
+    },
+    "./date": {
+      "types": "./dist/date/index.d.ts",
+      "import": "./dist/date/index.js",
+      "require": "./dist/date/index.cjs"
+    },
+    "./string": {
+      "types": "./dist/string/index.d.ts",
+      "import": "./dist/string/index.js",
+      "require": "./dist/string/index.cjs"
+    },
+    "./object": {
+      "types": "./dist/object/index.d.ts",
+      "import": "./dist/object/index.js",
+      "require": "./dist/object/index.cjs"
+    },
+    "./math": {
+      "types": "./dist/math/index.d.ts",
+      "import": "./dist/math/index.js",
+      "require": "./dist/math/index.cjs"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "import": "./dist/validation/index.js",
+      "require": "./dist/validation/index.cjs"
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "import": "./dist/web/index.js",
+      "require": "./dist/web/index.cjs"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js",
+      "require": "./dist/node/index.cjs"
+    },
+    "./node/git-utils": {
+      "types": "./dist/node/git-utils.d.ts",
+      "import": "./dist/node/git-utils.js",
+      "require": "./dist/node/git-utils.cjs"
+    },
+    "./node/git-operations": {
+      "types": "./dist/node/git-operations.d.ts",
+      "import": "./dist/node/git-operations.js",
+      "require": "./dist/node/git-operations.cjs"
+    },
+    "./node/prompt-utils": {
+      "types": "./dist/node/prompt-utils.d.ts",
+      "import": "./dist/node/prompt-utils.js",
+      "require": "./dist/node/prompt-utils.cjs"
+    },
+    "./node/warp": {
+      "types": "./dist/node/warp/index.d.ts",
+      "import": "./dist/node/warp/index.js",
+      "require": "./dist/node/warp/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.cjs"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js",
+      "require": "./dist/crypto/index.cjs"
+    },
+    "./crypto/workers-safe": {
+      "types": "./dist/crypto/workers-safe.d.ts",
+      "import": "./dist/crypto/workers-safe.js",
+      "require": "./dist/crypto/workers-safe.cjs"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist/database/index.js",
+      "require": "./dist/database/index.cjs"
+    },
+    "./debug": {
+      "types": "./dist/debug/index.d.ts",
+      "import": "./dist/debug/index.js",
+      "require": "./dist/debug/index.cjs"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js",
+      "require": "./dist/http/index.cjs"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js",
+      "require": "./dist/api/index.cjs"
+    },
+    "./env": {
+      "types": "./dist/env/index.d.ts",
+      "import": "./dist/env/index.js",
+      "require": "./dist/env/index.cjs"
+    },
+    "./validation/core": {
+      "types": "./dist/validation/core.d.ts",
+      "import": "./dist/validation/core.js",
+      "require": "./dist/validation/core.cjs"
+    },
+    "./validation/web": {
+      "types": "./dist/validation/web.d.ts",
+      "import": "./dist/validation/web.js",
+      "require": "./dist/validation/web.cjs"
+    },
+    "./workflow": {
+      "types": "./dist/workflow/index.d.ts",
+      "import": "./dist/workflow/index.js",
+      "require": "./dist/workflow/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "g1-util-mcp": "mcp-server/server.js"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "PERFORMANCE.md",
+    "dist",
+    "mcp-server"
+  ],
+  "scripts": {
+    "build": "NODE_ENV=production tsup && bun run build:mcp",
+    "build:dev": "NODE_ENV=development tsup && bun run build:mcp:dev",
+    "build:mcp": "bun build mcp-server/server.ts --outdir mcp-server --outfile server.js --target node --minify",
+    "build:mcp:dev": "bun build mcp-server/server.ts --outdir mcp-server --outfile server.js --target node",
+    "dev": "NODE_ENV=development tsup --watch",
+    "size-check": "bun run build && bundlesize",
+    "analyze": "bun run build && bun run analyze:report",
+    "analyze:report": "node scripts/analyze-bundle.cjs",
+    "perf": "bun run build && bun run test:ci && bun run analyze",
+    "deps:check": "npx depcheck --ignores='@types/bun,webpack-bundle-analyzer'",
+    "ci:local": "bun run type-check && bun run lint && bun run test:ci && bun run build && bun run size-check",
+    "ci:optimized": "bun run type-check && bun run test:ci && bun run build && bun run size-check && bun run analyze",
+    "mcp:start": "node mcp-server/server.js",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "rm -rf dist",
+    "prepare": "NODE_ENV=production bun run build",
+    "prepublishOnly": "echo 'Skipping prepublish checks for initial release'",
+    "publish:public": "bun run build && npm publish --access public",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "changeset:status": "changeset status",
+    "release": "workflow release",
+    "release:help": "workflow release --help",
+    "workflow": "workflow status",
+    "demo": "bun scripts/demo.ts",
+    "finish-branch": "bun -e 'import { finishBranch } from \"@g-1/util/node\"; await finishBranch()'"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.1",
+    "@paralleldrive/cuid2": "^3.1.0",
+    "chalk": "^5.6.2",
+    "listr2": "^9.0.5",
+    "nanoid": "^5.1.6"
+  },
+  "optionalDependencies": {
+    "simple-git": "^4.0.0",
+    "execa": "^9.1.0"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^6.0.0",
+    "@changesets/cli": "^2.29.7",
+    "@g-1/workflow": "^3.0.0",
+    "@types/bun": "^1.3.0",
+    "bundlesize2": "^0.0.35",
+    "eslint": "^9.38.0",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "webpack-bundle-analyzer": "^4.10.2"
+  },
+  "bundlesize": [
+    {
+      "path": "./dist/index.js",
+      "maxSize": "30kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/*/index.js",
+      "maxSize": "8kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/chunks/*.js",
+      "maxSize": "15kb",
+      "compression": "gzip"
+    }
+  ]
+}

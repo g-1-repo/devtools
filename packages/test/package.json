@@ -1,0 +1,115 @@
+{
+  "name": "@g-1/test",
+  "version": "2.0.5",
+  "description": "G1 Test Suite. The unified, high-rigor test framework and suite for all G1 services. Guarantees code integrity and compliance across all products.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "g1-test-suite": "./dist/test-runner.cjs"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli/test-runner.js",
+      "types": "./dist/cli/test-runner.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "echo 'Skipping prepublish checks for initial release'",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test-runner": "bun run src/cli/test-runner.ts",
+    "release": "bunx workflow release",
+    "workflow:release": "bunx workflow release",
+    "workflow:status": "bunx workflow status",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run",
+    "size-check": "bun run build && bundlesize",
+    "analyze": "bun run build && webpack-bundle-analyzer dist/index.js --no-open"
+  },
+  "bundlesize": [
+    {
+      "path": "./dist/index.js",
+      "maxSize": "40kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/cli/test-runner.js",
+      "maxSize": "80kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/chunks/*.js",
+      "maxSize": "15kb",
+      "compression": "gzip"
+    }
+  ],
+  "keywords": [
+    "testing",
+    "test-framework",
+    "cloudflare-workers",
+    "hono",
+    "typescript",
+    "cookies",
+    "session-management"
+  ],
+  "author": "G1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/g-1-repo/studio.git",
+    "directory": "devtools/packages/test"
+  },
+  "bugs": {
+    "url": "https://github.com/g-1-repo/studio/issues"
+  },
+  "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/test#readme",
+  "peerDependencies": {
+    "drizzle-orm": "^0.44.6",
+    "hono": "^4.10.1",
+    "vitest": "^3.2.4"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^6.0.0",
+    "@g-1/workflow": "^3.5.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.8.1",
+    "bundlesize2": "^0.0.35",
+    "eslint": "^9.38.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "webpack-bundle-analyzer": "^4.10.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@g-1/util": "^2.1.1",
+    "better-sqlite3": "^12.4.1",
+    "chalk": "^5.6.2",
+    "cosmiconfig": "^9.0.0",
+    "enquirer": "^2.4.1",
+    "execa": "^9.6.0",
+    "glob": "^11.0.3",
+    "listr2": "^9.0.4",
+    "zod": "^4.1.12"
+  }
+}

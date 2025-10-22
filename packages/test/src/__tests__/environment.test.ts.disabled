@@ -1,0 +1,258 @@
+/**
+ * Test suite for environment utilities
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import {
+  detectRuntime,
+  detectDatabaseProvider,
+  getEnv,
+  setEnv,
+  hasEnv,
+  ensureEnv,
+  getRuntimeCapabilities,
+  createOptimizedTestConfig,
+  getEnvironmentInfo,
+  isTestEnvironment,
+  isCIEnvironment,
+  PerformanceMonitor
+} from '../utils/environment.js'
+
+describe('Runtime Detection', () => {
+  describe('detectRuntime', () => {
+    it('should detect current runtime', () => {
+      const runtime = detectRuntime()
+      expect(runtime).toBeDefined()
+      expect(['node', 'bun', 'workers', 'browser', 'unknown']).toContain(runtime)
+    })
+
+    it('should return consistent results', () => {
+      const runtime1 = detectRuntime()
+      const runtime2 = detectRuntime()
+      expect(runtime1).toBe(runtime2)
+    })
+  })
+
+  describe('detectDatabaseProvider', () => {
+    it('should detect available database provider', () => {
+      const provider = detectDatabaseProvider()
+      expect(provider).toBeDefined()
+      expect(['memory', 'sqlite', 'd1', 'drizzle-sqlite', 'drizzle-d1']).toContain(provider)
+    })
+  })
+
+  describe('getRuntimeCapabilities', () => {
+    it('should return capabilities object', () => {
+      const caps = getRuntimeCapabilities()
+      expect(caps).toBeDefined()
+      expect(typeof caps.hasFileSystem).toBe('boolean')
+      expect(typeof caps.hasNetworking).toBe('boolean')
+      expect(typeof caps.hasDatabase).toBe('boolean')
+    })
+
+    it('should include runtime-specific capabilities', () => {
+      const caps = getRuntimeCapabilities()
+      expect(caps.runtime).toBeDefined()
+      expect(caps.features).toBeDefined()
+      expect(Array.isArray(caps.features)).toBe(true)
+    })
+  })
+})
+
+describe('Environment Variables', () => {
+  const TEST_VAR = 'TEST_ENVIRONMENT_VAR'
+  const TEST_VALUE = 'test_value_123'
+
+  afterEach(() => {
+    // Clean up test environment variables
+    delete process.env[TEST_VAR]
+  })
+
+  describe('getEnv', () => {
+    it('should get existing environment variable', () => {
+      process.env[TEST_VAR] = TEST_VALUE
+      expect(getEnv(TEST_VAR)).toBe(TEST_VALUE)
+    })
+
+    it('should return default for missing variable', () => {
+      expect(getEnv('MISSING_VAR', 'default')).toBe('default')
+    })
+
+    it('should return undefined for missing variable without default', () => {
+      expect(getEnv('MISSING_VAR')).toBeUndefined()
+    })
+  })
+
+  describe('setEnv', () => {
+    it('should set environment variable', () => {
+      setEnv(TEST_VAR, TEST_VALUE)
+      expect(process.env[TEST_VAR]).toBe(TEST_VALUE)
+    })
+
+    it('should overwrite existing variable', () => {
+      process.env[TEST_VAR] = 'old_value'
+      setEnv(TEST_VAR, TEST_VALUE)
+      expect(process.env[TEST_VAR]).toBe(TEST_VALUE)
+    })
+  })
+
+  describe('hasEnv', () => {
+    it('should return true for existing variable', () => {
+      process.env[TEST_VAR] = TEST_VALUE
+      expect(hasEnv(TEST_VAR)).toBe(true)
+    })
+
+    it('should return false for missing variable', () => {
+      expect(hasEnv('MISSING_VAR')).toBe(false)
+    })
+  })
+
+  describe('ensureEnv', () => {
+    it('should not throw for existing variable', () => {
+      process.env[TEST_VAR] = TEST_VALUE
+      expect(() => ensureEnv(TEST_VAR)).not.toThrow()
+    })
+
+    it('should throw for missing variable', () => {
+      expect(() => ensureEnv('MISSING_REQUIRED_VAR')).toThrow()
+    })
+
+    it('should include variable name in error message', () => {
+      expect(() => ensureEnv('MISSING_REQUIRED_VAR')).toThrow(/MISSING_REQUIRED_VAR/)
+    })
+  })
+})
+
+describe('Environment Configuration', () => {
+  describe('createOptimizedTestConfig', () => {
+    it('should create config based on runtime', () => {
+      const config = createOptimizedTestConfig()
+      expect(config).toBeDefined()
+      expect(config.runtime).toBeDefined()
+      expect(config.database).toBeDefined()
+    })
+
+    it('should support custom overrides', () => {
+      const config = createOptimizedTestConfig({
+        database: 'sqlite',
+        timeout: 5000
+      })
+      
+      expect(config.database).toBe('sqlite')
+      expect(config.timeout).toBe(5000)
+    })
+  })
+
+  describe('getEnvironmentInfo', () => {
+    it('should return comprehensive environment info', () => {
+      const info = getEnvironmentInfo()
+      expect(info).toBeDefined()
+      expect(info.runtime).toBeDefined()
+      expect(info.platform).toBeDefined()
+      expect(info.capabilities).toBeDefined()
+    })
+
+    it('should include performance metrics', () => {
+      const info = getEnvironmentInfo()
+      expect(info.memory).toBeDefined()
+      expect(typeof info.memory.used).toBe('number')
+    })
+  })
+})
+
+describe('Environment Detection', () => {
+  describe('isTestEnvironment', () => {
+    it('should detect test environment', () => {
+      // Should be true since we're running in vitest
+      expect(isTestEnvironment()).toBe(true)
+    })
+  })
+
+  describe('isCIEnvironment', () => {
+    it('should detect CI environment', () => {
+      const originalCI = process.env.CI
+      
+      // Test CI detection
+      process.env.CI = 'true'
+      expect(isCIEnvironment()).toBe(true)
+      
+      // Restore original
+      if (originalCI !== undefined) {
+        process.env.CI = originalCI
+      } else {
+        delete process.env.CI
+      }
+    })
+  })
+})
+
+describe('PerformanceMonitor', () => {
+  let monitor: PerformanceMonitor
+
+  beforeEach(() => {
+    monitor = new PerformanceMonitor()
+  })
+
+  describe('timing measurements', () => {
+    it('should measure operation duration', async () => {
+      const result = await monitor.measure('test-operation', async () => {
+        // Simulate some work
+        await new Promise(resolve => setTimeout(resolve, 10))
+        return 'completed'
+      })
+      
+      expect(result).toBe('completed')
+      
+      const metrics = monitor.getMetrics()
+      expect(metrics['test-operation']).toBeDefined()
+      expect(metrics['test-operation'].duration).toBeGreaterThan(0)
+    })
+
+    it('should track multiple operations', async () => {
+      await monitor.measure('op1', async () => 'result1')
+      await monitor.measure('op2', async () => 'result2')
+      
+      const metrics = monitor.getMetrics()
+      expect(metrics.op1).toBeDefined()
+      expect(metrics.op2).toBeDefined()
+    })
+  })
+
+  describe('memory tracking', () => {
+    it('should track memory usage', () => {
+      monitor.recordMemoryUsage('before-test')
+      
+      // Simulate memory usage
+      const largeArray = new Array(1000).fill('test')
+      
+      monitor.recordMemoryUsage('after-test')
+      
+      const metrics = monitor.getMetrics()
+      expect(metrics['before-test']).toBeDefined()
+      expect(metrics['after-test']).toBeDefined()
+      
+      // Clean up
+      largeArray.length = 0
+    })
+  })
+
+  describe('reporting', () => {
+    it('should generate performance report', async () => {
+      await monitor.measure('sample-operation', async () => 'done')
+      
+      const report = monitor.generateReport()
+      expect(report).toBeDefined()
+      expect(typeof report).toBe('string')
+      expect(report).toContain('sample-operation')
+    })
+
+    it('should reset metrics', async () => {
+      await monitor.measure('temp-operation', async () => 'temp')
+      
+      expect(Object.keys(monitor.getMetrics())).toHaveLength(1)
+      
+      monitor.reset()
+      expect(Object.keys(monitor.getMetrics())).toHaveLength(0)
+    })
+  })
+})

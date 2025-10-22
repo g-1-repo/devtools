@@ -1,0 +1,94 @@
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "golive-dev"
+    assignees:
+      - "golive-dev"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    # Group related updates together
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "@antfu/*"
+          - "eslint*"
+          - "prettier*"
+          - "typescript"
+          - "vitest"
+          - "tsup"
+          - "bundlesize*"
+          - "webpack-bundle-analyzer"
+        update-types:
+          - "minor"
+          - "patch"
+      build-tools:
+        patterns:
+          - "bun*"
+          - "@changesets/*"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        patterns:
+          - "@modelcontextprotocol/*"
+          - "nanoid"
+        update-types:
+          - "minor"
+          - "patch"
+    # Auto-merge minor and patch updates for dev dependencies
+    auto-merge:
+      dependency-type: "development"
+      update-type: "semver:minor"
+    # Ignore specific packages if needed
+    ignore:
+      # Uncomment to ignore specific packages
+      # - dependency-name: "package-name"
+      #   versions: ["x.x.x"]
+    # Enable security updates
+    security-updates:
+      enabled: true
+    # Rebase strategy for conflicts
+    rebase-strategy: "auto"
+    # Enable vulnerability alerts
+    enable-beta-ecosystems: false
+    # Target branch (default is the repository's default branch)
+    target-branch: "main"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "golive-dev"
+    assignees:
+      - "golive-dev"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"
+      - "ci/cd"
+    # Auto-merge patch updates for actions
+    auto-merge:
+      dependency-type: "direct"
+      update-type: "semver:patch"
