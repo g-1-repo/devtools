@@ -1,5 +1,14 @@
 # @g-1/util
 
+## [2.1.2] - 2025-10-23
+
+### Other Changes
+
+- chore: commit changes before release
+- chore: update changelog for v1.3.0 - repository restructure
+- Initial commit: G1 Studio DevTools monorepo
+
+
 ## [2.1.1] - 2025-10-21
 
 ### Other Changes
