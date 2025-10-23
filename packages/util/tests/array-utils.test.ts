@@ -25,7 +25,7 @@ describe('array utilities', () => {
       const obj1 = { id: 1 }
       const obj2 = { id: 2 }
       const obj3 = { id: 1 } // different reference than obj1
-      
+
       expect(unique([obj1, obj2, obj1, obj3])).toEqual([obj1, obj2, obj3])
     })
   })
@@ -35,29 +35,29 @@ describe('array utilities', () => {
       const users = [
         { name: 'Alice', role: 'admin' },
         { name: 'Bob', role: 'user' },
-        { name: 'Charlie', role: 'admin' }
+        { name: 'Charlie', role: 'admin' },
       ]
-      
+
       const result = groupBy(users, u => u.role)
-      
+
       expect(result).toEqual({
         admin: [
           { name: 'Alice', role: 'admin' },
-          { name: 'Charlie', role: 'admin' }
+          { name: 'Charlie', role: 'admin' },
         ],
         user: [
-          { name: 'Bob', role: 'user' }
-        ]
+          { name: 'Bob', role: 'user' },
+        ],
       })
     })
 
     it('groups primitives by function result', () => {
       const numbers = [1, 2, 3, 4, 5, 6]
       const result = groupBy(numbers, n => n % 2 === 0 ? 'even' : 'odd')
-      
+
       expect(result).toEqual({
         odd: [1, 3, 5],
-        even: [2, 4, 6]
+        even: [2, 4, 6],
       })
     })
 
@@ -67,7 +67,7 @@ describe('array utilities', () => {
 
     it('handles single item', () => {
       expect(groupBy([5], n => n > 3 ? 'big' : 'small')).toEqual({
-        big: [5]
+        big: [5],
       })
     })
   })
@@ -100,14 +100,14 @@ describe('array utilities', () => {
     it('returns array with same length', () => {
       const original = [1, 2, 3, 4, 5]
       const shuffled = shuffle(original)
-      
+
       expect(shuffled).toHaveLength(original.length)
     })
 
     it('contains all original elements', () => {
       const original = [1, 2, 3, 4, 5]
       const shuffled = shuffle(original)
-      
+
       expect(shuffled.sort()).toEqual(original.sort())
     })
 
@@ -115,7 +115,7 @@ describe('array utilities', () => {
       const original = [1, 2, 3, 4, 5]
       const originalCopy = [...original]
       shuffle(original)
-      
+
       expect(original).toEqual(originalCopy)
     })
 
@@ -131,7 +131,7 @@ describe('array utilities', () => {
       const original = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
       const shuffled1 = shuffle(original)
       const shuffled2 = shuffle(original)
-      
+
       // Very unlikely to be identical for a 10-element array
       // (probability is 1/10! ≈ 2.75e-7)
       expect(shuffled1).not.toEqual(shuffled2)

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   // Cache directory for Vitest
   cacheDir: 'node_modules/.vitest',
-  
+
   test: {
     globals: true,
     environment: 'node',
@@ -21,7 +21,7 @@ export default defineConfig({
         lines: 95,
         functions: 95,
         branches: 85,
-        statements: 95
+        statements: 95,
       },
       exclude: [
         'tests/**',
@@ -29,12 +29,12 @@ export default defineConfig({
         'mcp-server/**',
         '**/*.test.ts',
         '**/*.config.*',
-        '**/index.ts' // Re-export files
-      ]
+        '**/index.ts', // Re-export files
+      ],
     },
     benchmark: {
       outputFile: './benchmark-results.json',
-      reporters: ['verbose']
+      reporters: ['verbose'],
     },
     // Optimize test performance
     testTimeout: 10000,

@@ -5,10 +5,10 @@ export default defineConfig(
   createLibraryConfig({
     entry: {
       // Main entry point
-      index: 'src/index.ts',
+      'index': 'src/index.ts',
       // Individual module entry points for tree-shaking
       'array/index': 'src/array/index.ts',
-      'async/index': 'src/async/index.ts', 
+      'async/index': 'src/async/index.ts',
       'date/index': 'src/date/index.ts',
       'string/index': 'src/string/index.ts',
       'object/index': 'src/object/index.ts',
@@ -31,13 +31,13 @@ export default defineConfig(
       'env/index': 'src/env/index.ts',
       'validation/core': 'src/validation/core.ts',
       'validation/web': 'src/validation/web.ts',
-      'workflow/index': 'src/workflow/index.ts'
+      'workflow/index': 'src/workflow/index.ts',
     },
     platform: 'node', // Change to node for better built-in handling
     target: 'node18',
     external: ['execa'], // Keep optional deps external
     noExternal: ['nanoid', '@paralleldrive/cuid2'], // Bundle small dependencies
     dts: true, // Enable TypeScript declarations
-    splitting: true // Enable aggressive code splitting for tree-shaking
-  })
+    splitting: false, // Disable code splitting to avoid chunk warnings
+  }),
 )

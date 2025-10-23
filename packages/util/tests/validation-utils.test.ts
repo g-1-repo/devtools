@@ -72,7 +72,7 @@ describe('validation utilities', () => {
     it('accepts both uppercase and lowercase', () => {
       const lowerUuid = '550e8400-e29b-41d4-a716-446655440000'
       const upperUuid = '550E8400-E29B-41D4-A716-446655440000'
-      
+
       expect(isValidUUID(lowerUuid)).toBe(true)
       expect(isValidUUID(upperUuid)).toBe(true)
     })

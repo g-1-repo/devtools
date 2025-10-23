@@ -58,7 +58,7 @@ function getProjectContext(): string {
 
       hasGoUtils = '@go-corp/utils' in deps
     }
-    catch (error) {
+    catch {
       // Ignore errors reading package.json
     }
   }
@@ -71,7 +71,7 @@ function getProjectContext(): string {
     isGitRepo = true
     currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim()
   }
-  catch (error) {
+  catch {
     // Not a git repo or git not available
   }
 

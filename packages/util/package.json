@@ -161,11 +161,11 @@
     "g1-util-mcp": "mcp-server/server.js"
   },
   "files": [
-    "README.md",
-    "LICENSE",
     "CHANGELOG.md",
-    "SECURITY.md",
+    "LICENSE",
     "PERFORMANCE.md",
+    "README.md",
+    "SECURITY.md",
     "dist",
     "mcp-server"
   ],
@@ -216,8 +216,8 @@
     "nanoid": "^5.1.6"
   },
   "optionalDependencies": {
-    "simple-git": "^4.0.0",
-    "execa": "^9.1.0"
+    "execa": "^9.1.0",
+    "simple-git": "^4.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.0.0",

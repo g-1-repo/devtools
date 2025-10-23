@@ -20,7 +20,7 @@ Features:
 - Semantic versioning compliance
 - Integration with @g-1/util
 
-### `workflow.ts` 
+### `workflow.ts`
 Development workflow utilities powered by `@g-1/util`.
 
 ```bash
@@ -54,7 +54,7 @@ Demonstrates:
 # Finish current branch and merge
 bun run finish-branch
 
-# Run workflow utilities  
+# Run workflow utilities
 bun run workflow
 
 # Show library demo

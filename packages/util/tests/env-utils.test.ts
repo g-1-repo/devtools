@@ -1,32 +1,32 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  CommonEnvVars,
+  getEnv,
+  getEnvBoolean,
+  getEnvJson,
+  getEnvNumber,
   isDev,
   isProd,
   isTest,
-  getEnv,
-  requireEnv,
-  getEnvNumber,
-  getEnvBoolean,
-  getEnvJson,
-  validateEnv,
   loadEnvConfig,
-  CommonEnvVars
+  requireEnv,
+  validateEnv,
 } from '../src/env'
 
-describe('Environment utilities', () => {
+describe('environment utilities', () => {
   const originalEnv = process.env
-  
+
   beforeEach(() => {
     // Create a fresh copy of process.env for each test
     process.env = { ...originalEnv }
   })
-  
+
   afterEach(() => {
     // Restore original environment
     process.env = originalEnv
   })
 
-  describe('Environment detection', () => {
+  describe('environment detection', () => {
     it('detects development environment', () => {
       process.env.NODE_ENV = 'development'
       expect(isDev()).toBe(true)
@@ -72,7 +72,7 @@ describe('Environment utilities', () => {
 
     it('throws error when required variable is missing', () => {
       expect(() => requireEnv('MISSING_VAR')).toThrow(
-        'Environment variable MISSING_VAR is required but not set'
+        'Environment variable MISSING_VAR is required but not set',
       )
     })
   })
@@ -90,7 +90,7 @@ describe('Environment utilities', () => {
     it('throws error for invalid numbers', () => {
       process.env.INVALID_PORT = 'not-a-number'
       expect(() => getEnvNumber('INVALID_PORT')).toThrow(
-        'Environment variable INVALID_PORT must be a number, got: not-a-number'
+        'Environment variable INVALID_PORT must be a number, got: not-a-number',
       )
     })
   })
@@ -121,7 +121,7 @@ describe('Environment utilities', () => {
     it('throws error for invalid boolean values', () => {
       process.env.INVALID_BOOL = 'maybe'
       expect(() => getEnvBoolean('INVALID_BOOL')).toThrow(
-        'Environment variable INVALID_BOOL must be a boolean, got: maybe'
+        'Environment variable INVALID_BOOL must be a boolean, got: maybe',
       )
     })
   })
@@ -141,7 +141,7 @@ describe('Environment utilities', () => {
     it('throws error for invalid JSON', () => {
       process.env.INVALID_JSON = 'not-json'
       expect(() => getEnvJson('INVALID_JSON')).toThrow(
-        'Environment variable INVALID_JSON must be valid JSON, got: not-json'
+        'Environment variable INVALID_JSON must be valid JSON, got: not-json',
       )
     })
   })
@@ -150,7 +150,7 @@ describe('Environment utilities', () => {
     it('returns empty array when all variables are present', () => {
       process.env.VAR1 = 'value1'
       process.env.VAR2 = 'value2'
-      
+
       const result = validateEnv(['VAR1', 'VAR2'])
       expect(result.missing).toEqual([])
     })
@@ -158,7 +158,7 @@ describe('Environment utilities', () => {
     it('returns missing variables', () => {
       process.env.VAR1 = 'value1'
       // VAR2 is intentionally missing
-      
+
       const result = validateEnv(['VAR1', 'VAR2', 'VAR3'])
       expect(result.missing).toEqual(['VAR2', 'VAR3'])
     })
@@ -169,34 +169,34 @@ describe('Environment utilities', () => {
       process.env.APP_PORT = '3000'
       process.env.APP_DEBUG = 'true'
       process.env.APP_NAME = 'test-app'
-      
+
       const config = loadEnvConfig({
         APP_PORT: { type: 'number', required: true },
         APP_DEBUG: { type: 'boolean', defaultValue: false },
         APP_NAME: { type: 'string', required: true },
-        OPTIONAL_VAR: { defaultValue: 'default-value' }
+        OPTIONAL_VAR: { defaultValue: 'default-value' },
       })
-      
+
       expect(config).toEqual({
         APP_PORT: 3000,
         APP_DEBUG: true,
         APP_NAME: 'test-app',
-        OPTIONAL_VAR: 'default-value'
+        OPTIONAL_VAR: 'default-value',
       })
     })
 
     it('throws error for missing required variables', () => {
       expect(() => loadEnvConfig({
-        REQUIRED_VAR: { required: true }
+        REQUIRED_VAR: { required: true },
       })).toThrow('Environment validation failed')
     })
   })
 
-  describe('CommonEnvVars', () => {
+  describe('commonEnvVars', () => {
     it('provides common environment variable accessors', () => {
       process.env.NODE_ENV = 'production'
       process.env.PORT = '8080'
-      
+
       expect(CommonEnvVars.NODE_ENV()).toBe('production')
       expect(CommonEnvVars.PORT()).toBe(8080)
       expect(CommonEnvVars.HOST()).toBe('0.0.0.0') // default value

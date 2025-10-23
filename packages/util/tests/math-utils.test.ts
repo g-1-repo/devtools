@@ -145,8 +145,8 @@ describe('math utilities', () => {
   describe('deg/rad round-trip conversion', () => {
     it('maintains precision in round-trip conversions', () => {
       const testDegrees = [0, 30, 45, 90, 120, 180, 270, 360]
-      
-      testDegrees.forEach(deg => {
+
+      testDegrees.forEach((deg) => {
         const rad = degToRad(deg)
         const backToDeg = radToDeg(rad)
         expect(backToDeg).toBeCloseTo(deg, 10)

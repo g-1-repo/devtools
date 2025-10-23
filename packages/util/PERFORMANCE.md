@@ -15,7 +15,7 @@ This document tracks the performance optimizations applied to the go-utils libra
 - **Bundle size targets**: All modules under 271B gzipped (main: 1.11KB)
 - **Tree-shaking optimized**: Proper `sideEffects: false` configuration
 
-### Test Infrastructure  
+### Test Infrastructure
 - **Parallel testing**: Enabled threaded test execution with Vitest
 - **Consolidated structure**: All tests moved to centralized `tests/` directory
 - **Test performance**: 164ms execution time for 81 tests
@@ -29,12 +29,12 @@ This document tracks the performance optimizations applied to the go-utils libra
 
 ### Bundle Sizes (Gzipped)
 - Main bundle: **1.13KB** (target: <25KB) ✅
-- Individual modules: **89B-301B** (target: <5KB) ✅ 
+- Individual modules: **89B-301B** (target: <5KB) ✅
 - Total distribution: **48.67KB** including all formats (6.3% reduction)
 
 ### Build Performance
 - ESM build: **82-87ms**
-- CJS build: **83-87ms** 
+- CJS build: **83-87ms**
 - DTS generation: **2.97-3.0s**
 - Total build time: **~3.2s**
 
@@ -51,7 +51,7 @@ This document tracks the performance optimizations applied to the go-utils libra
 - **node_modules size reduction**: 215M → 210M (5MB reduction)
 - **Build performance**: Reduced dependency resolution time
 
-### 2. Advanced Chunk Splitting ✅ 
+### 2. Advanced Chunk Splitting ✅
 - **Previous largest chunks**: 7.57KB and 7.71KB
 - **Optimized chunks**: Now 4.25KB and 4.18KB (44% reduction!)
 - **Added granular entry points**: `node/git-utils` and `node/prompt-utils` for better tree-shaking
@@ -80,7 +80,7 @@ This document tracks the performance optimizations applied to the go-utils libra
 
 - `bun run perf` - Full performance check (build + test + analyze)
 - `bun run ci:optimized` - Complete CI simulation locally
-- `bun run analyze` - Bundle size analysis with recommendations  
+- `bun run analyze` - Bundle size analysis with recommendations
 - `bun run deps:check` - Dependency usage audit
 - `bun run build:dev` - Development build with sourcemaps
 - `bun run size-check` - Verify bundle size constraints
@@ -98,7 +98,7 @@ Target to review these metrics monthly and after major dependency updates.
 ## 🎯 Performance Goals
 
 - Keep main bundle under 2KB gzipped
-- Individual modules under 500B gzipped  
+- Individual modules under 500B gzipped
 - Build time under 5 seconds
 - Test execution under 200ms
 - 70%+ code splitting efficiency

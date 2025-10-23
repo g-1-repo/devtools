@@ -46,3 +46,45 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 export function isFunction(value: unknown): value is (...args: any[]) => any {
   return typeof value === 'function'
 }
+
+/**
+ * Utility type that makes all properties of T optional recursively
+ */
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
+}
+
+/**
+ * Utility type that makes all properties of T readonly recursively
+ */
+export type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P]
+}
+
+/**
+ * Utility type for arrays that must have at least one element
+ */
+export type NonEmptyArray<T> = [T, ...T[]]
+
+/**
+ * Utility type that flattens intersection types for better readability
+ */
+export type Prettify<T> = {
+  [K in keyof T]: T[K]
+} & Record<string, never>
+
+/**
+ * Utility type that extracts required keys from a type
+ */
+export type RequiredKeys<T> = {
+  [K in keyof T]-?: Record<string, never> extends Pick<T, K> ? never : K
+}[keyof T]
+
+/**
+ * Utility type that converts a union type to an intersection type
+ */
+export type UnionToIntersection<U> = (
+  U extends any ? (k: U) => void : never
+) extends (k: infer I) => void
+  ? I
+  : never
