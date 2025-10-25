@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1] - 2025-10-25
+
+### Other Changes
+
+- chore: commit changes before release
+
+
 ## [1.3.0] - 2025-10-22
 
 ### Features
