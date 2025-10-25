@@ -2,12 +2,19 @@
  * G1 Workflow CLI - Enterprise release automation
  */
 
-import type { ReleaseOptions, WorkflowContext } from './types/index.js'
 import process from 'node:process'
 import chalk from 'chalk'
 import { program } from 'commander'
 import { createTaskEngine } from './core/task-engine.js'
-import { createReleaseWorkflow, deployToCloudflare, detectCloudflareSetup, hasNpmPublishingWorkflow, watchGitHubActions } from './workflows/release.js'
+import type { ReleaseOptions, WorkflowContext } from './types/index.js'
+import { promptSkipNpmPackages } from './utils/interactive.js'
+import {
+  createReleaseWorkflow,
+  deployToCloudflare,
+  detectCloudflareSetup,
+  hasNpmPublishingWorkflow,
+  watchGitHubActions,
+} from './workflows/release.js'
 
 // Load version from package.json
 function getVersion(): string {
@@ -16,8 +23,7 @@ function getVersion(): string {
     const fs = require('node:fs')
     const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf-8'))
     return packageJson.version || 'unknown'
-  }
-  catch {
+  } catch {
     return 'unknown'
   }
 }
@@ -32,17 +38,37 @@ program
 // Release command
 program
   .command('release')
-  .description('🚀 Execute complete release workflow: quality gates → git → cloudflare → GitHub release')
+  .description(
+    '🚀 Execute complete release workflow: quality gates → git → cloudflare → GitHub release'
+  )
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
   .option('--skip-lint', 'Skip linting')
   .option('--skip-cloudflare', 'Skip Cloudflare deployment')
+  .option('--skip-npm', 'Skip npm publishing for all packages')
+  .option(
+    '--skip-npm-packages [packages]',
+    'Skip npm publishing for specific packages (interactive selection if no packages specified)',
+    (value) => (value ? value.split(',').map((pkg) => pkg.trim()) : true)
+  )
   .option('--non-interactive', 'Run in non-interactive mode (skip prompts)')
   .option('--dry-run', 'Show what would be done without executing')
   .option('--verbose', 'Show detailed output')
   .option('--force', 'Skip uncommitted changes check (use with caution)')
   .action(async (options: ReleaseOptions) => {
     try {
+      // Handle interactive package selection for --skip-npm-packages
+      if (options.skipNpmPackages === true && !options.nonInteractive) {
+        // Interactive mode - prompt user to select packages
+        const selectedPackages = await promptSkipNpmPackages()
+        options.skipNpm = selectedPackages.length > 0 ? selectedPackages : false
+      } else if (Array.isArray(options.skipNpmPackages)) {
+        // Packages specified via command line
+        options.skipNpm = options.skipNpmPackages
+      } else if (options.skipNpm === true) {
+        options.skipNpm = true
+      }
+
       console.log()
       console.log(chalk.cyan('╔══════════════════════════════════════════════════════════╗'))
       console.log(chalk.cyan('║               G1 WORKFLOW - RELEASE AUTOMATION           ║'))
@@ -50,10 +76,18 @@ program
       console.log(chalk.gray(`                       Version ${version}\n`))
 
       if (options.dryRun) {
-        console.log(chalk.yellow.bold('┌──────────────────────────────────────────────────────────────┐'))
-        console.log(chalk.yellow.bold('│                     DRY RUN MODE ENABLED                     │'))
-        console.log(chalk.yellow.bold('│                   No changes will be made                    │'))
-        console.log(chalk.yellow.bold('└──────────────────────────────────────────────────────────────┘'))
+        console.log(
+          chalk.yellow.bold('┌──────────────────────────────────────────────────────────────┐')
+        )
+        console.log(
+          chalk.yellow.bold('│                     DRY RUN MODE ENABLED                     │')
+        )
+        console.log(
+          chalk.yellow.bold('│                   No changes will be made                    │')
+        )
+        console.log(
+          chalk.yellow.bold('└──────────────────────────────────────────────────────────────┘')
+        )
         console.log()
       }
 
@@ -67,20 +101,30 @@ program
       })
 
       // Execute workflow
-      const context = await taskEngine.execute(steps) as WorkflowContext
+      const context = (await taskEngine.execute(steps)) as WorkflowContext
 
       // Success summary
       console.log()
-      console.log(chalk.green('╔═════════════════════════════════════════════════════════════════════╗'))
-      console.log(chalk.green('║                   RELEASE COMPLETED SUCCESSFULLY!                   ║'))
-      console.log(chalk.green('╚═════════════════════════════════════════════════════════════════════╝'))
+      console.log(
+        chalk.green('╔═════════════════════════════════════════════════════════════════════╗')
+      )
+      console.log(
+        chalk.green('║                   RELEASE COMPLETED SUCCESSFULLY!                   ║')
+      )
+      console.log(
+        chalk.green('╚═════════════════════════════════════════════════════════════════════╝')
+      )
       console.log()
 
       console.log(chalk.bold('Release Summary'))
       console.log(chalk.dim('─'.repeat(50)))
 
       if (context.version) {
-        console.log(chalk.cyan(`  Version:     ${chalk.white(context.version.current)} → ${chalk.white.bold(context.version.next)}`))
+        console.log(
+          chalk.cyan(
+            `  Version:     ${chalk.white(context.version.current)} → ${chalk.white.bold(context.version.next)}`
+          )
+        )
       }
 
       if (context.git) {
@@ -95,27 +139,33 @@ program
       console.log()
 
       // GitHub Actions monitoring prompt (skip in dry-run mode)
-      if (!options.dryRun && !options.nonInteractive && context.git?.repository && context.version?.next) {
+      if (
+        !options.dryRun &&
+        !options.nonInteractive &&
+        context.git?.repository &&
+        context.version?.next
+      ) {
         // Check if this repository has npm publishing workflows
         const hasPublishing = await hasNpmPublishingWorkflow(context.git.repository)
 
         if (hasPublishing) {
           const enquirer = await import('enquirer')
-          const response = await enquirer.default.prompt({
+          const response = (await enquirer.default.prompt({
             type: 'confirm',
             name: 'watchActions',
             message: '🔍 Watch GitHub Actions for npm publishing?',
             initial: true,
             prefix: '  ',
-          }) as { watchActions: boolean }
+          })) as { watchActions: boolean }
 
           if (response.watchActions) {
             const tagName = `v${context.version.next}`
             await watchGitHubActions(context.git.repository, tagName)
           }
-        }
-        else {
-          console.log(chalk.dim('  📝 No npm publishing workflows detected - skipping monitoring prompt'))
+        } else {
+          console.log(
+            chalk.dim('  📝 No npm publishing workflows detected - skipping monitoring prompt')
+          )
         }
       }
 
@@ -126,21 +176,20 @@ program
 
         if (hasCloudflare) {
           const enquirer = await import('enquirer')
-          const response = await enquirer.default.prompt({
+          const response = (await enquirer.default.prompt({
             type: 'confirm',
             name: 'deployToCloudflare',
             message: '🚀 Deploy to Cloudflare Workers?',
             initial: true,
             prefix: '  ',
-          }) as { deployToCloudflare: boolean }
+          })) as { deployToCloudflare: boolean }
 
           if (response.deployToCloudflare) {
             await deployToCloudflare()
           }
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.log()
       console.log(chalk.red('╔══════════════════════════════════════════════════════════════════╗'))
       console.log(chalk.red('║                          RELEASE FAILED                          ║'))
@@ -159,19 +208,31 @@ program
           console.log(chalk.yellow.bold('Suggested Solutions'))
           console.log(chalk.yellow.dim('─'.repeat(30)))
           console.log(chalk.yellow('  • Add test files to your project, or'))
-          console.log(chalk.yellow(`  • Skip tests with: ${chalk.white.bold('workflow release --skip-tests')}`))
-        }
-        else if (error.message.includes('Uncommitted changes')) {
+          console.log(
+            chalk.yellow(
+              `  • Skip tests with: ${chalk.white.bold('workflow release --skip-tests')}`
+            )
+          )
+        } else if (error.message.includes('Uncommitted changes')) {
           console.log(chalk.yellow.bold('Suggested Solutions'))
           console.log(chalk.yellow.dim('─'.repeat(30)))
-          console.log(chalk.yellow(`  • Commit your changes with: ${chalk.white.bold('git add . && git commit -m "your message"')}`))
+          console.log(
+            chalk.yellow(
+              `  • Commit your changes with: ${chalk.white.bold('git add . && git commit -m "your message"')}`
+            )
+          )
           console.log(chalk.yellow(`  • Or stash them with: ${chalk.white.bold('git stash')}`))
-        }
-        else if (error.message.includes('TypeScript errors')) {
+        } else if (error.message.includes('TypeScript errors')) {
           console.log(chalk.yellow.bold('Suggested Solutions'))
           console.log(chalk.yellow.dim('─'.repeat(30)))
-          console.log(chalk.yellow(`  • Fix TypeScript errors with: ${chalk.white.bold('bun run typecheck')}`))
-          console.log(chalk.yellow(`  • Or skip type checking with: ${chalk.white.bold('workflow release --skip-lint')}`))
+          console.log(
+            chalk.yellow(`  • Fix TypeScript errors with: ${chalk.white.bold('bun run typecheck')}`)
+          )
+          console.log(
+            chalk.yellow(
+              `  • Or skip type checking with: ${chalk.white.bold('workflow release --skip-lint')}`
+            )
+          )
         }
         console.log()
 
@@ -210,16 +271,16 @@ program
   .option('--direct', 'Test error recovery directly without triggering a workflow')
   .action(async (options) => {
     try {
-      const { testErrorRecovery, testErrorRecoveryDirectly } = await import('./test-error-recovery.js')
+      const { testErrorRecovery, testErrorRecoveryDirectly } = await import(
+        './test-error-recovery.js'
+      )
 
       if (options.direct) {
         await testErrorRecoveryDirectly()
-      }
-      else {
+      } else {
         await testErrorRecovery()
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.log(chalk.red('❌ Error recovery test failed'))
       if (error instanceof Error) {
         console.log(chalk.red(error.message))
@@ -242,8 +303,12 @@ program
     console.log(chalk.gray(`📦 Version: ${version}`))
     console.log()
     console.log(chalk.cyan.bold('🧪 Test Commands'))
-    console.log(chalk.gray(`  workflow test-error-recovery     Test error recovery with sample workflow`))
-    console.log(chalk.gray(`  workflow test-error-recovery --direct    Test error recovery directly`))
+    console.log(
+      chalk.gray(`  workflow test-error-recovery     Test error recovery with sample workflow`)
+    )
+    console.log(
+      chalk.gray(`  workflow test-error-recovery --direct    Test error recovery directly`)
+    )
   })
 
 // Error handling
@@ -251,8 +316,7 @@ program.exitOverride()
 
 try {
   program.parse()
-}
-catch (error) {
+} catch (error) {
   if (error instanceof Error && error.message.includes('outputHelp')) {
     // User asked for help, don't show error
     process.exit(0)

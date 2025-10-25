@@ -275,12 +275,12 @@ export interface PluginContext {
 export type CommandHandler = (args: string[], context: WorkflowContext) => Promise<void>
 export type HookHandler = (context: WorkflowContext) => Promise<void> | void
 
-export type WorkflowEvent
-  = | 'before:workflow'
-    | 'after:workflow'
-    | 'before:step'
-    | 'after:step'
-    | 'on:error'
+export type WorkflowEvent =
+  | 'before:workflow'
+  | 'after:workflow'
+  | 'before:step'
+  | 'after:step'
+  | 'on:error'
 
 // =============================================================================
 // CLI Types
@@ -300,6 +300,8 @@ export interface ReleaseOptions extends CliOptions {
   skipTests?: boolean
   skipLint?: boolean
   skipCloudflare?: boolean
+  skipNpm?: boolean | string[] // true to skip all, array of package names to skip specific packages
+  skipNpmPackages?: string[] | boolean // array of package names or true for interactive selection
   force?: boolean
   nonInteractive?: boolean
 }
@@ -319,7 +321,7 @@ export class WorkflowError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly context?: WorkflowContext,
+    public readonly context?: WorkflowContext
   ) {
     super(message)
     this.name = 'WorkflowError'
@@ -341,7 +343,11 @@ export class GitError extends WorkflowError {
 }
 
 export class DeploymentError extends WorkflowError {
-  constructor(message: string, public readonly target: string, context?: WorkflowContext) {
+  constructor(
+    message: string,
+    public readonly target: string,
+    context?: WorkflowContext
+  ) {
     super(message, 'DEPLOYMENT_ERROR', context)
     this.name = 'DeploymentError'
   }

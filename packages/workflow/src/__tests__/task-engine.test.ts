@@ -2,9 +2,9 @@
  * Comprehensive TaskEngine test suite
  */
 
-import type { WorkflowStep } from '../types/index.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TaskEngine } from '../core/task-engine.js'
+import type { WorkflowStep } from '../types/index.js'
 
 describe('taskEngine', () => {
   let taskEngine: TaskEngine

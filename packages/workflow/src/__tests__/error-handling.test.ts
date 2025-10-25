@@ -2,15 +2,15 @@
  * Test suite for error handling components
  */
 
-import { ErrorFormatter } from '@g-1/util/debug'
 import { describe, expect, it } from 'vitest'
+import { createErrorBox, formatError, formatWorkflowFailure } from '../core/error-formatter'
 import { ErrorRecoveryService } from '../core/error-recovery'
 
 describe('error Formatter', () => {
   describe('formatError', () => {
     it('should format basic Error objects', () => {
       const error = new Error('Test error message')
-      const formatted = ErrorFormatter.formatError(error)
+      const formatted = formatError(error)
 
       expect(formatted.message).toContain('Test error message')
       expect(typeof formatted.message).toBe('string')
@@ -21,20 +21,20 @@ describe('error Formatter', () => {
       const error = new Error('Test error')
       error.stack = 'Error: Test error\n    at test.js:1:1'
 
-      const formatted = ErrorFormatter.formatError(error)
+      const formatted = formatError(error)
       expect(formatted.message).toContain('Test error')
       expect(formatted.context).toBeDefined()
     })
 
     it('should handle string errors', () => {
-      const formatted = ErrorFormatter.formatError('Simple string error')
+      const formatted = formatError('Simple string error')
       expect(formatted.message).toContain('Simple string error')
     })
 
     it('should handle different error types', () => {
-      const critical = ErrorFormatter.formatError('Critical error', 'critical')
-      const warning = ErrorFormatter.formatError('Warning error', 'warning')
-      const info = ErrorFormatter.formatError('Info error', 'info')
+      const critical = formatError('Critical error', 'critical')
+      const warning = formatError('Warning error', 'warning')
+      const info = formatError('Info error', 'info')
 
       expect(critical.type).toBe('critical')
       expect(warning.type).toBe('warning')
@@ -42,13 +42,13 @@ describe('error Formatter', () => {
     })
 
     it('should format workflow failures', () => {
-      const formatted = ErrorFormatter.formatWorkflowFailure('Test Step', 'Step failed')
+      const formatted = formatWorkflowFailure('Test Step', 'Step failed')
       expect(formatted).toContain('Test Step')
       expect(formatted).toContain('Step failed')
     })
 
     it('should create error boxes', () => {
-      const box = ErrorFormatter.createErrorBox('Title', 'Message', ['Suggestion 1'])
+      const box = createErrorBox('Title', 'Message', ['Suggestion 1'])
       expect(box).toContain('Title')
       expect(box).toContain('Message')
       expect(box).toContain('Suggestion 1')
@@ -130,9 +130,7 @@ describe('error Recovery', () => {
 
       // This will run the actual recovery workflow
       // We expect it to complete without throwing
-      await expect(
-        recovery.executeRecovery(mockError),
-      ).resolves.toBeUndefined()
+      await expect(recovery.executeRecovery(mockError)).resolves.toBeUndefined()
     })
   })
 })

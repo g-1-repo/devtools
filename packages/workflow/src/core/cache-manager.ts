@@ -8,7 +8,7 @@ export interface CacheOptions {
 }
 
 export class CacheManager<K, V> {
-  private cache: Map<K, { value: V, timestamp: number }>
+  private cache: Map<K, { value: V; timestamp: number }>
   private maxSize: number
   private ttl: number
 
@@ -34,8 +34,7 @@ export class CacheManager<K, V> {
 
   get(key: K): V | undefined {
     const entry = this.cache.get(key)
-    if (!entry)
-      return undefined
+    if (!entry) return undefined
     // Check TTL
     if (Date.now() - entry.timestamp > this.ttl) {
       this.cache.delete(key)

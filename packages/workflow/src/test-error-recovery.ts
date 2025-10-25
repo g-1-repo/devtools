@@ -2,13 +2,13 @@
  * Test Error Recovery - Demonstrates automated error fixing in action
  */
 
-import type { WorkflowStep } from './types/index.js'
 import * as fs from 'node:fs/promises'
 import process from 'node:process'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import { ErrorRecoveryService } from './core/error-recovery.js'
 import { createTaskEngine } from './core/task-engine.js'
+import type { WorkflowStep } from './types/index.js'
 
 export async function testErrorRecovery(): Promise<void> {
   console.error(chalk.cyan('╔════════════════════════════════════════════════════════════════╗'))
@@ -32,10 +32,11 @@ export async function testErrorRecovery(): Promise<void> {
           try {
             await execa('bun', ['run', 'lint'], { stdio: 'pipe' })
             helpers.setTitle('Test Linting - ✅ Unexpected success')
-          }
-          catch (error) {
+          } catch (error) {
             helpers.setTitle('Test Linting - ❌ Expected failure')
-            throw new Error(`Linting failed: ${error instanceof Error ? error.message : String(error)}`)
+            throw new Error(
+              `Linting failed: ${error instanceof Error ? error.message : String(error)}`
+            )
           }
         },
       },
@@ -51,18 +52,19 @@ export async function testErrorRecovery(): Promise<void> {
 
     try {
       await taskEngine.execute(testWorkflow, {})
+    } catch {
+      console.error(
+        chalk.green(
+          '\\n✅ Error recovery completed. The workflow failed as expected, but recovery was triggered.'
+        )
+      )
     }
-    catch {
-      console.error(chalk.green('\\n✅ Error recovery completed. The workflow failed as expected, but recovery was triggered.'))
-    }
-  }
-  finally {
+  } finally {
     // Clean up test file
     try {
       await fs.unlink(testFile)
       console.error(chalk.gray('\\n🧹 Test file cleaned up'))
-    }
-    catch {
+    } catch {
       // File might not exist, ignore
     }
   }
@@ -90,9 +92,12 @@ export async function testErrorRecoveryDirectly(): Promise<void> {
     try {
       await recoveryService.executeRecovery(error)
       console.error(chalk.green('✅ Recovery workflow completed'))
-    }
-    catch (recoveryError) {
-      console.error(chalk.red(`❌ Recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`))
+    } catch (recoveryError) {
+      console.error(
+        chalk.red(
+          `❌ Recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`
+        )
+      )
     }
 
     console.error(chalk.gray('─'.repeat(68)))
@@ -128,12 +133,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     try {
       if (command === 'direct') {
         await testErrorRecoveryDirectly()
-      }
-      else {
+      } else {
         await testErrorRecovery()
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error(chalk.red('Test failed:'), error)
       process.exit(1)
     }

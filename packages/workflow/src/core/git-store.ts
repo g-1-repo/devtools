@@ -33,7 +33,7 @@ export class GitStore extends GitOperations {
       // First try to get version from latest git tag (workflow-specific approach)
       const { execa } = await import('execa')
       const result = await execa('git', ['tag', '--sort=-version:refname', '--merged'])
-      const latestTag = result.stdout.split('\n').find(tag => tag.match(/^v?\d+\.\d+\.\d+/))
+      const latestTag = result.stdout.split('\n').find((tag) => tag.match(/^v?\d+\.\d+\.\d+/))
 
       if (latestTag) {
         // Remove 'v' prefix if present
@@ -45,8 +45,7 @@ export class GitStore extends GitOperations {
         assert: { type: 'json' },
       })
       return packageJson.default.version || '0.0.0'
-    }
-    catch {
+    } catch {
       return '0.0.0'
     }
   }

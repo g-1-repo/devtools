@@ -4,8 +4,12 @@
  * Main library exports for programmatic usage
  */
 
-export { ErrorRecoveryService } from './core/error-recovery.js'
+export type { FormattedError } from '@g-1/util/debug'
+export { ErrorFormatter } from '@g-1/util/debug'
+// Re-export consolidated Git operations from @g-1/util
+export { createGitOperations as createGitStore, GitOperations as GitStore } from '@g-1/util/node'
 export type { ErrorAnalysis } from './core/error-recovery.js'
+export { ErrorRecoveryService } from './core/error-recovery.js'
 // Core exports
 export { createTaskEngine, TaskEngine } from './core/task-engine.js'
 // Type exports
@@ -29,13 +33,17 @@ export type {
   WorkflowStep,
 } from './types/index.js'
 // Workflow exports
-export { createReleaseWorkflow, deployToCloudflare, detectCloudflareSetup, hasNpmPublishingWorkflow, watchGitHubActions } from './workflows/release.js'
-export { ErrorFormatter } from '@g-1/util/debug'
-
-export type { FormattedError } from '@g-1/util/debug'
-
-// Re-export consolidated Git operations from @g-1/util
-export { createGitOperations as createGitStore, GitOperations as GitStore } from '@g-1/util/node'
+export {
+  createReleaseWorkflow,
+  deployToCloudflare,
+  detectCloudflareSetup,
+  detectPublishablePackages,
+  detectSmartPublishablePackages,
+  formatPackageDetectionSummary,
+  hasNpmPublishingWorkflow,
+  shouldSkipNpmForPackage,
+  watchGitHubActions,
+} from './workflows/release.js'
 
 /**
  * Quick release function for simple usage

@@ -49,7 +49,7 @@ export class MemoryManager {
       }
 
       // Allow event loop to process
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }
 
@@ -60,6 +60,6 @@ export class MemoryManager {
 
   isMemoryAvailable(requiredBytes: number): boolean {
     const { heapUsed } = process.memoryUsage()
-    return (heapUsed + requiredBytes) < this.memoryLimit
+    return heapUsed + requiredBytes < this.memoryLimit
   }
 }

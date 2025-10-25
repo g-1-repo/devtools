@@ -8,46 +8,112 @@ import { createReleaseWorkflow } from '../workflows/release.js'
 // Mock dependencies
 vi.mock('@g-1/util/node', () => ({
   GitOperations: class MockGitOperations {
-    async getCurrentBranch() { return 'main' }
-    async hasUncommittedChanges() { return false }
-    async getChangedFiles() { return ['README.md'] }
-    async commit() { return 'abc123' }
-    async createTag() { return 'v1.0.0' }
-    async push() { return true }
-    async isGitRepository() { return true }
-    getCurrentVersion() { return '1.0.0' }
-    async getRepositoryName() { return 'test-repo' }
-    async getCommitsSinceTag() { return [] }
-    async stageFiles() { return true }
-    updatePackageVersion() { return true }
+    async getCurrentBranch() {
+      return 'main'
+    }
+    async hasUncommittedChanges() {
+      return false
+    }
+    async getChangedFiles() {
+      return ['README.md']
+    }
+    async commit() {
+      return 'abc123'
+    }
+    async createTag() {
+      return 'v1.0.0'
+    }
+    async push() {
+      return true
+    }
+    async isGitRepository() {
+      return true
+    }
+    getCurrentVersion() {
+      return '1.0.0'
+    }
+    async getRepositoryName() {
+      return 'test-repo'
+    }
+    async getCommitsSinceTag() {
+      return []
+    }
+    async stageFiles() {
+      return true
+    }
+    updatePackageVersion() {
+      return true
+    }
   },
-  createGitOperations: vi.fn(() => new (class MockGitOperations {
-    async getCurrentBranch() { return 'main' }
-    async hasUncommittedChanges() { return false }
-    async getChangedFiles() { return ['README.md'] }
-    async commit() { return 'abc123' }
-    async createTag() { return 'v1.0.0' }
-    async push() { return true }
-    async isGitRepository() { return true }
-    getCurrentVersion() { return '1.0.0' }
-    async getRepositoryName() { return 'test-repo' }
-    async getCommitsSinceTag() { return [] }
-    async stageFiles() { return true }
-    updatePackageVersion() { return true }
-  })()),
+  createGitOperations: vi.fn(
+    () =>
+      new (class MockGitOperations {
+        async getCurrentBranch() {
+          return 'main'
+        }
+        async hasUncommittedChanges() {
+          return false
+        }
+        async getChangedFiles() {
+          return ['README.md']
+        }
+        async commit() {
+          return 'abc123'
+        }
+        async createTag() {
+          return 'v1.0.0'
+        }
+        async push() {
+          return true
+        }
+        async isGitRepository() {
+          return true
+        }
+        getCurrentVersion() {
+          return '1.0.0'
+        }
+        async getRepositoryName() {
+          return 'test-repo'
+        }
+        async getCommitsSinceTag() {
+          return []
+        }
+        async stageFiles() {
+          return true
+        }
+        updatePackageVersion() {
+          return true
+        }
+      })()
+  ),
 }))
 
 vi.mock('../core/git-store.js', () => ({
   GitStore: class MockGitStore {
-    async getCurrentVersionFromGit() { return '1.0.0' }
-    async getCurrentBranch() { return 'main' }
-    async hasUncommittedChanges() { return false }
+    async getCurrentVersionFromGit() {
+      return '1.0.0'
+    }
+    async getCurrentBranch() {
+      return 'main'
+    }
+    async hasUncommittedChanges() {
+      return false
+    }
   },
-  createGitStore: vi.fn(() => new (class MockGitStore {
-    async getCurrentVersionFromGit() { return '1.0.0' }
-    async getCurrentBranch() { return 'main' }
-    async hasUncommittedChanges() { return false }
-  })()),
+  createGitStore: vi.fn(
+    () =>
+      new (class MockGitStore {
+        async getCurrentVersionFromGit() {
+          return '1.0.0'
+        }
+        async getCurrentBranch() {
+          return 'main'
+        }
+        async hasUncommittedChanges() {
+          return false
+        }
+      })()
+  ),
 }))
 
 describe('releaseWorkflow', () => {
@@ -85,9 +151,10 @@ describe('releaseWorkflow', () => {
 
     it('should include quality gates step', async () => {
       const workflow = await createReleaseWorkflow(defaultOptions)
-      const qualityGatesStep = workflow.find(step =>
-        step.title.toLowerCase().includes('quality gates')
-        || step.title.toLowerCase().includes('quality'),
+      const qualityGatesStep = workflow.find(
+        (step) =>
+          step.title.toLowerCase().includes('quality gates') ||
+          step.title.toLowerCase().includes('quality')
       )
 
       expect(qualityGatesStep).toBeDefined()
@@ -95,9 +162,10 @@ describe('releaseWorkflow', () => {
 
     it('should include git analysis step', async () => {
       const workflow = await createReleaseWorkflow(defaultOptions)
-      const gitAnalysisStep = workflow.find(step =>
-        step.title.toLowerCase().includes('git')
-        || step.title.toLowerCase().includes('repository'),
+      const gitAnalysisStep = workflow.find(
+        (step) =>
+          step.title.toLowerCase().includes('git') ||
+          step.title.toLowerCase().includes('repository')
       )
 
       expect(gitAnalysisStep).toBeDefined()
@@ -105,18 +173,14 @@ describe('releaseWorkflow', () => {
 
     it('should include version calculation step', async () => {
       const workflow = await createReleaseWorkflow(defaultOptions)
-      const versionStep = workflow.find(step =>
-        step.title.toLowerCase().includes('version'),
-      )
+      const versionStep = workflow.find((step) => step.title.toLowerCase().includes('version'))
 
       expect(versionStep).toBeDefined()
     })
 
     it('should include build step', async () => {
       const workflow = await createReleaseWorkflow(defaultOptions)
-      const buildStep = workflow.find(step =>
-        step.title.toLowerCase().includes('build'),
-      )
+      const buildStep = workflow.find((step) => step.title.toLowerCase().includes('build'))
 
       expect(buildStep).toBeDefined()
     })
@@ -125,48 +189,42 @@ describe('releaseWorkflow', () => {
   describe('workflow customization', () => {
     it('should skip tests when skipTests is true', async () => {
       const workflow = await createReleaseWorkflow({ ...defaultOptions, skipTests: true })
-      const testStep = workflow.find(step =>
-        step.title.toLowerCase().includes('test'),
-      )
+      const testStep = workflow.find((step) => step.title.toLowerCase().includes('test'))
 
       // Test step should either not exist or be skippable
-      if (testStep && testStep.skip) {
+      if (testStep?.skip) {
         expect(typeof testStep.skip).toBe('function')
       }
     })
 
     it('should skip lint when skipLint is true', async () => {
       const workflow = await createReleaseWorkflow({ ...defaultOptions, skipLint: true })
-      const lintStep = workflow.find(step =>
-        step.title.toLowerCase().includes('lint'),
-      )
+      const lintStep = workflow.find((step) => step.title.toLowerCase().includes('lint'))
 
       // Lint step should either not exist or be skippable
-      if (lintStep && lintStep.skip) {
+      if (lintStep?.skip) {
         expect(typeof lintStep.skip).toBe('function')
       }
     })
 
     it('should skip Cloudflare deployment when skipCloudflare is true', async () => {
       const workflow = await createReleaseWorkflow({ ...defaultOptions, skipCloudflare: true })
-      const cloudflareStep = workflow.find(step =>
-        step.title.toLowerCase().includes('cloudflare'),
+      const cloudflareStep = workflow.find((step) =>
+        step.title.toLowerCase().includes('cloudflare')
       )
 
       // Cloudflare step should either not exist or be skippable
-      if (cloudflareStep && cloudflareStep.skip) {
+      if (cloudflareStep?.skip) {
         expect(typeof cloudflareStep.skip).toBe('function')
       }
     })
 
     it('should skip npm publishing when skipNpm is true', async () => {
       const workflow = await createReleaseWorkflow({ ...defaultOptions, skipNpm: true })
-      const npmStep = workflow.find(step =>
-        step.title.toLowerCase().includes('npm'),
-      )
+      const npmStep = workflow.find((step) => step.title.toLowerCase().includes('npm'))
 
       // NPM step should either not exist or be skippable
-      if (npmStep && npmStep.skip) {
+      if (npmStep?.skip) {
         expect(typeof npmStep.skip).toBe('function')
       }
     })
@@ -191,20 +249,20 @@ describe('releaseWorkflow', () => {
 
     it('should have logical step ordering', async () => {
       const workflow = await createReleaseWorkflow(defaultOptions)
-      const stepTitles = workflow.map(step => step.title.toLowerCase())
+      const stepTitles = workflow.map((step) => step.title.toLowerCase())
 
       // Quality gates should come before version calculation
-      const qualityIndex = stepTitles.findIndex(title =>
-        title.includes('quality') || title.includes('lint') || title.includes('test'),
+      const qualityIndex = stepTitles.findIndex(
+        (title) => title.includes('quality') || title.includes('lint') || title.includes('test')
       )
-      const versionIndex = stepTitles.findIndex(title => title.includes('version'))
+      const versionIndex = stepTitles.findIndex((title) => title.includes('version'))
 
       if (qualityIndex !== -1 && versionIndex !== -1) {
         expect(qualityIndex).toBeLessThan(versionIndex)
       }
 
       // Build should come after version calculation
-      const buildIndex = stepTitles.findIndex(title => title.includes('build'))
+      const buildIndex = stepTitles.findIndex((title) => title.includes('build'))
 
       if (versionIndex !== -1 && buildIndex !== -1) {
         expect(versionIndex).toBeLessThan(buildIndex)

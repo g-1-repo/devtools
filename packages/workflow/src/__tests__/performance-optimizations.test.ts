@@ -15,7 +15,7 @@ describe('performance Optimizations', () => {
     it('should respect TTL settings', async () => {
       const cache = new CacheManager<string, number>({ ttl: 100 }) // 100ms TTL
       cache.set('test', 123)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
       expect(cache.get('test')).toBeUndefined()
     })
 
@@ -60,15 +60,15 @@ describe('performance Optimizations', () => {
 
       const tasks = [
         async () => {
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           return 1
         },
         async () => {
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           return 2
         },
         async () => {
-          await new Promise(resolve => setTimeout(resolve, 100))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           return 3
         },
       ]
@@ -84,7 +84,9 @@ describe('performance Optimizations', () => {
       const executor = new ParallelExecutor()
       const tasks = [
         async () => 1,
-        async () => { throw new Error('Task failed') },
+        async () => {
+          throw new Error('Task failed')
+        },
         async () => 3,
       ]
 
@@ -115,15 +117,15 @@ describe('performance Optimizations', () => {
 
       // Check step structure
       expect(steps.length).toBeGreaterThan(0)
-      expect(steps.some(step => step.id === 'analysis')).toBe(true)
-      expect(steps.some(step => step.dependencies?.length)).toBe(true)
+      expect(steps.some((step) => step.id === 'analysis')).toBe(true)
+      expect(steps.some((step) => step.dependencies?.length)).toBe(true)
     })
 
     it('should handle recovery failures gracefully', async () => {
       const service = OptimizedErrorRecoveryService.getInstance()
       const error = new Error('Unknown error type')
 
-      const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { })
+      const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       await service.executeRecovery(error)
 
       expect(mockConsoleError).toHaveBeenCalled()

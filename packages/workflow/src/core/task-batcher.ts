@@ -2,8 +2,8 @@
  * Task Batcher - Optimizes task execution through intelligent batching
  */
 
-import type { WorkflowContext, WorkflowStep } from '../types/index.js'
 import process from 'node:process'
+import type { WorkflowContext, WorkflowStep } from '../types/index.js'
 
 export interface BatchConfig {
   maxBatchSize: number
@@ -29,8 +29,7 @@ export class TaskBatcher {
 
     if (this.shouldProcessBatch()) {
       await this.processBatch()
-    }
-    else if (!this.timeoutId) {
+    } else if (!this.timeoutId) {
       this.timeoutId = setTimeout(() => {
         this.processBatch().catch(console.error)
       }, this.config.batchTimeoutMs)
@@ -68,13 +67,12 @@ export class TaskBatcher {
       try {
         if (task.task) {
           await task.task(context, {
-            setOutput: () => { },
-            setTitle: () => { },
-            setProgress: () => { },
+            setOutput: () => {},
+            setTitle: () => {},
+            setProgress: () => {},
           })
         }
-      }
-      catch (error) {
+      } catch (error) {
         console.error(`Task failed: ${error}`)
         // Continue processing other tasks in the batch
       }

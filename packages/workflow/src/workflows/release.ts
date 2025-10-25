@@ -2,15 +2,47 @@
  * Complete Release Workflow - Git → Cloudflare → GitHub Release (triggers npm via Actions)
  */
 
-import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
 import process from 'node:process'
-import { ErrorFormatter } from '@g-1/util/debug'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import * as semver from 'semver'
+import { createErrorBox } from '../core/error-formatter.js'
+import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
 
 // Detection functions (detectCloudflareSetup moved to exports below)
+
+// Re-export smart package detection functions for backward compatibility
+export {
+  detectPublishablePackages,
+  detectSmartPublishablePackages,
+  formatPackageDetectionSummary,
+} from '../utils/smart-package-detection.js'
+
+// Import the functions for internal use
+import { detectPublishablePackages } from '../utils/smart-package-detection.js'
+
+/**
+ * Determines if npm publishing should be skipped for a specific package.
+ *
+ * @param packageName - The name of the package to check
+ * @param skipNpm - The skipNpm option from ReleaseOptions
+ * @returns boolean - True if npm publishing should be skipped for this package
+ */
+export function shouldSkipNpmForPackage(
+  packageName: string,
+  skipNpm?: boolean | string[]
+): boolean {
+  if (skipNpm === true) {
+    return true // Skip all packages
+  }
+
+  if (Array.isArray(skipNpm)) {
+    return skipNpm.includes(packageName) // Skip specific packages
+  }
+
+  return false // Don't skip
+}
 
 /**
  * Checks if the repository has an npm publishing workflow configured in GitHub Actions.
@@ -37,52 +69,49 @@ export async function hasNpmPublishingWorkflow(repositoryName: string): Promise<
 
     try {
       const files = await fs.readdir(workflowsPath)
-      const workflowFiles = files.filter(f => f.endsWith('.yml') || f.endsWith('.yaml'))
+      const workflowFiles = files.filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
 
       // Check each workflow file for npm publishing patterns
       for (const file of workflowFiles) {
         const content = await fs.readFile(`${workflowsPath}/${file}`, 'utf-8')
-        const hasNpmPublish = content.toLowerCase().includes('npm publish')
-          || content.toLowerCase().includes('registry.npmjs.org')
-          || content.toLowerCase().includes('npmjs_token')
-          || content.toLowerCase().includes('npm_token')
+        const hasNpmPublish =
+          content.toLowerCase().includes('npm publish') ||
+          content.toLowerCase().includes('registry.npmjs.org') ||
+          content.toLowerCase().includes('npmjs_token') ||
+          content.toLowerCase().includes('npm_token')
 
         if (hasNpmPublish) {
           return true
         }
       }
-    }
-    catch {
+    } catch {
       // Local .github/workflows doesn't exist, try GitHub API
     }
 
     // Fallback: Use GitHub CLI to check workflows in the repo
     try {
-      const result = await execa('gh', [
-        'workflow',
-        'list',
-        '--repo',
-        repositoryName,
-        '--json',
-        'name',
-      ], { stdio: 'pipe' })
+      const result = await execa(
+        'gh',
+        ['workflow', 'list', '--repo', repositoryName, '--json', 'name'],
+        { stdio: 'pipe' }
+      )
 
       const workflows = JSON.parse(result.stdout)
       return workflows.some((workflow: any) => {
         const name = workflow.name?.toLowerCase() || ''
-        return (name.includes('publish') && name.includes('npm'))
-          || name === 'publish to npm'
-          || name === 'npm publish'
-          || name === 'publish npm'
-          || name === 'npm'
+        return (
+          (name.includes('publish') && name.includes('npm')) ||
+          name === 'publish to npm' ||
+          name === 'npm publish' ||
+          name === 'publish npm' ||
+          name === 'npm'
+        )
       })
-    }
-    catch {
+    } catch {
       // If GitHub CLI fails, assume no publishing workflows
       return false
     }
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -113,15 +142,13 @@ export async function detectCloudflareSetup(): Promise<boolean> {
       try {
         await fs.access(file)
         return true
-      }
-      catch {
+      } catch {
         // Continue to next file
       }
     }
 
     return false
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -179,13 +206,15 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
       process.stdout.write('\n')
       process.stdout.write('\x1B[1m\x1B[33mThe following files have uncommitted changes:\x1B[0m\n')
       process.stdout.write(`\n${changesList}\n\n`)
-      process.stdout.write('\x1B[2m────────────────────────────────────────────────────────────────\x1B[0m\n')
+      process.stdout.write(
+        '\x1B[2m────────────────────────────────────────────────────────────────\x1B[0m\n'
+      )
       process.stdout.write('\x1B[1mHow would you like to proceed?\x1B[0m\n')
       process.stdout.write('\n')
 
       if (!options.nonInteractive) {
         const enquirer = await import('enquirer')
-        const response = await enquirer.default.prompt({
+        const response = (await enquirer.default.prompt({
           type: 'select',
           name: 'action',
           message: '  Choose an action:',
@@ -195,7 +224,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             { name: 'force', message: 'Continue anyway (--force)', value: 'force' },
           ],
           prefix: '  ',
-        }) as { action: 'commit' | 'stash' | 'force' }
+        })) as { action: 'commit' | 'stash' | 'force' }
 
         process.stdout.write('\n')
 
@@ -205,33 +234,30 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           process.stdout.write('\n')
 
           // Get commit message
-          const commitResponse = await enquirer.default.prompt({
+          const commitResponse = (await enquirer.default.prompt({
             type: 'input',
             name: 'message',
             message: '  Commit message:',
             initial: 'chore: commit changes before release',
             prefix: '  ',
-          }) as { message: string }
+          })) as { message: string }
 
           // Commit changes
           process.stdout.write('\n\x1B[2mCommitting changes...\x1B[0m\n')
           await git.stageFiles(changedFiles)
           await git.commit(commitResponse.message)
           process.stdout.write('\x1B[32m✅ Changes committed successfully\x1B[0m\n')
-        }
-        else if (response.action === 'stash') {
+        } else if (response.action === 'stash') {
           process.stdout.write('\x1B[2mStashing changes...\x1B[0m\n')
           await execa('git', ['stash', 'push', '-m', 'Pre-release stash'], { stdio: 'pipe' })
           process.stdout.write('\x1B[32m✅ Changes stashed successfully\x1B[0m\n')
-        }
-        else if (response.action === 'force') {
+        } else if (response.action === 'force') {
           options.force = true
           process.stdout.write('\x1B[33m⚠️  Continuing with uncommitted changes\x1B[0m\n')
         }
 
         process.stdout.write('\n')
-      }
-      else {
+      } else {
         // Non-interactive mode - just show error and exit
         process.stdout.write('❌ Cannot proceed with uncommitted changes in non-interactive mode\n')
         process.stdout.write('Use --force flag to override or commit/stash changes first\n')
@@ -276,51 +302,57 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   helpers.setTitle(`Auto-fix linting issues - ✅ Fixed (${command})`)
                   commandWorked = true
                   break // Success! Exit early
-                }
-                else if (result.exitCode === 1) {
+                } else if (result.exitCode === 1) {
                   // ESLint returns 1 when there are linting errors, but the command ran successfully
                   const stderr = result.stderr || ''
                   const stdout = result.stdout || ''
                   const combinedOutput = stderr + stdout
 
                   // Check if it contains actual ESLint output (means command worked)
-                  if (combinedOutput.includes('error') || combinedOutput.includes('warning') || combinedOutput.includes('problem')) {
+                  if (
+                    combinedOutput.includes('error') ||
+                    combinedOutput.includes('warning') ||
+                    combinedOutput.includes('problem')
+                  ) {
                     // Extract number of issues if possible
                     const errorMatch = combinedOutput.match(/(\d+)\s+error/)
                     const warningMatch = combinedOutput.match(/(\d+)\s+warning/)
                     const problemMatch = combinedOutput.match(/(\d+)\s+problem/)
 
-                    const errors = errorMatch ? Number.parseInt(errorMatch[1]!) : 0
-                    const warnings = warningMatch ? Number.parseInt(warningMatch[1]!) : 0
-                    const problems = problemMatch ? Number.parseInt(problemMatch[1]!) : errors + warnings
+                    const errors = errorMatch ? Number.parseInt(errorMatch[1]!, 10) : 0
+                    const warnings = warningMatch ? Number.parseInt(warningMatch[1]!, 10) : 0
+                    const problems = problemMatch
+                      ? Number.parseInt(problemMatch[1]!, 10)
+                      : errors + warnings
 
                     if (problems > 0) {
-                      helpers.setTitle(`Auto-fix linting issues - ⚠️ ${problems} issues remain (${command})`)
-                      helpers.setOutput(`Found ${problems} linting issues that could not be auto-fixed`)
-                    }
-                    else {
+                      helpers.setTitle(
+                        `Auto-fix linting issues - ⚠️ ${problems} issues remain (${command})`
+                      )
+                      helpers.setOutput(
+                        `Found ${problems} linting issues that could not be auto-fixed`
+                      )
+                    } else {
                       helpers.setTitle(`Auto-fix linting issues - ✅ Fixed (${command})`)
                     }
                     commandWorked = true
                     break
-                  }
-                  else {
+                  } else {
                     // Command ran but produced unexpected output - try next command
-                    _lastError = new Error(`Unexpected output from ${command}: ${combinedOutput.slice(0, 100)}`)
-                    continue
+                    _lastError = new Error(
+                      `Unexpected output from ${command}: ${combinedOutput.slice(0, 100)}`
+                    )
                   }
-                }
-                else {
+                } else {
                   // Non-zero, non-1 exit code - likely command not found or other error
                   const combinedOutput = `${result.stderr} ${result.stdout}`
-                  _lastError = new Error(`Command failed with exit code ${result.exitCode}: ${combinedOutput.slice(0, 100)}`)
-                  continue
+                  _lastError = new Error(
+                    `Command failed with exit code ${result.exitCode}: ${combinedOutput.slice(0, 100)}`
+                  )
                 }
-              }
-              catch (error) {
+              } catch (error) {
                 // This catches ENOENT and other system errors (command not found, etc.)
                 _lastError = error
-                continue
               }
             }
 
@@ -338,18 +370,15 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             try {
               await execa('bun', ['run', 'typecheck'], { stdio: 'pipe' })
               helpers.setTitle('Type checking - ✅ Passed')
-            }
-            catch {
+            } catch {
               try {
                 await execa('npm', ['run', 'typecheck'], { stdio: 'pipe' })
                 helpers.setTitle('Type checking - ✅ Passed with npm')
-              }
-              catch {
+              } catch {
                 try {
                   await execa('bunx', ['tsc', '--noEmit'], { stdio: 'pipe' })
                   helpers.setTitle('Type checking - ✅ Passed with bunx')
-                }
-                catch {
+                } catch {
                   throw new Error('TypeScript errors found. Please fix before releasing.')
                 }
               }
@@ -381,15 +410,16 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
                 helpers.setTitle(`Running tests - ✅ All tests passed (${command})`)
                 return // Success! Exit early
-              }
-              catch (error) {
+              } catch (error) {
                 const errorOutput = error instanceof Error ? error.message : String(error)
 
                 // Check if it's a "no tests found" or "script not found" error
-                if (errorOutput.includes('No tests found')
-                  || errorOutput.includes('no test files')
-                  || errorOutput.includes('script not found')
-                  || errorOutput.includes('Missing script')) {
+                if (
+                  errorOutput.includes('No tests found') ||
+                  errorOutput.includes('no test files') ||
+                  errorOutput.includes('script not found') ||
+                  errorOutput.includes('Missing script')
+                ) {
                   // Try next command
                   lastError = error
                   continue
@@ -398,7 +428,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 // If it's a real test failure (not a missing script), stop trying
                 if (errorOutput.includes('fail') || errorOutput.includes('Test')) {
                   const lines = errorOutput.split('\n')
-                  const summary = lines.find(line => line.includes('fail')) || 'Tests failed'
+                  const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
                   ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
                   throw new Error(`Test failures detected: ${summary}`)
                 }
@@ -409,11 +439,14 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             }
 
             // If we get here, all commands failed - check if it's because no tests exist
-            const lastErrorOutput = lastError instanceof Error ? lastError.message : String(lastError)
-            if (lastErrorOutput.includes('No tests found')
-              || lastErrorOutput.includes('no test files')
-              || lastErrorOutput.includes('script not found')
-              || lastErrorOutput.includes('Missing script')) {
+            const lastErrorOutput =
+              lastError instanceof Error ? lastError.message : String(lastError)
+            if (
+              lastErrorOutput.includes('No tests found') ||
+              lastErrorOutput.includes('no test files') ||
+              lastErrorOutput.includes('script not found') ||
+              lastErrorOutput.includes('Missing script')
+            ) {
               ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
               helpers.setTitle('Running tests - ✅ No tests found (skipping)')
               return
@@ -492,11 +525,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
           if (hasBreaking) {
             versionBump = 'major'
-          }
-          else if (hasFeatures) {
+          } else if (hasFeatures) {
             versionBump = 'minor'
-          }
-          else {
+          } else {
             versionBump = 'patch'
           }
         }
@@ -509,7 +540,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
         ctx.version!.next = nextVersion
         ctx.version!.type = versionBump
 
-        helpers.setTitle(`Version calculation - ✅ ${ctx.version!.current} → ${nextVersion} (${versionBump})`)
+        helpers.setTitle(
+          `Version calculation - ✅ ${ctx.version!.current} → ${nextVersion} (${versionBump})`
+        )
       },
     },
 
@@ -519,12 +552,12 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
       task: async (ctx, helpers) => {
         const deployments = []
 
-        if (!options.skipCloudflare)
-          deployments.push('Cloudflare')
+        if (!options.skipCloudflare) deployments.push('Cloudflare')
 
-        const summary = deployments.length > 0
-          ? `Will deploy to: ${deployments.join(', ')}`
-          : 'Cloudflare deployment skipped'
+        const summary =
+          deployments.length > 0
+            ? `Will deploy to: ${deployments.join(', ')}`
+            : 'Cloudflare deployment skipped'
 
         helpers.setTitle(`Deployment configuration - ✅ ${summary} | npm: GitHub Actions`)
       },
@@ -565,17 +598,13 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             const fs = await import('node:fs/promises')
             const changelogPath = 'CHANGELOG.md'
 
-            const changelogEntry = generateChangelogEntry(
-              ctx.version!.next,
-              ctx.git!.commits,
-            )
+            const changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
 
             try {
               const existingChangelog = await fs.readFile(changelogPath, 'utf-8')
               const updatedChangelog = insertChangelogEntry(existingChangelog, changelogEntry)
               await fs.writeFile(changelogPath, updatedChangelog)
-            }
-            catch {
+            } catch {
               // Create new changelog
               const newChangelog = `# Changelog\n\n${changelogEntry}`
               await fs.writeFile(changelogPath, newChangelog)
@@ -633,8 +662,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 ctx.tagAlreadyExists = true
                 return
               }
-            }
-            catch {
+            } catch {
               // If we can't get tags, continue with creation
             }
 
@@ -664,18 +692,21 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               helpers.setOutput('Pushing commits...')
               await git.push()
               commitsPushed = true
-            }
-            catch (error) {
+            } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error)
-              if (errorMessage.includes('verify your email') || errorMessage.includes('Could not read from remote')) {
+              if (
+                errorMessage.includes('verify your email') ||
+                errorMessage.includes('Could not read from remote')
+              ) {
                 helpers.setTitle('Push to remote - ⚠️ Failed: Email verification required')
                 helpers.setOutput('Please verify your email at https://github.com/settings/emails')
                 return
-              }
-              else if (errorMessage.includes('up-to-date') || errorMessage.includes('Everything up-to-date')) {
+              } else if (
+                errorMessage.includes('up-to-date') ||
+                errorMessage.includes('Everything up-to-date')
+              ) {
                 commitsPushed = true // Already up to date is fine
-              }
-              else {
+              } else {
                 helpers.setTitle('Push to remote - ⚠️ Commit push failed (continuing)')
                 helpers.setOutput(`Error: ${errorMessage.slice(0, 100)}...`)
               }
@@ -685,21 +716,18 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             if (ctx.tagAlreadyExists) {
               tagsPushed = true // Tag already exists, no need to push
               helpers.setOutput('Tag already exists on remote, skipping tag push')
-            }
-            else {
+            } else {
               try {
                 const tagName = `v${ctx.version!.next}`
                 helpers.setOutput('Pushing new tag...')
                 await git.pushTags('origin', tagName)
                 tagsPushed = true
-              }
-              catch (error) {
+              } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error)
                 if (errorMessage.includes('already exists') || errorMessage.includes('rejected')) {
                   tagsPushed = true // Tag already exists is fine
                   helpers.setOutput('Tag already exists on remote (continuing)')
-                }
-                else {
+                } else {
                   helpers.setTitle('Push to remote - ⚠️ Tag push failed (continuing)')
                   helpers.setOutput(`Error: ${errorMessage.slice(0, 100)}...`)
                 }
@@ -710,23 +738,18 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             if (commitsPushed && tagsPushed) {
               if (ctx.tagAlreadyExists) {
                 helpers.setTitle('Push to remote - ✅ Commits pushed (tag already exists)')
-              }
-              else {
+              } else {
                 helpers.setTitle('Push to remote - ✅ Complete')
               }
-            }
-            else if (commitsPushed) {
+            } else if (commitsPushed) {
               if (ctx.tagAlreadyExists) {
                 helpers.setTitle('Push to remote - ✅ Commits pushed (tag already exists)')
-              }
-              else {
+              } else {
                 helpers.setTitle('Push to remote - ✅ Commits pushed (tag failed)')
               }
-            }
-            else if (tagsPushed) {
+            } else if (tagsPushed) {
               helpers.setTitle('Push to remote - ✅ Tags pushed (commits up-to-date)')
-            }
-            else {
+            } else {
               helpers.setTitle('Push to remote - ⚠️ Push completed with warnings')
             }
           },
@@ -759,15 +782,16 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             await execa(command, args, { stdio: 'pipe' })
             helpers.setTitle(`Build project - ✅ Build complete (${command})`)
             return // Success! Exit early
-          }
-          catch (error) {
+          } catch (error) {
             const errorOutput = error instanceof Error ? error.message : String(error)
 
             // Check if it's a missing script error
-            if (errorOutput.includes('script not found')
-              || errorOutput.includes('Missing script')
-              || errorOutput.includes('npm ERR! missing script')
-              || errorOutput.includes('Script not found')) {
+            if (
+              errorOutput.includes('script not found') ||
+              errorOutput.includes('Missing script') ||
+              errorOutput.includes('npm ERR! missing script') ||
+              errorOutput.includes('Script not found')
+            ) {
               lastError = error
               continue
             }
@@ -780,10 +804,12 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
         // If we get here, build script wasn't found - that's okay for some projects
         if (lastError) {
           const lastErrorOutput = lastError instanceof Error ? lastError.message : String(lastError)
-          if (lastErrorOutput.includes('script not found')
-            || lastErrorOutput.includes('Missing script')
-            || lastErrorOutput.includes('npm ERR! missing script')
-            || lastErrorOutput.includes('Script not found')) {
+          if (
+            lastErrorOutput.includes('script not found') ||
+            lastErrorOutput.includes('Missing script') ||
+            lastErrorOutput.includes('npm ERR! missing script') ||
+            lastErrorOutput.includes('Script not found')
+          ) {
             helpers.setTitle('Build project - ✅ No build script found (skipping)')
             return
           }
@@ -816,17 +842,14 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           }
 
           helpers.setTitle(`Deploy to Cloudflare - ✅ ${deploymentUrl}`)
-        }
-        catch (error) {
+        } catch (error) {
           // Don't fail the entire workflow if Cloudflare deployment fails
           const errorMessage = error instanceof Error ? error.message : String(error)
           if (errorMessage.includes('Missing entry-point')) {
             helpers.setTitle('Deploy to Cloudflare - ⚠️ Failed: No wrangler config (continuing)')
-          }
-          else if (errorMessage.includes('not authenticated')) {
+          } else if (errorMessage.includes('not authenticated')) {
             helpers.setTitle('Deploy to Cloudflare - ⚠️ Failed: Not authenticated (continuing)')
-          }
-          else {
+          } else {
             helpers.setTitle('Deploy to Cloudflare - ⚠️ Failed (continuing)')
           }
         }
@@ -836,42 +859,105 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
     // GitHub Release (triggers npm publishing via GitHub Actions)
     {
       title: 'Create GitHub release',
+      skip: async () => {
+        // Skip if all npm publishing is disabled
+        if (options.skipNpm === true) {
+          return 'npm publishing disabled for all packages'
+        }
+
+        // Check if there are any packages that should be published
+        const publishablePackages = await detectPublishablePackages()
+        const packagesToPublish = publishablePackages.filter(
+          (pkg) => !shouldSkipNpmForPackage(pkg, options.skipNpm)
+        )
+
+        if (packagesToPublish.length === 0) {
+          return 'no packages configured for npm publishing'
+        }
+
+        return false
+      },
       task: async (ctx, helpers) => {
         if (options.dryRun) {
           helpers.setOutput('[DRY RUN] Would create GitHub release...')
-          helpers.setTitle(`Create GitHub release - ✅ v${ctx.version!.next} → npm via Actions (dry run)`)
+          helpers.setTitle(
+            `Create GitHub release - ✅ v${ctx.version!.next} → npm via Actions (dry run)`
+          )
           return
         }
 
-        helpers.setOutput('Creating GitHub release (triggers npm publishing)...')
+        // Detect which packages should be published
+        const publishablePackages = await detectPublishablePackages()
+        const packagesToPublish = publishablePackages.filter(
+          (pkg) => !shouldSkipNpmForPackage(pkg, options.skipNpm)
+        )
+        const packagesToSkip = publishablePackages.filter((pkg) =>
+          shouldSkipNpmForPackage(pkg, options.skipNpm)
+        )
+
+        let statusMessage = 'Creating GitHub release'
+        if (packagesToSkip.length > 0) {
+          statusMessage += ` (skipping npm for: ${packagesToSkip.join(', ')})`
+        }
+        helpers.setOutput(`${statusMessage}...`)
 
         try {
           const releaseNotes = generateReleaseNotes(ctx.git!.commits, ctx.version!.next)
 
-          await execa('gh', [
-            'release',
-            'create',
-            `v${ctx.version!.next}`,
-            '--title',
-            `Release v${ctx.version!.next}`,
-            '--notes',
-            releaseNotes,
-          ], { stdio: 'pipe' })
+          // Add package publishing info to release notes
+          let enhancedReleaseNotes = releaseNotes
+          if (packagesToPublish.length > 0) {
+            enhancedReleaseNotes += `\n\n## 📦 NPM Publishing\n\n`
+            enhancedReleaseNotes += `**Packages to be published:**\n`
+            packagesToPublish.forEach((pkg) => {
+              enhancedReleaseNotes += `- ${pkg}\n`
+            })
 
-          helpers.setOutput('GitHub Actions will automatically publish to npm if package.json is detected')
-          helpers.setTitle(`Create GitHub release - ✅ v${ctx.version!.next} → npm via Actions`)
-        }
-        catch (error) {
+            if (packagesToSkip.length > 0) {
+              enhancedReleaseNotes += `\n**Packages skipped:**\n`
+              packagesToSkip.forEach((pkg) => {
+                enhancedReleaseNotes += `- ${pkg}\n`
+              })
+            }
+          }
+
+          await execa(
+            'gh',
+            [
+              'release',
+              'create',
+              `v${ctx.version!.next}`,
+              '--title',
+              `Release v${ctx.version!.next}`,
+              '--notes',
+              enhancedReleaseNotes,
+            ],
+            { stdio: 'pipe' }
+          )
+
+          let successMessage = `Create GitHub release - ✅ v${ctx.version!.next}`
+          if (packagesToPublish.length > 0) {
+            successMessage += ` → npm via Actions (${packagesToPublish.length} packages)`
+          } else {
+            successMessage += ` (no npm publishing)`
+          }
+
+          helpers.setTitle(successMessage)
+
+          if (packagesToPublish.length > 0) {
+            helpers.setOutput(`GitHub Actions will publish: ${packagesToPublish.join(', ')}`)
+          } else {
+            helpers.setOutput('No packages will be published to npm')
+          }
+        } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error)
           if (errorMessage.includes('gh: command not found')) {
             helpers.setTitle('Create GitHub release - ⚠️ Failed: GitHub CLI not installed')
             helpers.setOutput('❌ Install: https://cli.github.com/')
-          }
-          else if (errorMessage.includes('not authenticated') || errorMessage.includes('401')) {
+          } else if (errorMessage.includes('not authenticated') || errorMessage.includes('401')) {
             helpers.setTitle('Create GitHub release - ⚠️ Failed: Not authenticated')
             helpers.setOutput('❌ Run: gh auth login')
-          }
-          else {
+          } else {
             helpers.setTitle('Create GitHub release - ⚠️ Failed (continuing)')
             helpers.setOutput(`Error: ${errorMessage.slice(0, 60)}...`)
           }
@@ -889,9 +975,9 @@ function generateChangelogEntry(version: string, commits: any[]): string {
   const date = new Date().toISOString().split('T')[0]
   let entry = `## [${version}] - ${date}\n\n`
 
-  const features = commits.filter(c => c.type === 'feat')
-  const fixes = commits.filter(c => c.type === 'fix')
-  const others = commits.filter(c => !['feat', 'fix'].includes(c.type))
+  const features = commits.filter((c) => c.type === 'feat')
+  const fixes = commits.filter((c) => c.type === 'fix')
+  const others = commits.filter((c) => !['feat', 'fix'].includes(c.type))
 
   if (features.length > 0) {
     entry += '### Features\n\n'
@@ -922,7 +1008,7 @@ function generateChangelogEntry(version: string, commits: any[]): string {
 
 function insertChangelogEntry(existingChangelog: string, newEntry: string): string {
   const lines = existingChangelog.split('\n')
-  const headerIndex = lines.findIndex(line => line.startsWith('# '))
+  const headerIndex = lines.findIndex((line) => line.startsWith('# '))
 
   if (headerIndex === -1) {
     return `# Changelog\n\n${newEntry}\n${existingChangelog}`
@@ -934,8 +1020,8 @@ function insertChangelogEntry(existingChangelog: string, newEntry: string): stri
 }
 
 function generateReleaseNotes(commits: any[], version: string): string {
-  const features = commits.filter(c => c.type === 'feat')
-  const fixes = commits.filter(c => c.type === 'fix')
+  const features = commits.filter((c) => c.type === 'feat')
+  const fixes = commits.filter((c) => c.type === 'fix')
 
   let notes = `Release v${version}\n\n`
 
@@ -1002,14 +1088,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
             // First, check if we have publishing workflows at all
             let hasPublishingWorkflows = false
             try {
-              const workflowsResult = await execa('gh', [
-                'workflow',
-                'list',
-                '--repo',
-                repositoryName,
-                '--json',
-                'name,state',
-              ], { stdio: 'pipe' })
+              const workflowsResult = await execa(
+                'gh',
+                ['workflow', 'list', '--repo', repositoryName, '--json', 'name,state'],
+                { stdio: 'pipe' }
+              )
 
               const workflows = JSON.parse(workflowsResult.stdout)
               hasPublishingWorkflows = workflows.some((workflow: any) => {
@@ -1022,38 +1105,45 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setOutput('No GitHub Actions workflows found that publish to npm')
                 return
               }
-            }
-            catch {
+            } catch {
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
-              helpers.setOutput('Failed to check GitHub Actions workflows - GitHub CLI may not be configured')
+              helpers.setOutput(
+                'Failed to check GitHub Actions workflows - GitHub CLI may not be configured'
+              )
               return
             }
 
             // Now look for recent workflow runs triggered by releases
             while (!foundPublishingWorkflow && attempts < maxAttempts) {
               try {
-                helpers.setOutput(`Looking for workflow runs triggered by ${tagName}... (${attempts + 1}/${maxAttempts})`)
+                helpers.setOutput(
+                  `Looking for workflow runs triggered by ${tagName}... (${attempts + 1}/${maxAttempts})`
+                )
 
-                const result = await execa('gh', [
-                  'run',
-                  'list',
-                  '--repo',
-                  repositoryName,
-                  '--event',
-                  'release',
-                  '--limit',
-                  '10',
-                  '--json',
-                  'status,name,workflowName,createdAt,number,databaseId,conclusion',
-                ], { stdio: 'pipe' })
+                const result = await execa(
+                  'gh',
+                  [
+                    'run',
+                    'list',
+                    '--repo',
+                    repositoryName,
+                    '--event',
+                    'release',
+                    '--limit',
+                    '10',
+                    '--json',
+                    'status,name,workflowName,createdAt,number,databaseId,conclusion',
+                  ],
+                  { stdio: 'pipe' }
+                )
 
                 const runs = JSON.parse(result.stdout)
                 const recentPublishRun = runs.find((run: any) => {
-                  const isPublishWorkflow = run.workflowName?.toLowerCase().includes('publish')
-                    || run.workflowName?.toLowerCase().includes('npm')
+                  const isPublishWorkflow =
+                    run.workflowName?.toLowerCase().includes('publish') ||
+                    run.workflowName?.toLowerCase().includes('npm')
 
-                  if (!isPublishWorkflow)
-                    return false
+                  if (!isPublishWorkflow) return false
 
                   // Look for runs created in the last 10 minutes (more generous timeframe)
                   const runCreatedAt = new Date(run.createdAt)
@@ -1068,19 +1158,22 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                   return
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds between checks
+                await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait 2 seconds between checks
                 attempts++
-              }
-              catch (error) {
-                helpers.setOutput(`Error checking workflow runs: ${error instanceof Error ? error.message : String(error)}`)
-                await new Promise(resolve => setTimeout(resolve, 2000))
+              } catch (error) {
+                helpers.setOutput(
+                  `Error checking workflow runs: ${error instanceof Error ? error.message : String(error)}`
+                )
+                await new Promise((resolve) => setTimeout(resolve, 2000))
                 attempts++
               }
             }
 
             if (!foundPublishingWorkflow) {
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
-              helpers.setOutput(`No workflow runs triggered by ${tagName} found. The workflow may not have started yet, or the release may not have triggered it. Check GitHub Actions manually: https://github.com/${repositoryName}/actions`)
+              helpers.setOutput(
+                `No workflow runs triggered by ${tagName} found. The workflow may not have started yet, or the release may not have triggered it. Check GitHub Actions manually: https://github.com/${repositoryName}/actions`
+              )
             }
           },
         },
@@ -1120,38 +1213,47 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
     })
 
     await taskEngine.execute(monitoringSteps)
-  }
-  catch (error) {
+  } catch (error) {
     // If GitHub CLI is not available, show helpful message
     if (error instanceof Error && error.message.includes('gh: command not found')) {
       console.error(chalk.red('✗ GitHub CLI not found'))
       console.error(chalk.gray('Install: https://cli.github.com/'))
-    }
-    else {
-      console.error(chalk.red(`✗ GitHub Actions monitoring failed: ${error instanceof Error ? error.message : String(error)}`))
+    } else {
+      console.error(
+        chalk.red(
+          `✗ GitHub Actions monitoring failed: ${error instanceof Error ? error.message : String(error)}`
+        )
+      )
     }
   }
 }
 
 // Helper functions for listr2-based monitoring
-async function handleCompletedWorkflow(repositoryName: string, workflow: any, helpers: any): Promise<void> {
+async function handleCompletedWorkflow(
+  repositoryName: string,
+  workflow: any,
+  helpers: any
+): Promise<void> {
   if (workflow.conclusion === 'success') {
-    helpers.setTitle(`Monitor workflow execution - ✅ ${workflow.workflowName} completed successfully`)
+    helpers.setTitle(
+      `Monitor workflow execution - ✅ ${workflow.workflowName} completed successfully`
+    )
     helpers.setOutput('Workflow completed successfully')
-  }
-  else {
+  } else {
     helpers.setTitle(`Monitor workflow execution - ✗ ${workflow.workflowName} failed`)
-    helpers.setOutput(`View details: https://github.com/${repositoryName}/actions/runs/${workflow.databaseId}`)
+    helpers.setOutput(
+      `View details: https://github.com/${repositoryName}/actions/runs/${workflow.databaseId}`
+    )
 
     // Enhanced red error display
-    const errorBox = ErrorFormatter.createErrorBox(
+    const errorBox = createErrorBox(
       'PUBLISHING WORKFLOW FAILED',
       `GitHub Actions workflow "${workflow.workflowName}" failed`,
       [
         `View logs: https://github.com/${repositoryName}/actions/runs/${workflow.databaseId}`,
         'Check for authentication issues',
         'Verify npm token configuration',
-      ],
+      ]
     )
     console.error(errorBox)
 
@@ -1160,7 +1262,11 @@ async function handleCompletedWorkflow(repositoryName: string, workflow: any, he
   }
 }
 
-async function monitorRunningWorkflow(repositoryName: string, runId: string | number, helpers: any): Promise<void> {
+async function monitorRunningWorkflow(
+  repositoryName: string,
+  runId: string | number,
+  helpers: any
+): Promise<void> {
   let isCompleted = false
   let lastStatus = ''
   let attempts = 0
@@ -1168,15 +1274,19 @@ async function monitorRunningWorkflow(repositoryName: string, runId: string | nu
 
   while (!isCompleted && attempts < maxAttempts) {
     try {
-      const result = await execa('gh', [
-        'run',
-        'view',
-        String(runId),
-        '--repo',
-        repositoryName,
-        '--json',
-        'status,conclusion,jobs',
-      ], { stdio: 'pipe' })
+      const result = await execa(
+        'gh',
+        [
+          'run',
+          'view',
+          String(runId),
+          '--repo',
+          repositoryName,
+          '--json',
+          'status,conclusion,jobs',
+        ],
+        { stdio: 'pipe' }
+      )
 
       const runData = JSON.parse(result.stdout)
 
@@ -1188,25 +1298,28 @@ async function monitorRunningWorkflow(repositoryName: string, runId: string | nu
 
           // Show individual job progress
           if (runData.jobs && runData.jobs.length > 0) {
-            const jobSummary = runData.jobs.map((job: any) => {
-              const icon = job.conclusion === 'success'
-                ? '✓'
-                : job.conclusion === 'failure'
-                  ? '✗'
-                  : job.status === 'in_progress' ? '⧖' : '-'
-              return `${icon} ${job.name}`
-            }).join(', ')
+            const jobSummary = runData.jobs
+              .map((job: any) => {
+                const icon =
+                  job.conclusion === 'success'
+                    ? '✓'
+                    : job.conclusion === 'failure'
+                      ? '✗'
+                      : job.status === 'in_progress'
+                        ? '⧖'
+                        : '-'
+                return `${icon} ${job.name}`
+              })
+              .join(', ')
             helpers.setOutput(`Jobs: ${jobSummary}`)
           }
-        }
-        else if (runData.status === 'completed') {
+        } else if (runData.status === 'completed') {
           isCompleted = true
 
           if (runData.conclusion === 'success') {
             helpers.setTitle('Monitor workflow execution - ✅ Workflow completed successfully')
             helpers.setOutput('All jobs completed successfully')
-          }
-          else {
+          } else {
             helpers.setTitle('Monitor workflow execution - ✗ Workflow failed')
             helpers.setOutput(`Conclusion: ${runData.conclusion}`)
 
@@ -1218,11 +1331,10 @@ async function monitorRunningWorkflow(repositoryName: string, runId: string | nu
       }
 
       if (!isCompleted) {
-        await new Promise(resolve => setTimeout(resolve, 5000)) // Check every 5 seconds
+        await new Promise((resolve) => setTimeout(resolve, 5000)) // Check every 5 seconds
         attempts++
       }
-    }
-    catch (error) {
+    } catch (error) {
       helpers.setTitle('Monitor workflow execution - ⚠️ Monitoring error')
       helpers.setOutput(`Error: ${error instanceof Error ? error.message : String(error)}`)
       break
@@ -1244,8 +1356,7 @@ async function checkNpmPackageWithHelpers(repositoryName: string, helpers: any):
       const fs = await import('node:fs/promises')
       const packageJson = JSON.parse(await fs.readFile('package.json', 'utf-8'))
       packageName = packageJson.name
-    }
-    catch {
+    } catch {
       // Fallback: Extract package name from repository name
       // Convert "owner/repo" to "@owner/repo" format
       packageName = repositoryName.includes('/')
@@ -1260,20 +1371,19 @@ async function checkNpmPackageWithHelpers(repositoryName: string, helpers: any):
 
     helpers.setTitle(`Verify npm package availability - ✅ ${packageName}@${version}`)
     helpers.setOutput(`Package is available! Install with: npm install ${packageName}`)
-  }
-  catch (error) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
 
     // Provide more helpful error messages
     if (errorMessage.includes('404') || errorMessage.includes('not found')) {
       helpers.setTitle('Verify npm package availability - ⚠️ Package not found')
-      helpers.setOutput('Package may not be published yet or repository name differs from package name')
-    }
-    else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+      helpers.setOutput(
+        'Package may not be published yet or repository name differs from package name'
+      )
+    } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       helpers.setTitle('Verify npm package availability - ⚠️ Network error')
       helpers.setOutput('Could not connect to npm registry')
-    }
-    else {
+    } else {
       helpers.setTitle('Verify npm package availability - ⚠️ Verification failed')
       helpers.setOutput(`Error: ${errorMessage}`)
     }
@@ -1292,25 +1402,27 @@ async function triggerErrorRecovery(repositoryName: string, runId: string | numb
       const error = new Error(`GitHub Actions workflow failed: ${errorLogs.slice(0, 200)}...`)
       await recoveryService.executeRecovery(error)
     }
-  }
-  catch (recoveryError) {
-    console.error(chalk.red(`✗ Error recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`))
+  } catch (recoveryError) {
+    console.error(
+      chalk.red(
+        `✗ Error recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`
+      )
+    )
   }
 }
 
-async function getFailureLogs(repositoryName: string, runId: string | number): Promise<string | null> {
+async function getFailureLogs(
+  repositoryName: string,
+  runId: string | number
+): Promise<string | null> {
   try {
-    const result = await execa('gh', [
-      'run',
-      'view',
-      String(runId),
-      '--repo',
-      repositoryName,
-      '--log-failed',
-    ], { stdio: 'pipe' })
+    const result = await execa(
+      'gh',
+      ['run', 'view', String(runId), '--repo', repositoryName, '--log-failed'],
+      { stdio: 'pipe' }
+    )
     return result.stdout
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -1341,35 +1453,39 @@ async function getFailureLogs(repositoryName: string, runId: string | number): P
 export async function deployToCloudflare(): Promise<void> {
   try {
     process.stdout.write('\n')
-    process.stdout.write(chalk.cyan('╔════════════════════════════════════════════════════════════════╗\n'))
-    process.stdout.write(chalk.cyan('║                    CLOUDFLARE DEPLOYMENT                       ║\n'))
-    process.stdout.write(chalk.cyan('╚════════════════════════════════════════════════════════════════╝\n'))
+    process.stdout.write(
+      chalk.cyan('╔════════════════════════════════════════════════════════════════╗\n')
+    )
+    process.stdout.write(
+      chalk.cyan('║                    CLOUDFLARE DEPLOYMENT                       ║\n')
+    )
+    process.stdout.write(
+      chalk.cyan('╚════════════════════════════════════════════════════════════════╝\n')
+    )
     process.stdout.write('\n')
     process.stdout.write('🚀 Deploying to Cloudflare Workers...\n')
 
     await execa('npx', ['wrangler', 'deploy'], { stdio: 'inherit' })
 
     process.stdout.write('\n')
-    process.stdout.write(`🎉 ${chalk.green.bold('Cloudflare deployment completed successfully!')}\n`)
+    process.stdout.write(
+      `🎉 ${chalk.green.bold('Cloudflare deployment completed successfully!')}\n`
+    )
     process.stdout.write('\n')
-  }
-  catch (error) {
+  } catch (error) {
     process.stdout.write('\n')
     const errorMessage = error instanceof Error ? error.message : String(error)
 
     if (errorMessage.includes('Missing entry-point')) {
       process.stdout.write(`❌ ${chalk.red.bold('Deployment failed: No wrangler config found')}\n`)
       process.stdout.write('📝 Check your wrangler.toml or wrangler.json configuration\n')
-    }
-    else if (errorMessage.includes('not authenticated')) {
+    } else if (errorMessage.includes('not authenticated')) {
       process.stdout.write(`❌ ${chalk.red.bold('Deployment failed: Not authenticated')}\n`)
       process.stdout.write('📝 Run: npx wrangler login\n')
-    }
-    else if (errorMessage.includes('wrangler: command not found')) {
+    } else if (errorMessage.includes('wrangler: command not found')) {
       process.stdout.write(`❌ ${chalk.red.bold('Deployment failed: Wrangler not installed')}\n`)
       process.stdout.write('📝 Install: npm install -g wrangler\n')
-    }
-    else {
+    } else {
       process.stdout.write(`❌ ${chalk.red.bold('Deployment failed')}\n`)
       process.stdout.write(`⚠️  Error: ${errorMessage.slice(0, 100)}...\n`)
     }

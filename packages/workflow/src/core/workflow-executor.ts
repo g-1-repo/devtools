@@ -8,7 +8,7 @@ import { createTaskEngine } from './task-engine.js'
 export async function executeWorkflow(
   name: string,
   context?: WorkflowContext,
-  options = { enableRecovery: true },
+  options = { enableRecovery: true }
 ): Promise<WorkflowContext> {
   const taskEngine = createTaskEngine({
     concurrent: false,
@@ -18,11 +18,13 @@ export async function executeWorkflow(
 
   try {
     return await taskEngine.execute([], context || {})
-  }
-  catch (error) {
+  } catch (error) {
     if (options.enableRecovery) {
       const recovery = OptimizedErrorRecoveryService.getInstance()
-      await recovery.executeRecovery(error instanceof Error ? error : new Error(String(error)), context)
+      await recovery.executeRecovery(
+        error instanceof Error ? error : new Error(String(error)),
+        context
+      )
     }
     throw error
   }
