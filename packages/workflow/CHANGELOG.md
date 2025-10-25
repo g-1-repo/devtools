@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.5.10] - 2025-10-25
+
+### Bug Fixes
+
+- update util package version to 3.5.9 to resolve npm publish conflict
+
+### Other Changes
+
+- chore: commit changes before release
+
+
 ## [3.5.9] - 2025-10-25
 
 ### Bug Fixes
