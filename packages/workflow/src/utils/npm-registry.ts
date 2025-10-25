@@ -62,7 +62,7 @@ export async function checkNpmPackageVersions(
     return {
       name: pkg.name,
       localVersion: pkg.version,
-      publishedVersion,
+      publishedVersion: publishedVersion ?? undefined,
       canPublish,
       reason,
     }
