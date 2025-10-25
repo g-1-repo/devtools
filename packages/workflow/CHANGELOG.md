@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.6] - 2025-10-25
+
+### Bug Fixes
+
+- add bun setup to workflow for build scripts
+
+
 ## [3.5.5] - 2025-10-25
 
 ### Bug Fixes
