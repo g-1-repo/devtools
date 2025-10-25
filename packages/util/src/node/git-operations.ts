@@ -158,7 +158,6 @@ export class GitOperations {
 
   private async initializeSimpleGit(): Promise<void> {
     try {
-      // @ts-expect-error - Dynamic import of optional dependency
       const simpleGitModule = await import('simple-git')
       this.git = simpleGitModule.simpleGit(this.workingDir)
     }
