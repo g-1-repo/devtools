@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.5.5] - 2025-10-25
+
+### Bug Fixes
+
+- use npm install instead of npm ci in workflow
+
+### Other Changes
+
+- chore: commit changes before release
+
+
 ## [3.5.4] - 2025-10-25
 
 ### Other Changes
