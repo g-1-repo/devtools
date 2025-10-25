@@ -176,7 +176,7 @@ bun run lint
 npm install @g-1/util
 ```
 
-2. Configure Warp MCP in your terminal settings:
+2. Configure MCP in your terminal settings:
 ```json
 {
   "mcpServers": {

@@ -310,7 +310,7 @@ logger.logWithTime("message");
   - **AI Context Awareness** - Automatically tells AI assistants about available utilities
   - **Smart Suggestions** - AI knows when to suggest utilities for specific tasks
   - **Project Detection** - Detects @g-1/util installation automatically
-  - **Warp Terminal Integration** - Works seamlessly with MCP protocol
+  - **Terminal Integration** - Works seamlessly with MCP protocol
 
   ### 📚 Enhanced Documentation
 

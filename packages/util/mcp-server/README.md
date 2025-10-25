@@ -11,7 +11,7 @@ The MCP server automatically:
 - 💡 Suggests when to use specific utilities
 - 🚀 Gives usage examples and import statements
 
-## Setup for Warp Terminal
+## Setup for Terminal
 
 ### 1. Install the Package
 ```bash
@@ -20,8 +20,8 @@ npm install @g-1/util
 bun add @g-1/util
 ```
 
-### 2. Configure Warp MCP
-Add to your Warp MCP configuration:
+### 2. Configure MCP
+Add to your MCP configuration:
 
 ```json
 {
@@ -98,8 +98,8 @@ bun run build:mcp
 ```
 
 ### AI Not Seeing Context
-1. Make sure Warp MCP is configured correctly
-2. Restart Warp terminal
+1. Make sure MCP is configured correctly
+2. Restart terminal
 3. Check that you're in a project with `@g-1/util` installed
 
 ### Manual Testing

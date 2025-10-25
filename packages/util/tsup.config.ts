@@ -19,8 +19,6 @@ export default defineConfig(
       'node/git-utils': 'src/node/git-utils.ts',
       'node/git-operations': 'src/node/git-operations.ts',
       'node/prompt-utils': 'src/node/prompt-utils.ts',
-      'node/warp/index': 'src/node/warp/index.ts',
-      'node/warp/cli': 'src/node/warp/cli.ts',
       'types/index': 'src/types/index.ts',
       'crypto/index': 'src/crypto/index.ts',
       'crypto/workers-safe': 'src/crypto/workers-safe.ts',

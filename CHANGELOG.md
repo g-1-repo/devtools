@@ -18,7 +18,7 @@
 
 - **CI Publishing**: Added comprehensive GitHub Releases-driven publishing documentation across all packages
 - **Error Recovery**: Documented optimized error recovery centralization in `@g-1/util/workflow` with usage examples
-- **Development Workflow**: Streamlined development commands and publishing guidance in WARP documentation
+- **Development Workflow**: Streamlined development commands and publishing guidance in documentation
 - **Cross-Package Integration**: Updated README files with CI publishing examples using GitHub CLI
 - **Architecture Clarity**: Enhanced documentation for shared utilities migration and performance optimizations
 

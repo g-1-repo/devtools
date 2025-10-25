@@ -92,11 +92,6 @@
       "import": "./dist/node/prompt-utils.js",
       "require": "./dist/node/prompt-utils.cjs"
     },
-    "./node/warp": {
-      "types": "./dist/node/warp/index.d.ts",
-      "import": "./dist/node/warp/index.js",
-      "require": "./dist/node/warp/index.cjs"
-    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",

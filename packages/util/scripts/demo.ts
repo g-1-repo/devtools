@@ -59,7 +59,7 @@ async function main() {
     console.log('\n🤖 MCP Server Integration:')
     console.log('  • Automatic project context detection')
     console.log('  • AI assistant utility suggestions')
-    console.log('  • Integration with Warp terminal')
+    console.log('  • Integration with terminal')
     console.log('  • Context-aware development assistance')
 
     console.log('\n🛠️ Development Commands:')
@@ -100,7 +100,7 @@ async function main() {
     console.log('\n🚀 Try it out:')
     console.log('  1. Install: npm install @g-1/util')
     console.log('  2. Import utilities in your TypeScript/JavaScript project')
-    console.log('  3. Configure MCP server for AI integration in Warp')
+    console.log('  3. Configure MCP server for AI integration in terminal')
     console.log('  4. Run "bun run workflow" for interactive development utilities')
     console.log('  5. Use "bun run release" for automated releases')
 
