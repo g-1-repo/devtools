@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.5.4] - 2025-10-25
+
+### Other Changes
+
+- chore: commit changes before release
+- Add npm publishing workflow for release monitoring
+
+
 ## [3.5.3] - 2025-10-25
 
 ### Other Changes
