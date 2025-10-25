@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3] - 2025-10-25
+
+### Other Changes
+
+- chore: release v1.2.2
+
+
 ## [1.2.2] - 2025-10-25
 
 
