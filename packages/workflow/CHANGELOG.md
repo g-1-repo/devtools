@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.5.7] - 2025-10-25
+
+### Bug Fixes
+
+- use @ts-ignore for dynamic import of simple-git
+- remove unused @ts-expect-error directive
+
+
 ## [3.5.6] - 2025-10-25
 
 ### Bug Fixes
