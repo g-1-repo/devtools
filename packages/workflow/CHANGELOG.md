@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.9] - 2025-10-25
+
+### Bug Fixes
+
+- remove non-existent shared package from GitHub Actions workflow
+
+
 ## [3.5.8] - 2025-10-25
 
 ### Bug Fixes
