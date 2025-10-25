@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.8] - 2025-10-25
+
+### Bug Fixes
+
+- update repository URLs to match devtools repo for npm provenance
+
+
 ## [3.5.7] - 2025-10-25
 
 ### Bug Fixes
