@@ -1104,10 +1104,10 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setTitle('Find publishing workflow - ⚠️ No publishing workflows found')
                 helpers.setOutput(
                   `No GitHub Actions workflows found that publish to npm.\n` +
-                  `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
-                  `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
-                  `Example: .github/workflows/publish-npm.yml\n` +
-                  `Visit: https://github.com/${repositoryName}/actions/new`
+                    `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
+                    `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
+                    `Example: .github/workflows/publish-npm.yml\n` +
+                    `Visit: https://github.com/${repositoryName}/actions/new`
                 )
                 return
               }
@@ -1115,11 +1115,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
               helpers.setOutput(
                 `Failed to check GitHub Actions workflows.\n` +
-                `This could be due to:\n` +
-                `• GitHub CLI not configured: Run 'gh auth login'\n` +
-                `• No repository access: Check permissions\n` +
-                `• Network issues: Check internet connection\n` +
-                `Error: ${error instanceof Error ? error.message : String(error)}`
+                  `This could be due to:\n` +
+                  `• GitHub CLI not configured: Run 'gh auth login'\n` +
+                  `• No repository access: Check permissions\n` +
+                  `• Network issues: Check internet connection\n` +
+                  `Error: ${error instanceof Error ? error.message : String(error)}`
               )
               return
             }
@@ -1184,12 +1184,12 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
               helpers.setOutput(
                 `No workflow runs triggered by ${tagName} found after ${maxAttempts} attempts.\n` +
-                `This could mean:\n` +
-                `• The workflow hasn't started yet (GitHub can have delays)\n` +
-                `• The workflow isn't triggered by release events\n` +
-                `• The workflow name doesn't contain 'publish' or 'npm'\n` +
-                `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
-                `Or wait a few minutes and try monitoring again.`
+                  `This could mean:\n` +
+                  `• The workflow hasn't started yet (GitHub can have delays)\n` +
+                  `• The workflow isn't triggered by release events\n` +
+                  `• The workflow name doesn't contain 'publish' or 'npm'\n` +
+                  `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
+                  `Or wait a few minutes and try monitoring again.`
               )
             }
           },
