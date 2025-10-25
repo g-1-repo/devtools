@@ -8,8 +8,8 @@
   "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/util#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/g-1-repo/studio.git",
-    "directory": "devtools/packages/util"
+    "url": "git+https://github.com/g-1-repo/devtools.git",
+    "directory": "packages/util"
   },
   "bugs": {
     "url": "https://github.com/g-1-repo/studio/issues"

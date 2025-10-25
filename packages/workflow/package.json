@@ -6,8 +6,8 @@
   "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/workflow#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/g-1-repo/studio.git",
-    "directory": "devtools/packages/workflow"
+    "url": "git+https://github.com/g-1-repo/devtools.git",
+    "directory": "packages/workflow"
   },
   "bugs": {
     "url": "https://github.com/g-1-repo/studio/issues"
