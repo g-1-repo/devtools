@@ -1,0 +1,8 @@
+{
+  "name": "malformed-fixture",
+  "version": "1.0.0",
+  "description": "Malformed JSON for testing error handling"
+  // Missing comma and closing brace intentionally
+  "scripts": {
+    "build": "echo build"
+  }

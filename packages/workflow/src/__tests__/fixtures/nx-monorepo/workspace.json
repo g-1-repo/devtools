@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "projects": {
+    "web": "apps/web",
+    "api": "apps/api",
+    "core": "libs/core",
+    "ui": "libs/ui",
+    "shared": "libs/shared"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@fixture/utils",
+  "version": "0.1.0",
+  "description": "Utility functions",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "date-fns": "^2.29.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.0",
+    "vitest": "^0.28.0",
+    "eslint": "^8.0.0"
+  }
+}

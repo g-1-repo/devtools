@@ -1,0 +1,24 @@
+{
+  "name": "pnpm-workspaces-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test fixture for pnpm workspaces",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean",
+    "dev": "pnpm --filter @fixture/web dev",
+    "build:affected": "pnpm -r --filter='...[HEAD~1]' run build"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.9.0",
+    "eslint": "^8.0.0",
+    "prettier": "^2.8.0"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=7"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/rush/v5/rush.schema.json",
+  "rushVersion": "5.88.0",
+  "pnpmVersion": "7.15.0",
+  "nodeSupportedVersionRange": ">=14.15.0 <19.0.0",
+  "projectFolderMinDepth": 2,
+  "projectFolderMaxDepth": 3,
+  "ensureConsistentVersions": true,
+  "projects": [
+    {
+      "packageName": "@fixture/core",
+      "projectFolder": "packages/core",
+      "reviewCategory": "libraries"
+    },
+    {
+      "packageName": "@fixture/shared",
+      "projectFolder": "packages/shared",
+      "reviewCategory": "libraries"
+    },
+    {
+      "packageName": "@fixture/web-app",
+      "projectFolder": "apps/web",
+      "reviewCategory": "applications"
+    },
+    {
+      "packageName": "@fixture/api-server",
+      "projectFolder": "apps/api",
+      "reviewCategory": "applications"
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/example/rush-monorepo-fixture",
+    "defaultBranch": "main"
+  },
+  "eventHooks": {
+    "preRushInstall": [],
+    "postRushInstall": [],
+    "preRushBuild": [],
+    "postRushBuild": []
+  },
+  "gitPolicy": {
+    "allowedEmailRegExps": [".*@example\\.com$"],
+    "sampleEmail": "developer@example.com"
+  }
+}
