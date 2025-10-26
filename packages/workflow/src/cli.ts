@@ -158,12 +158,17 @@ program
       if (globalOptions.noInteractive && !options.nonInteractive) {
         options.nonInteractive = true
       }
+      
+      console.log(`DEBUG: After mapping - options.nonInteractive=${options.nonInteractive}, globalOptions.noInteractive=${globalOptions.noInteractive}`)
 
       // Handle version approval BEFORE creating workflow steps (outside of Listr2)
-      if (!options.type && !options.nonInteractive && !options.dryRun) {
+      console.log(`DEBUG: options.type=${options.type}, options.nonInteractive=${options.nonInteractive}`)
+      if (!options.type && !options.nonInteractive) {
+        console.log('DEBUG: Entering version approval logic')
         // We need to calculate the version first to show the approval prompt
         const { analyzeGitContext } = await import('./utils/git-context.js')
         const gitContext = await analyzeGitContext()
+        console.log('DEBUG: gitContext.version:', gitContext.version)
         
         if (gitContext.version) {
           // Import version calculation logic
