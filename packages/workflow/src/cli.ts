@@ -154,6 +154,11 @@ program
         note(`${G1_ICONS.info} DRY RUN MODE - No changes will be made`, 'Dry Run')
       }
 
+      // Map global --no-interactive to command nonInteractive option
+      if (globalOptions.noInteractive && !options.nonInteractive) {
+        options.nonInteractive = true
+      }
+
       // Create workflow steps (now async for interactive prompts)
       const steps = await createReleaseWorkflow(options)
 
