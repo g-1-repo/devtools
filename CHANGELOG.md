@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.6.0] - 2025-10-26
+
+### Features
+
+- update utilities
+- implement new functionality
+- implement new functionality
+
+### Other Changes
+
+- chore: commit changes before release
+- test: add CLI options debug script
+- test: add debug scripts for version approval investigation
+
+
 ## [3.5.18] - 2025-10-26
 
 
