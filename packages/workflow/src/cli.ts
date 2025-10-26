@@ -165,23 +165,34 @@ program
         const { analyzeGitContext } = await import('./utils/git-context.js')
         const gitContext = await analyzeGitContext()
         
-        if (gitContext.version) {
+        // Get git operations to access version and commits
+        const { createContextAwareGitOperations } = await import('./utils/git-context.js')
+        const git = await createContextAwareGitOperations()
+        
+        const currentVersion = await git.getCurrentVersion()
+        const commits = await git.getCommitsSinceTag()
+        
+        if (currentVersion) {
           // Import version calculation logic
           const { loadWorkflowConfig } = await import('./config/workflow-config.js')
           const { AIService } = await import('./core/ai-service.js')
           const semver = await import('semver')
           
           let versionBump: 'major' | 'minor' | 'patch' = 'patch'
-          const commits = gitContext.commits || []
           
           // Use the same version calculation logic as in the workflow
           const config = await loadWorkflowConfig()
           if (config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
             try {
               const aiService = new AIService(config.ai)
-              const changelogEntries = await aiService.generateChangelog(commits)
+              // Map util CommitInfo to workflow CommitInfo by adding files property
+              const workflowCommits = commits.map((commit) => ({
+                ...commit,
+                files: [], // Add empty files array to match workflow CommitInfo interface
+              }))
+              const changelogEntries = await aiService.generateChangelog(workflowCommits)
               const suggestions = await aiService.suggestVersionBumps(changelogEntries, [
-                { name: 'current-package', version: gitContext.version.current, path: process.cwd() },
+                { name: 'current-package', version: currentVersion, path: process.cwd() },
               ])
 
               if (suggestions.length > 0 && suggestions[0]?.bumpType) {
@@ -211,15 +222,15 @@ program
             else versionBump = 'patch'
           }
 
-          const nextVersion = semver.inc(gitContext.version.current, versionBump)
+          const nextVersion = semver.inc(currentVersion, versionBump)
           if (!nextVersion) {
-            throw new Error(`Failed to calculate next version from ${gitContext.version.current}`)
+            throw new Error(`Failed to calculate next version from ${currentVersion}`)
           }
 
           // Show version approval prompt OUTSIDE of Listr2
           const { select, isCancel, note } = await import('@clack/prompts')
           
-          note(`Calculated version: ${gitContext.version.current} → ${nextVersion} (${versionBump})`, '📋 Version Approval')
+          note(`Calculated version: ${currentVersion} → ${nextVersion} (${versionBump})`, '📋 Version Approval')
           
           const approval = await select({
             message: `Approve version ${nextVersion}?`,
