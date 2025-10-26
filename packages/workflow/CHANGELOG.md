@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.5.13] - 2025-10-26
+
+### Other Changes
+
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: release v1.2.5
+- chore: commit changes before release
+- Initial commit: Project setup
+- Initial commit: Project setup
+- Initial commit: Project setup
+- Initial commit: Project setup
+- chore: release v1.2.4
+- chore: release v1.2.3
+- chore: release v1.2.2
+
+
 ## [3.5.12] - 2025-10-26
 
 ### Other Changes
