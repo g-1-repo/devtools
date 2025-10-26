@@ -1,7 +1,7 @@
 {
   "name": "@g-1/devtools",
   "private": true,
-  "version": "3.7.0",
+  "version": "4.0.0",
   "description": "G1 Development Tools - Monorepo containing util, workflow, and test packages",
   "workspaces": [
     "packages/*"
