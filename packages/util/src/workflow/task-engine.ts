@@ -62,6 +62,7 @@ export class TaskEngine {
     const listr = new Listr(tasks, {
       concurrent: this.options.concurrent ?? false,
       exitOnError: this.options.exitOnError ?? true,
+      renderer: this.options.renderer ?? ('simple' as any),
       rendererOptions: {
         collapseSubtasks: false,
         suffixSkips: true,
