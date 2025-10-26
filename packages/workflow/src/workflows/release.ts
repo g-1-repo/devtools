@@ -11,6 +11,8 @@ import * as semver from 'semver'
 import { createErrorBox } from '../core/error-formatter.js'
 import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
 import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git-context.js'
+import { loadWorkflowConfig } from '../config/workflow-config.js'
+import { AIService } from '../core/ai-service.js'
 
 // Detection functions (detectCloudflareSetup moved to exports below)
 
@@ -544,7 +546,46 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
         let versionBump = options.type || 'patch'
 
-        if (!options.type) {
+        // Check if AI version suggestions are enabled
+        const config = await loadWorkflowConfig()
+        if (!options.type && config.ai?.enabled && config.ai?.version?.enabled) {
+          try {
+            helpers.setOutput('Using AI to determine version bump...')
+            const aiService = new AIService(config.ai)
+            const suggestion = await aiService.suggestVersionBump()
+            
+            if (suggestion && suggestion.type) {
+              versionBump = suggestion.type
+              helpers.setOutput(`AI suggests ${suggestion.type} version bump (${suggestion.confidence}% confidence): ${suggestion.reasoning}`)
+            } else {
+              helpers.setOutput('AI version suggestion unavailable, falling back to semantic analysis...')
+              // Fall back to original logic
+              const hasBreaking = commits.some((c: any) => c.breaking)
+              const hasFeatures = commits.some((c: any) => c.type === 'feat')
+
+              if (hasBreaking) {
+                versionBump = 'major'
+              } else if (hasFeatures) {
+                versionBump = 'minor'
+              } else {
+                versionBump = 'patch'
+              }
+            }
+          } catch (error) {
+            helpers.setOutput('AI version analysis failed, using semantic analysis...')
+            // Fall back to original logic
+            const hasBreaking = commits.some((c: any) => c.breaking)
+            const hasFeatures = commits.some((c: any) => c.type === 'feat')
+
+            if (hasBreaking) {
+              versionBump = 'major'
+            } else if (hasFeatures) {
+              versionBump = 'minor'
+            } else {
+              versionBump = 'patch'
+            }
+          }
+        } else if (!options.type) {
           helpers.setOutput('Determining semantic version bump...')
 
           // Analyze commits for version bump
@@ -622,11 +663,34 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
             helpers.setOutput('Generating changelog entry...')
 
-            // Simple changelog generation - can be enhanced
             const fs = await import('node:fs/promises')
             const changelogPath = 'CHANGELOG.md'
 
-            const changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
+            // Check if AI changelog generation is enabled
+            const config = await loadWorkflowConfig()
+            let changelogEntry: string
+
+            if (config.ai?.enabled && config.ai?.changelog?.enabled) {
+              try {
+                helpers.setOutput('Using AI to generate changelog...')
+                const aiService = new AIService(config.ai)
+                const aiChangelog = await aiService.generateChangelog()
+                
+                if (aiChangelog && aiChangelog.content) {
+                  changelogEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${aiChangelog.content}\n`
+                  helpers.setOutput('AI-generated changelog created successfully')
+                } else {
+                  helpers.setOutput('AI changelog generation failed, using fallback...')
+                  changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
+                }
+              } catch (error) {
+                helpers.setOutput('AI changelog generation failed, using fallback...')
+                changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
+              }
+            } else {
+              // Use traditional changelog generation
+              changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
+            }
 
             try {
               const existingChangelog = await fs.readFile(changelogPath, 'utf-8')

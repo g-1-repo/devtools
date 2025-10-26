@@ -1,6 +1,6 @@
 {
   "name": "@fixture/core",
-  "version": "3.5.14",
+  "version": "3.5.15",
   "description": "Core utilities for Rush monorepo",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

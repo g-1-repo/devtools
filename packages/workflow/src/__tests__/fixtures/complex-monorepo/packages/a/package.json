@@ -1,6 +1,6 @@
 {
   "name": "@fixture/package-a",
-  "version": "3.5.14",
+  "version": "3.5.15",
   "description": "Package A with circular dependency to B",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -148,7 +148,7 @@ export class AIService {
     changes: ChangelogEntry[],
     packages: Array<{ name: string; dependencies: Record<string, string> }>
   ): Promise<ImpactAnalysis> {
-    const changedPackages = [...new Set(changes.flatMap((c) => c.affectedPackages))]
+    const changedPackages = Array.from(new Set(changes.flatMap((c) => c.affectedPackages)))
     const affectedPackages = new Set(changedPackages)
 
     // Find packages that depend on changed packages
@@ -374,7 +374,7 @@ export class AIService {
       .filter((word) => word.length > 3)
       .filter((word) => !['the', 'and', 'for', 'with', 'from', 'this', 'that'].includes(word))
 
-    return [...new Set(words)].slice(0, 3)
+    return Array.from(new Set(words)).slice(0, 3)
   }
 
   /**
