@@ -222,11 +222,9 @@ program
           }
 
           // Show version approval prompt OUTSIDE of Listr2
-          console.log(`\n📋 Version Approval`)
-          console.log(`─────────────────────`)
-          console.log(`Calculated version: ${gitContext.version.current} → ${nextVersion} (${versionBump})`)
+          const { select, isCancel, note } = await import('@clack/prompts')
           
-          const { select, isCancel } = await import('@clack/prompts')
+          note(`Calculated version: ${gitContext.version.current} → ${nextVersion} (${versionBump})`, '📋 Version Approval')
           
           const approval = await select({
             message: `Approve version ${nextVersion}?`,
