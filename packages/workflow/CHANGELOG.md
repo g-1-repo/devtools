@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.7.0] - 2025-10-26
+
+- ✨ feat: implement new functionality
+
 ## [3.6.0] - 2025-10-26
 
 - ✨ feat: update utilities
