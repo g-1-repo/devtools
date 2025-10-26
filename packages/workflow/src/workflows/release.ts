@@ -2,11 +2,11 @@
  * Complete Release Workflow - Git → Cloudflare → GitHub Release (triggers npm via Actions)
  */
 
+import process from 'node:process'
 import { isCancel, select, text } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
-import process from 'node:process'
 import * as semver from 'semver'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { AIService } from '../core/ai-service.js'
@@ -21,7 +21,7 @@ import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git
 export {
   detectPublishablePackages,
   detectSmartPublishablePackages,
-  formatPackageDetectionSummary
+  formatPackageDetectionSummary,
 } from '../utils/smart-package-detection.js'
 
 // Import the functions for internal use
@@ -681,7 +681,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             ? `Will deploy to: ${deployments.join(', ')}`
             : 'Cloudflare deployment skipped'
 
-        helpers.setTitle(`Deployment configuration - ${G1_ICONS.success} ${summary} | npm: GitHub Actions`)
+        helpers.setTitle(
+          `Deployment configuration - ${G1_ICONS.success} ${summary} | npm: GitHub Actions`
+        )
       },
     },
 
@@ -694,7 +696,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           task: async (ctx, helpers) => {
             if (options.dryRun) {
               helpers.setOutput(`[DRY RUN] Would set version to ${ctx.version!.next}...`)
-              helpers.setTitle(`Update package.json version - ${G1_ICONS.success} ${ctx.version!.next} (dry run)`)
+              helpers.setTitle(
+                `Update package.json version - ${G1_ICONS.success} ${ctx.version!.next} (dry run)`
+              )
               return
             }
 
@@ -702,7 +706,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             helpers.setOutput(`Setting version to ${ctx.version!.next}...`)
 
             await git.updatePackageVersion(ctx.version!.next)
-            helpers.setTitle(`Update package.json version - ${G1_ICONS.success} ${ctx.version!.next}`)
+            helpers.setTitle(
+              `Update package.json version - ${G1_ICONS.success} ${ctx.version!.next}`
+            )
           },
         },
         {
@@ -710,7 +716,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           task: async (ctx, helpers) => {
             if (options.dryRun) {
               helpers.setOutput('[DRY RUN] Would generate changelog entry...')
-              helpers.setTitle('Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated (dry run)')
+              helpers.setTitle(
+                'Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated (dry run)'
+              )
               return
             }
 
@@ -774,7 +782,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             if (options.dryRun) {
               const commitMessage = `chore: release v${ctx.version!.next}`
               helpers.setOutput('[DRY RUN] Would stage and commit files...')
-              helpers.setTitle(`Commit release changes - ${G1_ICONS.success} ${commitMessage} (dry run)`)
+              helpers.setTitle(
+                `Commit release changes - ${G1_ICONS.success} ${commitMessage} (dry run)`
+              )
               return
             }
 
@@ -892,18 +902,24 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             // Set final status
             if (commitsPushed && tagsPushed) {
               if (ctx.tagAlreadyExists) {
-                helpers.setTitle(`Push to remote - ${G1_ICONS.success} Commits pushed (tag already exists)`)
+                helpers.setTitle(
+                  `Push to remote - ${G1_ICONS.success} Commits pushed (tag already exists)`
+                )
               } else {
                 helpers.setTitle(`Push to remote - ${G1_ICONS.success} Complete`)
               }
             } else if (commitsPushed) {
               if (ctx.tagAlreadyExists) {
-                helpers.setTitle(`Push to remote - ${G1_ICONS.success} Commits pushed (tag already exists)`)
+                helpers.setTitle(
+                  `Push to remote - ${G1_ICONS.success} Commits pushed (tag already exists)`
+                )
               } else {
                 helpers.setTitle(`Push to remote - ${G1_ICONS.success} Commits pushed (tag failed)`)
               }
             } else if (tagsPushed) {
-              helpers.setTitle(`Push to remote - ${G1_ICONS.success} Tags pushed (commits up-to-date)`)
+              helpers.setTitle(
+                `Push to remote - ${G1_ICONS.success} Tags pushed (commits up-to-date)`
+              )
             } else {
               helpers.setTitle('Push to remote - ⚠️ Push completed with warnings')
             }
@@ -1259,10 +1275,10 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setTitle('Find publishing workflow - ⚠️ No publishing workflows found')
                 helpers.setOutput(
                   `No GitHub Actions workflows found that publish to npm.\n` +
-                  `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
-                  `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
-                  `Example: .github/workflows/publish-npm.yml\n` +
-                  `Visit: https://github.com/${repositoryName}/actions/new`
+                    `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
+                    `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
+                    `Example: .github/workflows/publish-npm.yml\n` +
+                    `Visit: https://github.com/${repositoryName}/actions/new`
                 )
                 return
               }
@@ -1270,11 +1286,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
               helpers.setOutput(
                 `Failed to check GitHub Actions workflows.\n` +
-                `This could be due to:\n` +
-                `• GitHub CLI not configured: Run 'gh auth login'\n` +
-                `• No repository access: Check permissions\n` +
-                `• Network issues: Check internet connection\n` +
-                `Error: ${error instanceof Error ? error.message : String(error)}`
+                  `This could be due to:\n` +
+                  `• GitHub CLI not configured: Run 'gh auth login'\n` +
+                  `• No repository access: Check permissions\n` +
+                  `• Network issues: Check internet connection\n` +
+                  `Error: ${error instanceof Error ? error.message : String(error)}`
               )
               return
             }
@@ -1320,7 +1336,9 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 if (recentPublishRun) {
                   ctx.publishingWorkflow = recentPublishRun
                   foundPublishingWorkflow = true
-                  helpers.setTitle(`Find publishing workflow - ${G1_ICONS.success} ${recentPublishRun.workflowName}`)
+                  helpers.setTitle(
+                    `Find publishing workflow - ${G1_ICONS.success} ${recentPublishRun.workflowName}`
+                  )
                   return
                 }
 
@@ -1339,12 +1357,12 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
               helpers.setOutput(
                 `No workflow runs triggered by ${tagName} found after ${maxAttempts} attempts.\n` +
-                `This could mean:\n` +
-                `• The workflow hasn't started yet (GitHub can have delays)\n` +
-                `• The workflow isn't triggered by release events\n` +
-                `• The workflow name doesn't contain 'publish' or 'npm'\n` +
-                `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
-                `Or wait a few minutes and try monitoring again.`
+                  `This could mean:\n` +
+                  `• The workflow hasn't started yet (GitHub can have delays)\n` +
+                  `• The workflow isn't triggered by release events\n` +
+                  `• The workflow name doesn't contain 'publish' or 'npm'\n` +
+                  `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
+                  `Or wait a few minutes and try monitoring again.`
               )
             }
           },
@@ -1489,7 +1507,9 @@ async function monitorRunningWorkflow(
           isCompleted = true
 
           if (runData.conclusion === 'success') {
-            helpers.setTitle(`Monitor workflow execution - ${G1_ICONS.success} Workflow completed successfully`)
+            helpers.setTitle(
+              `Monitor workflow execution - ${G1_ICONS.success} Workflow completed successfully`
+            )
             helpers.setOutput('All jobs completed successfully')
           } else {
             helpers.setTitle('Monitor workflow execution - ✗ Workflow failed')
@@ -1541,7 +1561,9 @@ async function checkNpmPackageWithHelpers(repositoryName: string, helpers: any):
     const result = await execa('npm', ['view', packageName, 'version'], { stdio: 'pipe' })
     const version = result.stdout.trim()
 
-    helpers.setTitle(`Verify npm package availability - ${G1_ICONS.success} ${packageName}@${version}`)
+    helpers.setTitle(
+      `Verify npm package availability - ${G1_ICONS.success} ${packageName}@${version}`
+    )
     helpers.setOutput(`Package is available! Install with: npm install ${packageName}`)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)

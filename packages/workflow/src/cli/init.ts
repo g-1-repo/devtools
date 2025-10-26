@@ -10,7 +10,6 @@ import process from 'node:process'
 import { confirm, intro, isCancel, log } from '@clack/prompts'
 import chalk from 'chalk'
 import { createDefaultConfigFile, hasConfigFile } from '../config/workflow-config.js'
-import { G1_ICONS } from '../core/ui-components.js'
 import {
   autoFixAllIssues,
   createInitialCommit,
@@ -20,6 +19,7 @@ import {
   interactiveFixIssues,
   runPreFlightChecks,
 } from '../core/git-setup.js'
+import { G1_ICONS } from '../core/ui-components.js'
 
 /**
  * Init command options

@@ -2,8 +2,8 @@
  * Smart package detection that checks NPM registry before suggesting packages for publishing
  */
 
-import { filterPublishablePackages, type NpmPackageInfo } from './npm-registry.js'
 import { G1_ICONS } from '../core/ui-components.js'
+import { filterPublishablePackages, type NpmPackageInfo } from './npm-registry.js'
 
 export interface SmartPackageDetectionResult {
   publishable: string[]
