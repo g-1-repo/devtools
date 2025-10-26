@@ -226,7 +226,14 @@ async function loadJavaScriptConfig(filePath: string): Promise<Partial<WorkflowC
   try {
     // Use dynamic import for ES modules and CommonJS
     const module = await import(filePath)
-    return module.default || module
+    let config = module.default || module
+    
+    // If the config is a function, call it to get the actual config
+    if (typeof config === 'function') {
+      config = config()
+    }
+    
+    return config
   } catch (error) {
     throw new Error(`Failed to load configuration from ${filePath}: ${error instanceof Error ? error.message : String(error)}`)
   }

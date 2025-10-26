@@ -6,7 +6,7 @@
  */
 
 import chalk from 'chalk'
-import { enquirer } from 'enquirer'
+import enquirer from 'enquirer'
 
 /**
  * Error categories for better organization
