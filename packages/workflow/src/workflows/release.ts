@@ -605,66 +605,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             }
 
             const git = createGitOperations()
-            const gitContext = await analyzeGitContext()
-
             helpers.setOutput(`Setting version to ${ctx.version!.next}...`)
 
-            // Update current package version
             await git.updatePackageVersion(ctx.version!.next)
-
-            // If in monorepo, synchronize versions across all packages
-            if (gitContext.isMonorepo && gitContext.monorepoRoot) {
-              helpers.setOutput('Detected monorepo - synchronizing versions across all packages...')
-
-              const fs = await import('node:fs/promises')
-              const path = await import('node:path')
-              const { glob } = await import('glob')
-
-              try {
-                // Find all package.json files in the monorepo (excluding node_modules)
-                const packageJsonFiles = await glob('**/package.json', {
-                  cwd: gitContext.monorepoRoot,
-                  ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
-                })
-
-                let updatedPackages = 0
-
-                for (const packageJsonPath of packageJsonFiles) {
-                  const fullPath = path.join(gitContext.monorepoRoot, packageJsonPath)
-
-                  try {
-                    const packageContent = await fs.readFile(fullPath, 'utf-8')
-                    const packageJson = JSON.parse(packageContent)
-
-                    // Only update packages that have a name (skip root package.json if it's just a workspace)
-                    if (packageJson.name && packageJson.version) {
-                      const oldVersion = packageJson.version
-                      packageJson.version = ctx.version!.next
-
-                      await fs.writeFile(fullPath, `${JSON.stringify(packageJson, null, 2)}\n`)
-                      helpers.setOutput(
-                        `Updated ${packageJson.name}: ${oldVersion} → ${ctx.version!.next}`
-                      )
-                      updatedPackages++
-                    }
-                  } catch (error) {
-                    helpers.setOutput(
-                      `Warning: Could not update ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`
-                    )
-                  }
-                }
-
-                helpers.setOutput(
-                  `✅ Synchronized versions across ${updatedPackages} packages in monorepo`
-                )
-              } catch (error) {
-                helpers.setOutput(
-                  `Warning: Monorepo version synchronization failed: ${error instanceof Error ? error.message : String(error)}`
-                )
-                helpers.setOutput('Continuing with single package version update...')
-              }
-            }
-
             helpers.setTitle(`Update package.json version - ✅ ${ctx.version!.next}`)
           },
         },

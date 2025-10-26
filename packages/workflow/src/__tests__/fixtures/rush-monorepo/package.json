@@ -1,6 +1,6 @@
 {
   "name": "rush-monorepo-fixture",
-  "version": "1.0.0",
+  "version": "3.5.14",
   "private": true,
   "description": "Test fixture for Rush monorepo",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@fixture/ui",
-  "version": "1.2.0",
+  "version": "3.5.14",
   "description": "UI components package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

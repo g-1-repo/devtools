@@ -1,6 +1,6 @@
 {
   "name": "single-package-fixture",
-  "version": "1.0.0",
+  "version": "3.5.14",
   "description": "Test fixture for single package repository",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
