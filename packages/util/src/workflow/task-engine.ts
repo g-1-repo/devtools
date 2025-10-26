@@ -115,14 +115,14 @@ export class TaskEngine {
 
     if (skipResult === true || typeof skipResult === 'string') {
       if (this.options.verbose) {
-        log.info(`${chalk.yellow('↷')} ${step.title} ${typeof skipResult === 'string' ? `- ${skipResult}` : '- skipped'}`)
+        log.info(`${chalk.gray('○')} ${chalk.gray(step.title)} ${typeof skipResult === 'string' ? `- ${skipResult}` : '- skipped'}`)
       }
       return
     }
 
     // Execute subtasks if present
     if (step.subtasks && step.subtasks.length > 0) {
-      log.step(step.title)
+      log.step(`${chalk.blue('●')} ${step.title}`)
       
       if (step.concurrent && !this.options.concurrent === false) {
         // Execute subtasks concurrently
@@ -139,7 +139,7 @@ export class TaskEngine {
     // Execute the main task
     if (step.task) {
       const s = spinner()
-      s.start(step.title)
+      s.start(`${chalk.blue('●')} ${step.title}`)
 
       let currentTitle = step.title
       let currentOutput = ''
@@ -147,15 +147,17 @@ export class TaskEngine {
       const helpers: TaskHelpers = {
         setOutput: (output: string) => {
           currentOutput = output
-          s.message(currentOutput)
+          s.message(`${chalk.blue('●')} ${currentTitle} - ${chalk.gray(output)}`)
         },
         setTitle: (title: string) => {
           currentTitle = title
-          s.message(title)
+          s.message(`${chalk.blue('●')} ${title}`)
         },
         setProgress: (current: number, total?: number) => {
           const progress = total ? `${current}/${total}` : `${current}%`
-          s.message(`${currentTitle} - ${progress}`)
+          const percentage = total ? Math.round((current / total) * 100) : current
+          const progressBar = this.createProgressBar(percentage)
+          s.message(`${chalk.blue('●')} ${currentTitle} ${progressBar} ${chalk.gray(`${progress}`)}`)
         },
       }
 
@@ -166,18 +168,26 @@ export class TaskEngine {
         s.stop(`${chalk.red('✗')} ${currentTitle}`)
         
         if (step.retry && step.retry > 0) {
-          log.warn(`Retrying ${step.title} (${step.retry} attempts remaining)`)
+          log.warn(`${chalk.yellow('↻')} Retrying ${step.title} (${step.retry} attempts remaining)`)
           const retryStep = { ...step, retry: step.retry - 1 }
           await this.executeStep(retryStep, context)
         } else {
           if (this.options.exitOnError !== false) {
             throw error
           } else {
-            log.error(`${step.title} failed: ${error instanceof Error ? error.message : String(error)}`)
+            log.error(`${chalk.red('✗')} ${step.title} failed: ${error instanceof Error ? error.message : String(error)}`)
           }
         }
       }
     }
+  }
+
+  private createProgressBar(percentage: number): string {
+    const width = 20
+    const filled = Math.round((percentage / 100) * width)
+    const empty = width - filled
+    
+    return `[${chalk.green('█'.repeat(filled))}${chalk.gray('░'.repeat(empty))}]`
   }
 }
 

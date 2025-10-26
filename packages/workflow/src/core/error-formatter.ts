@@ -11,7 +11,7 @@ export interface FormattedError {
   context?: string
 }
 
-// Custom G1 Workflow Icons
+// Custom G1 Workflow Icons - Modern Unicode Symbol Set
 export const G1_ICONS = {
   // Status Icons
   success: chalk.green('✓'),
@@ -20,36 +20,57 @@ export const G1_ICONS = {
   info: chalk.blue('ℹ'),
 
   // Process Icons
-  rocket: chalk.magenta('🚀'),
+  rocket: chalk.magenta('↗'),
   gear: chalk.cyan('⚙'),
   lightning: chalk.yellow('⚡'),
-  fire: chalk.red('🔥'),
+  fire: chalk.red('●'),
 
   // G1 Branded Icons
   g1: chalk.bold.blue('G1'),
   workflow: chalk.cyan('⟲'),
-  release: chalk.green('📦'),
-  build: chalk.blue('🔨'),
+  release: chalk.green('◆'),
+  build: chalk.blue('▲'),
 
   // Action Icons
-  fix: chalk.green('🔧'),
-  search: chalk.blue('🔍'),
-  deploy: chalk.magenta('🌐'),
-  test: chalk.yellow('🧪'),
+  fix: chalk.green('⚒'),
+  search: chalk.blue('◉'),
+  deploy: chalk.magenta('⬆'),
+  test: chalk.yellow('◈'),
 
   // Monorepo Icons
-  list: chalk.cyan('📋'),
-  graph: chalk.magenta('🕸'),
-  check: chalk.green('✅'),
+  list: chalk.cyan('≡'),
+  graph: chalk.magenta('◇'),
+  check: chalk.green('✓'),
   run: chalk.blue('▶'),
 
   // AI Icons
-  ai: chalk.magenta('🤖'),
+  ai: chalk.magenta('◎'),
 
   // Framework Icons
   optimize: chalk.yellow('⚡'),
-  health: chalk.green('💚'),
-  monitor: chalk.blue('📊'),
+  health: chalk.green('◉'),
+  monitor: chalk.blue('▣'),
+
+  // Additional Modern Icons
+  folder: chalk.blue('▣'),
+  file: chalk.gray('▫'),
+  branch: chalk.yellow('⎇'),
+  commit: chalk.green('●'),
+  tag: chalk.magenta('◆'),
+  merge: chalk.cyan('⟲'),
+  pull: chalk.blue('↓'),
+  push: chalk.green('↑'),
+  sync: chalk.yellow('⟳'),
+  config: chalk.gray('◈'),
+  package: chalk.blue('▣'),
+  dependency: chalk.cyan('◇'),
+  script: chalk.yellow('▶'),
+  server: chalk.green('▲'),
+  database: chalk.blue('▣'),
+  api: chalk.magenta('◉'),
+  security: chalk.red('◈'),
+  performance: chalk.yellow('⚡'),
+  quality: chalk.green('◆'),
 } as const
 
 /**

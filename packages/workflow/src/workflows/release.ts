@@ -204,26 +204,39 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
       const changedFiles = await git.getChangedFiles()
       const changesList = changedFiles.map((file: string) => `    ${file}`).join('\n')
 
-      process.stdout.write('\n')
-      process.stdout.write('╔═══════════════════════════════════════════════════════╗\n')
-      process.stdout.write('║                  UNCOMMITTED CHANGES                  ║\n')
-      process.stdout.write('╚═══════════════════════════════════════════════════════╝\n')
-      process.stdout.write('\n')
-      process.stdout.write('\x1B[1m\x1B[33mThe following files have uncommitted changes:\x1B[0m\n')
-      process.stdout.write(`\n${changesList}\n\n`)
-      process.stdout.write(
-        '\x1B[2m────────────────────────────────────────────────────────────────\x1B[0m\n'
+      const { createStyledBox, createSectionHeader } = await import('../core/ui-components.js')
+
+      createSectionHeader(
+        'Uncommitted Changes Detected',
+        'The following files have uncommitted changes and need to be handled before proceeding',
+        '⚠'
       )
-      process.stdout.write('\x1B[1mHow would you like to proceed?\x1B[0m\n')
-      process.stdout.write('\n')
+
+      createStyledBox(
+        'Changed Files',
+        changedFiles.map(file => `  ${file}`),
+        'warning'
+      )
 
       if (!options.nonInteractive) {
         const action = await select({
-          message: 'Choose an action:',
+          message: 'How would you like to proceed?',
           options: [
-            { value: 'commit', label: 'Commit all changes now' },
-            { value: 'stash', label: 'Stash changes for later' },
-            { value: 'force', label: 'Continue anyway (--force)' },
+            {
+              value: 'commit',
+              label: `${chalk.green('●')} Commit all changes now`,
+              hint: 'Stage and commit all uncommitted changes'
+            },
+            {
+              value: 'stash',
+              label: `${chalk.blue('●')} Stash changes for later`,
+              hint: 'Save changes to stash and continue'
+            },
+            {
+              value: 'force',
+              label: `${chalk.yellow('●')} Continue anyway (--force)`,
+              hint: 'Proceed with uncommitted changes (not recommended)'
+            },
           ],
         })
 
@@ -235,14 +248,22 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
         process.stdout.write('\n')
 
         if (action === 'commit') {
-          process.stdout.write('\x1B[1m\x1B[36m→ Commit Configuration\x1B[0m\n')
-          process.stdout.write('  Enter a commit message for these changes\n')
-          process.stdout.write('\n')
+          const { modernLog } = await import('../core/ui-components.js')
+
+          modernLog.step('Preparing to commit changes', '◆')
 
           // Get commit message
           const message = await text({
-            message: 'Commit message:',
+            message: 'Enter commit message:',
             placeholder: 'chore: commit changes before release',
+            validate: (value) => {
+              if (!value || value.trim().length === 0) {
+                return 'Commit message is required'
+              }
+              if (value.trim().length < 10) {
+                return 'Commit message should be at least 10 characters'
+              }
+            }
           })
 
           if (isCancel(message)) {
@@ -251,17 +272,21 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           }
 
           // Commit changes
-          process.stdout.write('\n\x1B[2mCommitting changes...\x1B[0m\n')
+          modernLog.step('Committing changes...', '●')
           await git.stageFiles(changedFiles)
           await git.commit(message)
-          process.stdout.write('\x1B[32mChanges committed successfully\x1B[0m\n')
+          modernLog.success('Changes committed successfully')
         } else if (action === 'stash') {
-          process.stdout.write('\x1B[2mStashing changes...\x1B[0m\n')
+          const { modernLog } = await import('../core/ui-components.js')
+
+          modernLog.step('Stashing changes...', '●')
           await execa('git', ['stash', 'push', '-m', 'Pre-release stash'], { stdio: 'pipe' })
-          process.stdout.write('\x1B[32mChanges stashed successfully\x1B[0m\n')
+          modernLog.success('Changes stashed successfully')
         } else if (action === 'force') {
+          const { modernLog } = await import('../core/ui-components.js')
+
           options.force = true
-          process.stdout.write('\x1B[33mContinuing with uncommitted changes\x1B[0m\n')
+          modernLog.warning('Continuing with uncommitted changes')
         }
 
         process.stdout.write('\n')
