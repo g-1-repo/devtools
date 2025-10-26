@@ -10,6 +10,7 @@ import process from 'node:process'
 import { confirm, intro, isCancel, log } from '@clack/prompts'
 import chalk from 'chalk'
 import { createDefaultConfigFile, hasConfigFile } from '../config/workflow-config.js'
+import { G1_ICONS } from '../core/ui-components.js'
 import {
   autoFixAllIssues,
   createInitialCommit,
@@ -54,19 +55,19 @@ export async function runInitCommand(options: InitOptions = {}): Promise<void> {
     console.log()
     console.log(chalk.gray('Current Status:'))
     console.log(
-      `  Git Repository: ${gitStatus.hasGitRepo ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+      `  Git Repository: ${gitStatus.hasGitRepo ? chalk.green(`${G1_ICONS.success} Found`) : chalk.red(`${G1_ICONS.error} Not found`)}`
     )
     console.log(
-      `  Git Commits: ${gitStatus.hasCommits ? chalk.green('✅ Found') : chalk.yellow('⚠️  None')}`
+      `  Git Commits: ${gitStatus.hasCommits ? chalk.green(`${G1_ICONS.success} Found`) : chalk.yellow('⚠️  None')}`
     )
     console.log(
-      `  Working Directory: ${gitStatus.hasUncommittedChanges ? chalk.yellow('⚠️  Uncommitted changes') : chalk.green('✅ Clean')}`
+      `  Working Directory: ${gitStatus.hasUncommittedChanges ? chalk.yellow('⚠️  Uncommitted changes') : chalk.green(`${G1_ICONS.success} Clean`)}`
     )
     console.log(
-      `  Workflow Config: ${hasConfig ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+      `  Workflow Config: ${hasConfig ? chalk.green(`${G1_ICONS.success} Found`) : chalk.red(`${G1_ICONS.error} Not found`)}`
     )
     console.log(
-      `  Package.json: ${existsSync('package.json') ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+      `  Package.json: ${existsSync('package.json') ? chalk.green(`${G1_ICONS.success} Found`) : chalk.red(`${G1_ICONS.error} Not found`)}`
     )
     console.log()
 
@@ -103,7 +104,7 @@ export async function runInitCommand(options: InitOptions = {}): Promise<void> {
     }
   } catch (error) {
     console.log()
-    console.log(chalk.red('❌ Initialization failed:'))
+    console.log(chalk.red(`${G1_ICONS.error} Initialization failed:`))
     console.log(chalk.red(error instanceof Error ? error.message : String(error)))
     console.log()
     process.exit(1)
@@ -143,7 +144,7 @@ async function setupGitRepository(
         return
       }
     } else {
-      console.log(chalk.red('❌ Git repository required but not found'))
+      console.log(chalk.red(`${G1_ICONS.error} Git repository required but not found`))
       throw new Error('Git repository initialization required')
     }
   }
@@ -203,7 +204,7 @@ async function setupGitRepository(
     }
   }
 
-  console.log(chalk.green('✅ Git repository setup completed'))
+  console.log(chalk.green(`${G1_ICONS.success} Git repository setup completed`))
 }
 
 /**
@@ -241,7 +242,7 @@ async function setupWorkflowConfig(
 
   // Create configuration file
   createDefaultConfigFile('.workflow.config.js')
-  console.log(chalk.green('✅ Workflow configuration created'))
+  console.log(chalk.green(`${G1_ICONS.success} Workflow configuration created`))
 
   if (interactive) {
     console.log()

@@ -9,6 +9,9 @@ import { log, note } from '@clack/prompts'
 import chalk from 'chalk'
 import { G1_ICONS } from './error-formatter.js'
 
+// Re-export G1_ICONS for convenience
+export { G1_ICONS } from './error-formatter.js'
+
 /**
  * Modern box styles for different contexts
  */

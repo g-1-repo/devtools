@@ -9,6 +9,7 @@ import chalk from 'chalk'
 import { execa } from 'execa'
 import { ErrorRecoveryService } from './core/error-recovery.js'
 import { createTaskEngine } from './core/task-engine.js'
+import { G1_ICONS } from './core/ui-components.js'
 import type { WorkflowStep } from './types/index.js'
 
 export async function testErrorRecovery(): Promise<void> {
@@ -55,7 +56,7 @@ export async function testErrorRecovery(): Promise<void> {
     } catch {
       console.error(
         chalk.green(
-          '\\n✅ Error recovery completed. The workflow failed as expected, but recovery was triggered.'
+          `\\n${G1_ICONS.success} Error recovery completed. The workflow failed as expected, but recovery was triggered.`
         )
       )
     }

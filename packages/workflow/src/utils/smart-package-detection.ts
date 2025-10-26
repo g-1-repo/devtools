@@ -3,6 +3,7 @@
  */
 
 import { filterPublishablePackages, type NpmPackageInfo } from './npm-registry.js'
+import { G1_ICONS } from '../core/ui-components.js'
 
 export interface SmartPackageDetectionResult {
   publishable: string[]
@@ -143,7 +144,7 @@ export function formatPackageDetectionSummary(result: SmartPackageDetectionResul
 
   if (result.publishable.length > 0) {
     messages.push(
-      `✅ ${result.publishable.length} package(s) ready for publishing: ${result.publishable.join(', ')}`
+      `${G1_ICONS.success} ${result.publishable.length} package(s) ready for publishing: ${result.publishable.join(', ')}`
     )
   }
 
