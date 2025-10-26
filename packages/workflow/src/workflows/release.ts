@@ -2,11 +2,11 @@
  * Complete Release Workflow - Git → Cloudflare → GitHub Release (triggers npm via Actions)
  */
 
-import process from 'node:process'
 import { isCancel, select, text } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
+import process from 'node:process'
 import * as semver from 'semver'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { AIService } from '../core/ai-service.js'
@@ -20,7 +20,7 @@ import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git
 export {
   detectPublishablePackages,
   detectSmartPublishablePackages,
-  formatPackageDetectionSummary,
+  formatPackageDetectionSummary
 } from '../utils/smart-package-detection.js'
 
 // Import the functions for internal use
@@ -629,63 +629,13 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
     {
       title: 'Version approval',
       task: async (ctx, helpers) => {
-        // Skip approval if version was explicitly provided or in non-interactive mode (but not dry-run)
-        if (options.type || (options.nonInteractive && !options.dryRun)) {
-          helpers.setTitle(
-            `Version approval - ✅ Using ${ctx.version!.type} bump (${ctx.version!.next})`
-          )
-          return
-        }
-
-        helpers.setOutput(
-          `Calculated version: ${ctx.version!.current} → ${ctx.version!.next} (${ctx.version!.type})`
-        )
-
-        const approval = await select({
-          message: `Approve version ${ctx.version!.next}?`,
-          options: [
-            { value: 'confirm', label: 'Confirm - Continue with this version' },
-            { value: 'change', label: 'Change - Select different version type' },
-          ],
-        })
-
-        if (isCancel(approval)) {
-          process.exit(0)
-        }
-
-        if (approval === 'change') {
-          const newVersionType = await select({
-            message: 'Select version bump type:',
-            options: [
-              { value: 'patch', label: 'Patch - Bug fixes and small changes' },
-              { value: 'minor', label: 'Minor - New features (backward compatible)' },
-              { value: 'major', label: 'Major - Breaking changes' },
-            ],
-          })
-
-          if (isCancel(newVersionType)) {
-            process.exit(0)
-          }
-
-          // Recalculate version with new type
-          const newNextVersion = semver.inc(
-            ctx.version!.current,
-            newVersionType as 'major' | 'minor' | 'patch'
-          )
-          if (!newNextVersion) {
-            throw new Error(`Failed to calculate next version from ${ctx.version!.current}`)
-          }
-
-          ctx.version!.next = newNextVersion
-          ctx.version!.type = newVersionType as 'major' | 'minor' | 'patch'
-
-          helpers.setOutput(
-            `Updated version: ${ctx.version!.current} → ${ctx.version!.next} (${ctx.version!.type})`
-          )
-        }
-
+        // Version approval is now handled in CLI before task execution
+        // This task just confirms the approved version
         helpers.setTitle(
-          `Version approval - ✅ ${ctx.version!.current} → ${ctx.version!.next} (${ctx.version!.type})`
+          `Version approval - ✅ Using ${ctx.version!.type} bump (${ctx.version!.next})`
+        )
+        helpers.setOutput(
+          `Approved version: ${ctx.version!.current} → ${ctx.version!.next} (${ctx.version!.type})`
         )
       },
     },
@@ -1281,10 +1231,10 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setTitle('Find publishing workflow - ⚠️ No publishing workflows found')
                 helpers.setOutput(
                   `No GitHub Actions workflows found that publish to npm.\n` +
-                    `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
-                    `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
-                    `Example: .github/workflows/publish-npm.yml\n` +
-                    `Visit: https://github.com/${repositoryName}/actions/new`
+                  `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
+                  `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
+                  `Example: .github/workflows/publish-npm.yml\n` +
+                  `Visit: https://github.com/${repositoryName}/actions/new`
                 )
                 return
               }
@@ -1292,11 +1242,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
               helpers.setOutput(
                 `Failed to check GitHub Actions workflows.\n` +
-                  `This could be due to:\n` +
-                  `• GitHub CLI not configured: Run 'gh auth login'\n` +
-                  `• No repository access: Check permissions\n` +
-                  `• Network issues: Check internet connection\n` +
-                  `Error: ${error instanceof Error ? error.message : String(error)}`
+                `This could be due to:\n` +
+                `• GitHub CLI not configured: Run 'gh auth login'\n` +
+                `• No repository access: Check permissions\n` +
+                `• Network issues: Check internet connection\n` +
+                `Error: ${error instanceof Error ? error.message : String(error)}`
               )
               return
             }
@@ -1361,12 +1311,12 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
               helpers.setOutput(
                 `No workflow runs triggered by ${tagName} found after ${maxAttempts} attempts.\n` +
-                  `This could mean:\n` +
-                  `• The workflow hasn't started yet (GitHub can have delays)\n` +
-                  `• The workflow isn't triggered by release events\n` +
-                  `• The workflow name doesn't contain 'publish' or 'npm'\n` +
-                  `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
-                  `Or wait a few minutes and try monitoring again.`
+                `This could mean:\n` +
+                `• The workflow hasn't started yet (GitHub can have delays)\n` +
+                `• The workflow isn't triggered by release events\n` +
+                `• The workflow name doesn't contain 'publish' or 'npm'\n` +
+                `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
+                `Or wait a few minutes and try monitoring again.`
               )
             }
           },

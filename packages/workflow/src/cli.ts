@@ -159,6 +159,107 @@ program
         options.nonInteractive = true
       }
 
+      // Handle version approval BEFORE creating workflow steps (outside of Listr2)
+      if (!options.type && !options.nonInteractive && !options.dryRun) {
+        // We need to calculate the version first to show the approval prompt
+        const { analyzeGitContext } = await import('./utils/git-context.js')
+        const gitContext = await analyzeGitContext()
+        
+        if (gitContext.version) {
+          // Import version calculation logic
+          const { loadWorkflowConfig } = await import('./config/workflow-config.js')
+          const { AIService } = await import('./core/ai-service.js')
+          const semver = await import('semver')
+          
+          let versionBump: 'major' | 'minor' | 'patch' = 'patch'
+          const commits = gitContext.commits || []
+          
+          // Use the same version calculation logic as in the workflow
+          const config = await loadWorkflowConfig()
+          if (config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
+            try {
+              const aiService = new AIService(config.ai)
+              const changelogEntries = await aiService.generateChangelog(commits)
+              const suggestions = await aiService.suggestVersionBumps(changelogEntries, [
+                { name: 'current-package', version: gitContext.version.current, path: process.cwd() },
+              ])
+
+              if (suggestions.length > 0 && suggestions[0]?.bumpType) {
+                versionBump = suggestions[0].bumpType
+              } else {
+                // Fall back to semantic analysis
+                const hasBreaking = commits.some((c: any) => c.breaking)
+                const hasFeatures = commits.some((c: any) => c.type === 'feat')
+                if (hasBreaking) versionBump = 'major'
+                else if (hasFeatures) versionBump = 'minor'
+                else versionBump = 'patch'
+              }
+            } catch {
+              // Fall back to semantic analysis
+              const hasBreaking = commits.some((c: any) => c.breaking)
+              const hasFeatures = commits.some((c: any) => c.type === 'feat')
+              if (hasBreaking) versionBump = 'major'
+              else if (hasFeatures) versionBump = 'minor'
+              else versionBump = 'patch'
+            }
+          } else {
+            // Semantic analysis
+            const hasBreaking = commits.some((c: any) => c.breaking)
+            const hasFeatures = commits.some((c: any) => c.type === 'feat')
+            if (hasBreaking) versionBump = 'major'
+            else if (hasFeatures) versionBump = 'minor'
+            else versionBump = 'patch'
+          }
+
+          const nextVersion = semver.inc(gitContext.version.current, versionBump)
+          if (!nextVersion) {
+            throw new Error(`Failed to calculate next version from ${gitContext.version.current}`)
+          }
+
+          // Show version approval prompt OUTSIDE of Listr2
+          console.log(`\n📋 Version Approval`)
+          console.log(`─────────────────────`)
+          console.log(`Calculated version: ${gitContext.version.current} → ${nextVersion} (${versionBump})`)
+          
+          const { select, isCancel } = await import('@clack/prompts')
+          
+          const approval = await select({
+            message: `Approve version ${nextVersion}?`,
+            options: [
+              { value: 'confirm', label: 'Confirm - Continue with this version' },
+              { value: 'change', label: 'Change - Select different version type' },
+            ],
+          })
+
+          if (isCancel(approval)) {
+            process.exit(0)
+          }
+
+          if (approval === 'change') {
+            const newVersionType = await select({
+              message: 'Select version bump type:',
+              options: [
+                { value: 'patch', label: 'Patch - Bug fixes and small changes' },
+                { value: 'minor', label: 'Minor - New features (backward compatible)' },
+                { value: 'major', label: 'Major - Breaking changes' },
+              ],
+            })
+
+            if (isCancel(newVersionType)) {
+              process.exit(0)
+            }
+
+            // Set the selected version type in options so the workflow uses it
+            options.type = newVersionType as 'major' | 'minor' | 'patch'
+          } else {
+            // User confirmed the calculated version
+            options.type = versionBump
+          }
+          
+          console.log() // Add spacing before workflow starts
+        }
+      }
+
       // Create workflow steps (now async for interactive prompts)
       const steps = await createReleaseWorkflow(options)
 
