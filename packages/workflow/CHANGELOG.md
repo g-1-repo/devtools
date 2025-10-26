@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.9.0] - 2025-10-26
+
+- ✨ feat: implement new functionality
+- ✨ feat: implement new functionality
+- ✨ feat: implement new functionality
+
 ## [3.8.5] - 2025-10-26
 
 ### Other Changes
