@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.16] - 2025-10-26
+
+### Other Changes
+
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+
+
 ## [3.5.15] - 2025-10-26
 
 ### Other Changes
