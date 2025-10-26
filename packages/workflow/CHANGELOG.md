@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.3] - 2025-10-26
+
+### Bug Fixes
+
+- enable version approval prompt in dry-run mode
+
+
 ## [3.8.2] - 2025-10-26
 
 
