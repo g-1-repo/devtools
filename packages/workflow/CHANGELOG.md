@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.12.0] - 2025-10-26
+
+- ✨ feat: implement new functionality
+- ✨ feat: update components
+- ✨ feat: update components
+- ✨ feat: implement new functionality
+- ✨ feat: implement new functionality
+- ✨ feat: implement new functionality
+
 ## [3.11.0] - 2025-10-26
 
 - ✨ feat: update components
