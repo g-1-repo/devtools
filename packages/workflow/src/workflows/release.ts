@@ -552,19 +552,23 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           try {
             helpers.setOutput('Using AI to determine version bump...')
             const aiService = new AIService(config.ai)
-            
+
             // Generate changelog entries first to analyze for version bump
             const changelogEntries = await aiService.generateChangelog(workflowCommits)
             const suggestions = await aiService.suggestVersionBumps(changelogEntries, [
-              { name: 'current-package', version: ctx.version!.current, path: process.cwd() }
+              { name: 'current-package', version: ctx.version!.current, path: process.cwd() },
             ])
-            
+
             if (suggestions.length > 0 && suggestions[0]?.bumpType) {
               const suggestion = suggestions[0]
               versionBump = suggestion.bumpType
-              helpers.setOutput(`AI suggests ${suggestion.bumpType} version bump (${suggestion.confidence}% confidence): ${suggestion.reasoning}`)
+              helpers.setOutput(
+                `AI suggests ${suggestion.bumpType} version bump (${suggestion.confidence}% confidence): ${suggestion.reasoning}`
+              )
             } else {
-              helpers.setOutput('AI version suggestion unavailable, falling back to semantic analysis...')
+              helpers.setOutput(
+                'AI version suggestion unavailable, falling back to semantic analysis...'
+              )
               // Fall back to original logic
               const hasBreaking = commits.some((c: any) => c.breaking)
               const hasFeatures = commits.some((c: any) => c.type === 'feat')
@@ -681,15 +685,18 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 helpers.setOutput('Using AI to generate changelog...')
                 const aiService = new AIService(config.ai)
                 const aiChangelog = await aiService.generateChangelog(ctx.git!.commits)
-                
+
                 if (aiChangelog && aiChangelog.length > 0) {
                   // Format the AI-generated changelog entries
-                  const formattedEntries = aiChangelog.map(entry => {
-                    const typeEmoji = entry.type === 'feat' ? '✨' : entry.type === 'fix' ? '🐛' : '📝'
-                    const scopeText = entry.scope ? `(${entry.scope})` : ''
-                    return `- ${typeEmoji} ${entry.type}${scopeText}: ${entry.description}`
-                  }).join('\n')
-                  
+                  const formattedEntries = aiChangelog
+                    .map((entry) => {
+                      const typeEmoji =
+                        entry.type === 'feat' ? '✨' : entry.type === 'fix' ? '🐛' : '📝'
+                      const scopeText = entry.scope ? `(${entry.scope})` : ''
+                      return `- ${typeEmoji} ${entry.type}${scopeText}: ${entry.description}`
+                    })
+                    .join('\n')
+
                   changelogEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${formattedEntries}\n`
                   helpers.setOutput('AI-generated changelog created successfully')
                 } else {
