@@ -8,11 +8,11 @@ import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import * as semver from 'semver'
+import { loadWorkflowConfig } from '../config/workflow-config.js'
+import { AIService } from '../core/ai-service.js'
 import { createErrorBox } from '../core/error-formatter.js'
 import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
 import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git-context.js'
-import { loadWorkflowConfig } from '../config/workflow-config.js'
-import { AIService } from '../core/ai-service.js'
 
 // Detection functions (detectCloudflareSetup moved to exports below)
 
@@ -548,15 +548,21 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
         // Check if AI version suggestions are enabled
         const config = await loadWorkflowConfig()
-        if (!options.type && config.ai?.enabled && config.ai?.version?.enabled) {
+        if (!options.type && config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
           try {
             helpers.setOutput('Using AI to determine version bump...')
             const aiService = new AIService(config.ai)
-            const suggestion = await aiService.suggestVersionBump()
             
-            if (suggestion && suggestion.type) {
-              versionBump = suggestion.type
-              helpers.setOutput(`AI suggests ${suggestion.type} version bump (${suggestion.confidence}% confidence): ${suggestion.reasoning}`)
+            // Generate changelog entries first to analyze for version bump
+            const changelogEntries = await aiService.generateChangelog(workflowCommits)
+            const suggestions = await aiService.suggestVersionBumps(changelogEntries, [
+              { name: 'current-package', version: ctx.version!.current, path: process.cwd() }
+            ])
+            
+            if (suggestions.length > 0 && suggestions[0]?.bumpType) {
+              const suggestion = suggestions[0]
+              versionBump = suggestion.bumpType
+              helpers.setOutput(`AI suggests ${suggestion.bumpType} version bump (${suggestion.confidence}% confidence): ${suggestion.reasoning}`)
             } else {
               helpers.setOutput('AI version suggestion unavailable, falling back to semantic analysis...')
               // Fall back to original logic
@@ -670,14 +676,21 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             const config = await loadWorkflowConfig()
             let changelogEntry: string
 
-            if (config.ai?.enabled && config.ai?.changelog?.enabled) {
+            if (config.ai?.enabled && config.ai?.features?.changelog?.enabled) {
               try {
                 helpers.setOutput('Using AI to generate changelog...')
                 const aiService = new AIService(config.ai)
-                const aiChangelog = await aiService.generateChangelog()
+                const aiChangelog = await aiService.generateChangelog(ctx.git!.commits)
                 
-                if (aiChangelog && aiChangelog.content) {
-                  changelogEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${aiChangelog.content}\n`
+                if (aiChangelog && aiChangelog.length > 0) {
+                  // Format the AI-generated changelog entries
+                  const formattedEntries = aiChangelog.map(entry => {
+                    const typeEmoji = entry.type === 'feat' ? '✨' : entry.type === 'fix' ? '🐛' : '📝'
+                    const scopeText = entry.scope ? `(${entry.scope})` : ''
+                    return `- ${typeEmoji} ${entry.type}${scopeText}: ${entry.description}`
+                  }).join('\n')
+                  
+                  changelogEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${formattedEntries}\n`
                   helpers.setOutput('AI-generated changelog created successfully')
                 } else {
                   helpers.setOutput('AI changelog generation failed, using fallback...')
