@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.1] - 2025-10-26
+
+### Other Changes
+
+- test: add test file and update release workflow for version approval testing
+
+
 ## [3.8.0] - 2025-10-26
 
 ### Features
