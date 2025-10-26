@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.4] - 2025-10-26
+
+### Other Changes
+
+- test: update version approval logic for testing
+
+
 ## [3.8.3] - 2025-10-26
 
 ### Bug Fixes
