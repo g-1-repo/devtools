@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.5] - 2025-10-26
+
+### Other Changes
+
+- chore: commit changes before release
+- Initial commit: Project setup
+- Initial commit: Project setup
+- Initial commit: Project setup
+- Initial commit: Project setup
+- chore: release v1.2.4
+- chore: release v1.2.3
+- chore: release v1.2.2
+
+
 ## [1.2.4] - 2025-10-25
 
 ### Other Changes
