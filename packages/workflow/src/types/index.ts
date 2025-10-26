@@ -2,7 +2,6 @@
  * Complete Workflow System Types
  */
 
-import type { ListrRenderer } from 'listr2'
 import type { PackageManager } from '../core/monorepo-detector'
 
 // =============================================================================
@@ -307,7 +306,7 @@ export interface WorkflowConfig {
 // =============================================================================
 
 export interface TaskEngineOptions {
-  renderer?: ListrRenderer
+  verbose?: boolean
   concurrent?: boolean
   exitOnError?: boolean
   showTimer?: boolean

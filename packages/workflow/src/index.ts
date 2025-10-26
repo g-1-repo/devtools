@@ -63,6 +63,7 @@ export async function quickRelease(options: import('./types/index.js').ReleaseOp
 
   const steps = await createReleaseWorkflow(options)
   const engine = createTaskEngine({
+    verbose: false,
     showTimer: true,
   })
 

@@ -1,10 +1,9 @@
 /**
- * Shared Task Engine - Native listr2 integration
+ * Shared Task Engine - @clack/prompts integration
  */
 
-import type { ListrContext, ListrRenderer, ListrTask } from 'listr2'
+import { spinner, log, note } from '@clack/prompts'
 import chalk from 'chalk'
-import { Listr } from 'listr2'
 import { ErrorFormatter } from '../debug/index.js'
 
 // Minimal shared workflow types for util module
@@ -42,51 +41,28 @@ export interface WorkflowStep {
 }
 
 export interface TaskEngineOptions {
-  renderer?: ListrRenderer
   concurrent?: boolean
   exitOnError?: boolean
   showTimer?: boolean
   clearOutput?: boolean
   autoRecovery?: boolean
+  verbose?: boolean
 }
 
 export class TaskEngine {
   constructor(private options: TaskEngineOptions = {}) {}
 
   /**
-   * Execute workflow with native listr2 - This is the main entry point
+   * Execute workflow with @clack/prompts - This is the main entry point
    */
   async execute(steps: WorkflowStep[], context: WorkflowContext = {}): Promise<WorkflowContext> {
-    const tasks: ListrTask[] = steps.map(step => this.createListrTask(step))
-
-    const listr = new Listr(tasks, {
-      concurrent: this.options.concurrent ?? false,
-      exitOnError: this.options.exitOnError ?? true,
-      renderer: this.options.renderer ?? ('simple' as any),
-      rendererOptions: {
-        collapseSubtasks: false,
-        suffixSkips: true,
-        showErrorMessage: true,
-        showTimer: this.options.showTimer ?? true,
-        clearOutput: this.options.clearOutput ?? false,
-        formatOutput: 'wrap',
-        removeEmptyLines: false,
-        indentation: 2,
-        icon: {
-          COMPLETED: '✓',
-          FAILED: '✗',
-          PAUSED: '⏸',
-          ROLLING_BACK: '↶',
-          SKIPPED: '↷',
-          STARTED: '⧖',
-        },
-      },
-      ctx: context as ListrContext,
-    })
-
     try {
-      const result = await listr.run()
-      return result as WorkflowContext
+      // Execute steps sequentially with @clack/prompts
+      for (const step of steps) {
+        await this.executeStep(step, context)
+      }
+      
+      return context
     }
     catch (error) {
       if (error instanceof Error) {
@@ -121,57 +97,87 @@ export class TaskEngine {
   }
 
   /**
-   * Convert WorkflowStep to native listr2 ListrTask
+   * Execute a single step with @clack/prompts
    */
-  private createListrTask(step: WorkflowStep): ListrTask {
-    const taskObj: any = {
-      title: step.title,
-      retry: step.retry,
-      task: async (ctx: any, task: any) => {
-        if (step.subtasks) {
-          return task.newListr(
-            step.subtasks.map(subtask => this.createListrTask(subtask)),
-            {
-              concurrent: step.concurrent ?? false,
-              rendererOptions: {
-                collapseSubtasks: false,
-              },
-            },
-          )
-        }
-
-        if (step.task) {
-          return await step.task(ctx as WorkflowContext, {
-            setOutput: (output: string) => {
-              task.output = output
-            },
-            setTitle: (title: string) => {
-              task.title = title
-            },
-            setProgress: (current: number, total?: number) => {
-              task.output = total ? `${current}/${total}` : `${current}%`
-            },
-          })
-        }
-      },
+  private async executeStep(step: WorkflowStep, context: WorkflowContext): Promise<void> {
+    // Check if step should be enabled
+    if (typeof step.enabled === 'function' && !step.enabled(context)) {
+      return
+    }
+    if (typeof step.enabled === 'boolean' && !step.enabled) {
+      return
     }
 
-    if (typeof step.enabled !== 'undefined') {
-      taskObj.enabled = typeof step.enabled === 'function'
-        ? (ctx: any) => (step.enabled as (ctx: WorkflowContext) => boolean | Promise<boolean>)(ctx as WorkflowContext)
-        : step.enabled
+    // Check if step should be skipped
+    const skipResult = typeof step.skip === 'function' 
+      ? await step.skip(context)
+      : step.skip
+
+    if (skipResult === true || typeof skipResult === 'string') {
+      if (this.options.verbose) {
+        log.info(`${chalk.yellow('↷')} ${step.title} ${typeof skipResult === 'string' ? `- ${skipResult}` : '- skipped'}`)
+      }
+      return
     }
 
-    if (typeof step.skip !== 'undefined') {
-      taskObj.skip = typeof step.skip === 'function'
-        ? async (ctx: any) => {
-          const result = await (step.skip as (ctx: WorkflowContext) => boolean | string | Promise<boolean | string>)(ctx as WorkflowContext)
-          return result
+    // Execute subtasks if present
+    if (step.subtasks && step.subtasks.length > 0) {
+      log.step(step.title)
+      
+      if (step.concurrent && !this.options.concurrent === false) {
+        // Execute subtasks concurrently
+        await Promise.all(step.subtasks.map(subtask => this.executeStep(subtask, context)))
+      } else {
+        // Execute subtasks sequentially
+        for (const subtask of step.subtasks) {
+          await this.executeStep(subtask, context)
         }
-        : step.skip
+      }
+      return
     }
 
-    return taskObj as ListrTask
+    // Execute the main task
+    if (step.task) {
+      const s = spinner()
+      s.start(step.title)
+
+      let currentTitle = step.title
+      let currentOutput = ''
+
+      const helpers: TaskHelpers = {
+        setOutput: (output: string) => {
+          currentOutput = output
+          s.message(currentOutput)
+        },
+        setTitle: (title: string) => {
+          currentTitle = title
+          s.message(title)
+        },
+        setProgress: (current: number, total?: number) => {
+          const progress = total ? `${current}/${total}` : `${current}%`
+          s.message(`${currentTitle} - ${progress}`)
+        },
+      }
+
+      try {
+        await step.task(context, helpers)
+        s.stop(`${chalk.green('✓')} ${currentTitle}`)
+      } catch (error) {
+        s.stop(`${chalk.red('✗')} ${currentTitle}`)
+        
+        if (step.retry && step.retry > 0) {
+          log.warn(`Retrying ${step.title} (${step.retry} attempts remaining)`)
+          const retryStep = { ...step, retry: step.retry - 1 }
+          await this.executeStep(retryStep, context)
+        } else {
+          if (this.options.exitOnError !== false) {
+            throw error
+          } else {
+            log.error(`${step.title} failed: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        }
+      }
+    }
   }
 }
 

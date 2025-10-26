@@ -11,6 +11,7 @@ export async function executeWorkflow(
   options = { enableRecovery: true }
 ): Promise<WorkflowContext> {
   const taskEngine = createTaskEngine({
+    verbose: false,
     concurrent: false,
     exitOnError: true,
     showTimer: true,

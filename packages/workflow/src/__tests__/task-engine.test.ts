@@ -11,7 +11,7 @@ describe('taskEngine', () => {
   let mockSteps: WorkflowStep[]
 
   beforeEach(() => {
-    taskEngine = new TaskEngine({ showTimer: false })
+    taskEngine = new TaskEngine({ verbose: false, showTimer: false })
 
     mockSteps = [
       {
@@ -44,6 +44,7 @@ describe('taskEngine', () => {
 
     it('should create TaskEngine with custom options', () => {
       const engine = new TaskEngine({
+        verbose: true,
         showTimer: true,
         concurrent: false,
         exitOnError: false,
@@ -116,7 +117,7 @@ describe('taskEngine', () => {
 
   describe('error handling', () => {
     it('should collect multiple errors', async () => {
-      const engine = new TaskEngine({ exitOnError: false })
+      const engine = new TaskEngine({ verbose: false, exitOnError: false })
       const errorSteps: WorkflowStep[] = [
         {
           title: 'Error 1',
@@ -134,7 +135,7 @@ describe('taskEngine', () => {
     })
 
     it('should exit on first error when exitOnError is true', async () => {
-      const engine = new TaskEngine({ exitOnError: true })
+      const engine = new TaskEngine({ verbose: false, exitOnError: true })
       const errorSteps: WorkflowStep[] = [
         {
           title: 'Error 1',

@@ -275,8 +275,9 @@ program
       // Create workflow steps (now async for interactive prompts)
       const steps = await createReleaseWorkflow(options)
 
-      // Create task engine with listr2
+      // Create task engine with @clack/prompts
       const taskEngine = createTaskEngine({
+        verbose: options.verbose,
         showTimer: true,
         clearOutput: false,
       })

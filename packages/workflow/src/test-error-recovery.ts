@@ -45,6 +45,7 @@ export async function testErrorRecovery(): Promise<void> {
     console.error(chalk.blue('Running workflow with automated error recovery...\\n'))
 
     const taskEngine = createTaskEngine({
+      verbose: false,
       autoRecovery: true,
       exitOnError: false,
     })
