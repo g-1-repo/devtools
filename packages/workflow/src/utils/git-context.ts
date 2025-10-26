@@ -52,8 +52,8 @@ export async function analyzeGitContext(
   const relativePath = path.relative(effectiveGitRoot, workingDir)
 
   // Determine if current context is valid for workflow operations
-  const isValidContext =
-    !gitStatus.hasNestedGitRepo && (gitStatus.hasGitRepo || gitStatus.isInMonorepo)
+  const isValidContext: boolean =
+    !gitStatus.hasNestedGitRepo && (!!gitStatus.hasGitRepo || !!gitStatus.isInMonorepo)
 
   // Recommend working directory for optimal workflow execution
   let recommendedWorkingDirectory: string | undefined

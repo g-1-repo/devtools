@@ -99,10 +99,10 @@ program
           g1Log.error(`  • ${issue}`)
         })
 
-        if (contextValidation.suggestions.length > 0) {
-          g1Log.info('\nSuggestions:')
-          contextValidation.suggestions.forEach((suggestion) => {
-            g1Log.info(`  • ${suggestion}`)
+        if (contextValidation.recommendations.length > 0) {
+          g1Log.info('\nRecommendations:')
+          contextValidation.recommendations.forEach((recommendation) => {
+            g1Log.info(`  • ${recommendation}`)
           })
         }
 
