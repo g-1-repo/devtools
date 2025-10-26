@@ -63,7 +63,10 @@ export function analyzeError(error: Error | string): WorkflowError {
   }
 
   // Nested git repository detection
-  if (message.includes('nested git repository') || message.includes('conflicting git repositories')) {
+  if (
+    message.includes('nested git repository') ||
+    message.includes('conflicting git repositories')
+  ) {
     return new WorkflowError(message, 'git', 'GIT_NESTED_REPO', [
       'Remove the nested .git directory to resolve conflicts',
       'Run workflow commands from the monorepo root directory',

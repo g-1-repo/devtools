@@ -471,11 +471,11 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
       task: async (ctx, helpers) => {
         helpers.setOutput('Analyzing git context...')
         const gitContext = await analyzeGitContext()
-        
+
         if (!gitContext.isValidContext) {
           throw new Error('Invalid git context - no repository found')
         }
-        
+
         if (gitContext.isMonorepo) {
           helpers.setOutput(`Detected monorepo structure at ${gitContext.gitRoot}`)
           if (gitContext.relativePath) {
@@ -519,10 +519,10 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           strategy: 'semantic',
         }
 
-        const contextInfo = gitContext.isMonorepo 
+        const contextInfo = gitContext.isMonorepo
           ? `${repository} (monorepo) on ${currentBranch}`
           : `${repository} on ${currentBranch}`
-        
+
         helpers.setTitle(`Git repository analysis - ✅ ${contextInfo}`)
       },
     },

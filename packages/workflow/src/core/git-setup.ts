@@ -62,7 +62,7 @@ export async function detectGitStatus(workingDir: string = process.cwd()): Promi
     if (!hasGitRepo) {
       // Check if we're inside a parent git repository (monorepo scenario)
       const parentGitInfo = await detectParentGitRepository(workingDir)
-      
+
       return {
         hasGitRepo: false,
         hasCommits: false,
@@ -143,7 +143,7 @@ async function detectParentGitRepository(workingDir: string): Promise<{
 
   while (currentDir !== rootDir) {
     const parentDir = path.dirname(currentDir)
-    
+
     // Skip if we're checking the same directory
     if (parentDir === currentDir) {
       break
@@ -154,9 +154,9 @@ async function detectParentGitRepository(workingDir: string): Promise<{
         cwd: parentDir,
         stdio: 'pipe',
       })
-      
+
       const parentGitRoot = result.stdout.trim()
-      
+
       // Make sure we found a different git repository
       if (parentGitRoot && parentGitRoot !== workingDir) {
         return {

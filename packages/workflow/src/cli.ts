@@ -20,9 +20,9 @@ import {
   interactiveFixIssues,
   runPreFlightChecks,
 } from './core/git-setup.js'
-import { analyzeGitContext, validateWorkflowContext } from './utils/git-context.js'
 import { createTaskEngine } from './core/task-engine.js'
 import type { ReleaseOptions, WorkflowContext } from './types/index.js'
+import { analyzeGitContext, validateWorkflowContext } from './utils/git-context.js'
 import { promptSkipNpmPackages } from './utils/interactive.js'
 import {
   createReleaseWorkflow,
@@ -92,23 +92,23 @@ program
       // Enhanced monorepo context validation
       const gitContext = await analyzeGitContext()
       const contextValidation = await validateWorkflowContext()
-      
+
       if (!contextValidation.isValid) {
         g1Log.error('Workflow context validation failed:')
-        contextValidation.issues.forEach(issue => {
+        contextValidation.issues.forEach((issue) => {
           g1Log.error(`  • ${issue}`)
         })
-        
+
         if (contextValidation.suggestions.length > 0) {
           g1Log.info('\nSuggestions:')
-          contextValidation.suggestions.forEach(suggestion => {
+          contextValidation.suggestions.forEach((suggestion) => {
             g1Log.info(`  • ${suggestion}`)
           })
         }
-        
+
         process.exit(1)
       }
-      
+
       if (gitContext.isMonorepo && gitContext.relativePath) {
         g1Log.info(`Working in monorepo package: ${gitContext.relativePath}`)
       }
