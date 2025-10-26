@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.8.5] - 2025-10-26
+
+### Other Changes
+
+- test: add interactive test script for version approval
+
+
 ## [3.8.4] - 2025-10-26
 
 ### Other Changes
