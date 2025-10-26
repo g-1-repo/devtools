@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.8.0] - 2025-10-26
+
+### Features
+
+- add test file for version approval testing
+- add interactive version approval to release workflow
+
+
 ## [3.7.0] - 2025-10-26
 
 - ✨ feat: implement new functionality
