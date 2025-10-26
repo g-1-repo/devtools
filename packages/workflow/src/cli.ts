@@ -3,8 +3,24 @@
  */
 
 import process from 'node:process'
+import { confirm, intro, log, note, outro } from '@clack/prompts'
 import chalk from 'chalk'
 import { program } from 'commander'
+import { createAICommand } from './cli/ai.js'
+import { createFrameworkCommand } from './cli/framework.js'
+import { runInitCommand, showInitHelp } from './cli/init.js'
+import { createMonorepoCommand } from './cli/monorepo.js'
+import { loadWorkflowConfig, mergeConfigWithFlags } from './config/workflow-config.js'
+import { G1_ICONS, g1Log } from './core/error-formatter.js'
+import { handleError } from './core/error-handler.js'
+import {
+  autoFixAllIssues,
+  detectGitStatus,
+  displayPreFlightResults,
+  interactiveFixIssues,
+  runPreFlightChecks,
+} from './core/git-setup.js'
+import { analyzeGitContext, validateWorkflowContext } from './utils/git-context.js'
 import { createTaskEngine } from './core/task-engine.js'
 import type { ReleaseOptions, WorkflowContext } from './types/index.js'
 import { promptSkipNpmPackages } from './utils/interactive.js'
@@ -15,10 +31,6 @@ import {
   hasNpmPublishingWorkflow,
   watchGitHubActions,
 } from './workflows/release.js'
-import { loadWorkflowConfig, mergeConfigWithFlags } from './config/workflow-config.js'
-import { runPreFlightChecks, displayPreFlightResults, autoFixAllIssues, interactiveFixIssues } from './core/git-setup.js'
-import { handleError } from './core/error-handler.js'
-import { runInitCommand, showInitHelp } from './cli/init.js'
 
 // Load version from package.json
 function getVersion(): string {
@@ -36,7 +48,7 @@ const version = getVersion()
 
 program
   .name('workflow')
-  .description('🚀 Enterprise release automation and workflow orchestration')
+  .description('Enterprise release automation and workflow orchestration')
   .version(version)
 
 // Global options
@@ -52,7 +64,7 @@ program
 program
   .command('release')
   .description(
-    '🚀 Execute complete release workflow: quality gates → git → cloudflare → GitHub release'
+    'Execute complete release workflow: quality gates → git → cloudflare → GitHub release'
   )
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
@@ -77,21 +89,47 @@ program
       const config = await loadWorkflowConfig(process.cwd(), globalOptions.config)
       const mergedConfig = mergeConfigWithFlags(config, { ...globalOptions, ...options })
 
+      // Enhanced monorepo context validation
+      const gitContext = await analyzeGitContext()
+      const contextValidation = await validateWorkflowContext()
+      
+      if (!contextValidation.isValid) {
+        g1Log.error('Workflow context validation failed:')
+        contextValidation.issues.forEach(issue => {
+          g1Log.error(`  • ${issue}`)
+        })
+        
+        if (contextValidation.suggestions.length > 0) {
+          g1Log.info('\nSuggestions:')
+          contextValidation.suggestions.forEach(suggestion => {
+            g1Log.info(`  • ${suggestion}`)
+          })
+        }
+        
+        process.exit(1)
+      }
+      
+      if (gitContext.isMonorepo && gitContext.relativePath) {
+        g1Log.info(`Working in monorepo package: ${gitContext.relativePath}`)
+      }
+
       // Run pre-flight checks if not disabled
       if (!options.force && !globalOptions.noInteractive) {
-        console.log(chalk.blue('🔍 Running pre-flight checks...'))
+        g1Log.searching('Running pre-flight checks...')
         const checks = await runPreFlightChecks()
         displayPreFlightResults(checks)
 
-        const failedChecks = checks.filter(check => check.status === 'fail' || check.status === 'warning')
-        
+        const failedChecks = checks.filter(
+          (check) => check.status === 'fail' || check.status === 'warning'
+        )
+
         if (failedChecks.length > 0) {
           if (globalOptions.autoFix || mergedConfig.errorHandling.autoFix) {
             await autoFixAllIssues(checks)
           } else if (!globalOptions.noInteractive && mergedConfig.errorHandling.interactive) {
             await interactiveFixIssues(checks)
           } else {
-            console.log(chalk.red('❌ Pre-flight checks failed. Use --auto-fix to automatically resolve issues.'))
+            g1Log.error('Pre-flight checks failed. Use --auto-fix to automatically resolve issues.')
             process.exit(1)
           }
         }
@@ -109,26 +147,11 @@ program
         options.skipNpm = true
       }
 
-      console.log()
-      console.log(chalk.cyan('╔══════════════════════════════════════════════════════════╗'))
-      console.log(chalk.cyan('║               G1 WORKFLOW - RELEASE AUTOMATION           ║'))
-      console.log(chalk.cyan('╚══════════════════════════════════════════════════════════╝'))
-      console.log(chalk.gray(`                       Version ${version}\n`))
+      // Enhanced intro with G1 branding
+      intro(`${G1_ICONS.g1} G1 Workflow - Release Automation v${version}`)
 
       if (options.dryRun) {
-        console.log(
-          chalk.yellow.bold('┌──────────────────────────────────────────────────────────────┐')
-        )
-        console.log(
-          chalk.yellow.bold('│                     DRY RUN MODE ENABLED                     │')
-        )
-        console.log(
-          chalk.yellow.bold('│                   No changes will be made                    │')
-        )
-        console.log(
-          chalk.yellow.bold('└──────────────────────────────────────────────────────────────┘')
-        )
-        console.log()
+        note(`${G1_ICONS.info} DRY RUN MODE - No changes will be made`, 'Dry Run')
       }
 
       // Create workflow steps (now async for interactive prompts)
@@ -143,40 +166,24 @@ program
       // Execute workflow
       const context = (await taskEngine.execute(steps)) as WorkflowContext
 
-      // Success summary
-      console.log()
-      console.log(
-        chalk.green('╔═════════════════════════════════════════════════════════════════════╗')
-      )
-      console.log(
-        chalk.green('║                   RELEASE COMPLETED SUCCESSFULLY!                   ║')
-      )
-      console.log(
-        chalk.green('╚═════════════════════════════════════════════════════════════════════╝')
-      )
-      console.log()
+      // Clean success message instead of busy box
+      // Enhanced success message with G1 branding
+      outro(`${G1_ICONS.success} Release completed successfully!`)
 
-      console.log(chalk.bold('Release Summary'))
-      console.log(chalk.dim('─'.repeat(50)))
+      // Enhanced release summary using custom icons
+      g1Log.release('Release Summary')
 
       if (context.version) {
-        console.log(
-          chalk.cyan(
-            `  Version:     ${chalk.white(context.version.current)} → ${chalk.white.bold(context.version.next)}`
-          )
-        )
+        g1Log.info(`Version: ${context.version.current} → ${context.version.next}`)
       }
 
       if (context.git) {
-        console.log(chalk.cyan(`  Repository:  ${chalk.white(context.git.repository)}`))
+        g1Log.info(`Repository: ${context.git.repository}`)
       }
 
       if (context.deployments?.cloudflare) {
-        console.log(chalk.cyan(`  Cloudflare:  ${chalk.green('✓ Deployed')}`))
+        g1Log.deploy('Cloudflare: Deployed')
       }
-
-      console.log(chalk.dim('─'.repeat(50)))
-      console.log()
 
       // GitHub Actions monitoring prompt (skip in dry-run mode)
       if (
@@ -189,23 +196,17 @@ program
         const hasPublishing = await hasNpmPublishingWorkflow(context.git.repository)
 
         if (hasPublishing) {
-          const enquirer = await import('enquirer')
-          const response = (await enquirer.default.prompt({
-            type: 'confirm',
-            name: 'watchActions',
-            message: '🔍 Watch GitHub Actions for npm publishing?',
-            initial: true,
-            prefix: '  ',
-          })) as { watchActions: boolean }
+          const watchActions = await confirm({
+            message: `${G1_ICONS.search} Watch GitHub Actions for npm publishing?`,
+            initialValue: true,
+          })
 
-          if (response.watchActions) {
+          if (watchActions === true) {
             const tagName = `v${context.version.next}`
             await watchGitHubActions(context.git.repository, tagName)
           }
         } else {
-          console.log(
-            chalk.dim('  📝 No npm publishing workflows detected - skipping monitoring prompt')
-          )
+          g1Log.info('No npm publishing workflows detected - skipping monitoring prompt')
         }
       }
 
@@ -215,72 +216,44 @@ program
         const hasCloudflare = await detectCloudflareSetup()
 
         if (hasCloudflare) {
-          const enquirer = await import('enquirer')
-          const response = (await enquirer.default.prompt({
-            type: 'confirm',
-            name: 'deployToCloudflare',
-            message: '🚀 Deploy to Cloudflare Workers?',
-            initial: true,
-            prefix: '  ',
-          })) as { deployToCloudflare: boolean }
+          const deployToCloudflareConfirm = await confirm({
+            message: `${G1_ICONS.deploy} Deploy to Cloudflare Workers?`,
+            initialValue: true,
+          })
 
-          if (response.deployToCloudflare) {
+          if (deployToCloudflareConfirm === true) {
             await deployToCloudflare()
           }
         }
       }
     } catch (error) {
-      console.log()
-      console.log(chalk.red('╔══════════════════════════════════════════════════════════════════╗'))
-      console.log(chalk.red('║                          RELEASE FAILED                          ║'))
-      console.log(chalk.red('╚══════════════════════════════════════════════════════════════════╝'))
-      console.log()
+      // Clean error handling with outro
+      outro('Release failed')
 
       if (error instanceof Error) {
-        // Show the detailed error message
-        console.log(chalk.red.bold('Error Details'))
-        console.log(chalk.red.dim('─'.repeat(30)))
-        console.log(chalk.red(`  ${error.message}`))
-        console.log()
+        log.error(error.message)
 
         // Provide helpful suggestions based on error type
         if (error.message.includes('Tests failed')) {
-          console.log(chalk.yellow.bold('Suggested Solutions'))
-          console.log(chalk.yellow.dim('─'.repeat(30)))
-          console.log(chalk.yellow('  • Add test files to your project, or'))
-          console.log(
-            chalk.yellow(
-              `  • Skip tests with: ${chalk.white.bold('workflow release --skip-tests')}`
-            )
+          note(
+            'Add test files to your project, or skip tests with: workflow release --skip-tests',
+            'Suggested Solutions'
           )
         } else if (error.message.includes('Uncommitted changes')) {
-          console.log(chalk.yellow.bold('Suggested Solutions'))
-          console.log(chalk.yellow.dim('─'.repeat(30)))
-          console.log(
-            chalk.yellow(
-              `  • Commit your changes with: ${chalk.white.bold('git add . && git commit -m "your message"')}`
-            )
+          note(
+            'Commit your changes with: git add . && git commit -m "your message"\nOr stash them with: git stash',
+            'Suggested Solutions'
           )
-          console.log(chalk.yellow(`  • Or stash them with: ${chalk.white.bold('git stash')}`))
         } else if (error.message.includes('TypeScript errors')) {
-          console.log(chalk.yellow.bold('Suggested Solutions'))
-          console.log(chalk.yellow.dim('─'.repeat(30)))
-          console.log(
-            chalk.yellow(`  • Fix TypeScript errors with: ${chalk.white.bold('bun run typecheck')}`)
-          )
-          console.log(
-            chalk.yellow(
-              `  • Or skip type checking with: ${chalk.white.bold('workflow release --skip-lint')}`
-            )
+          note(
+            'Fix TypeScript errors with: bun run typecheck\nOr skip type checking with: workflow release --skip-lint',
+            'Suggested Solutions'
           )
         }
-        console.log()
 
         if (options.verbose && error.stack) {
-          console.log(chalk.gray.bold('Stack Trace'))
-          console.log(chalk.gray.dim('─'.repeat(30)))
-          console.log(chalk.gray(error.stack))
-          console.log()
+          log.info('Stack Trace')
+          console.log(error.stack)
         }
       }
 
@@ -291,7 +264,7 @@ program
 // Initialize workflow command
 program
   .command('init')
-  .description('🔧 Initialize workflow configuration and Git repository')
+  .description('Initialize workflow configuration and Git repository')
   .option('--force', 'Force initialization even if files exist')
   .option('--auto-fix', 'Automatically fix issues without prompting')
   .option('--skip-git', 'Skip Git repository initialization')
@@ -304,7 +277,7 @@ program
       await handleError(error as Error, {
         autoFix: options.autoFix,
         interactive: !options.nonInteractive,
-        context: 'init'
+        context: 'init',
       })
       process.exit(1)
     }
@@ -313,23 +286,25 @@ program
 // Feature branch command (placeholder for future)
 program
   .command('feature')
-  .description('🌟 Create and manage feature branches with AI-powered suggestions')
+  .description('Create and manage feature branches with AI-powered suggestions')
   .argument('[name]', 'Feature name (optional - will suggest if not provided)')
   .option('-t, --type <type>', 'Branch type', /^(feature|bugfix|hotfix)$/, 'feature')
   .option('--base <branch>', 'Base branch', 'main')
   .option('--auto-merge', 'Enable auto-merge when PR is approved')
   .action(async (_name, _options) => {
-    console.log(chalk.yellow('🚧 Feature workflow coming soon in V2!'))
-    console.log(chalk.gray('This will include:'))
-    console.log(chalk.gray('• AI-powered branch name suggestions'))
-    console.log(chalk.gray('• Automated PR creation'))
-    console.log(chalk.gray('• Auto-merge and cleanup'))
+    intro('Feature Workflow')
+    log.warn('Feature workflow coming soon in V2!')
+    note(
+      '• AI-powered branch name suggestions\n• Automated PR creation\n• Auto-merge and cleanup',
+      'This will include'
+    )
+    outro('Stay tuned for updates!')
   })
 
 // Test error recovery command
 program
   .command('test-error-recovery')
-  .description('🧪 Test automated error recovery system with sample errors')
+  .description('Test automated error recovery system with sample errors')
   .option('--direct', 'Test error recovery directly without triggering a workflow')
   .action(async (options) => {
     try {
@@ -343,34 +318,43 @@ program
         await testErrorRecovery()
       }
     } catch (error) {
-      console.log(chalk.red('❌ Error recovery test failed'))
+      outro('Error recovery test failed')
       if (error instanceof Error) {
-        console.log(chalk.red(error.message))
+        log.error(error.message)
       }
       process.exit(1)
     }
   })
 
+// Monorepo command
+program.addCommand(createMonorepoCommand())
+
+// AI command
+program.addCommand(createAICommand())
+
+// Framework command
+program.addCommand(createFrameworkCommand())
+
 // Status command
 program
   .command('status')
-  .description('📊 Show project and workflow status')
+  .description('Show project and workflow status')
   .action(async () => {
-    console.log(chalk.cyan.bold('📊 G1 Workflow Status'))
-    console.log(chalk.green(`✅ V2 Core: Task Engine with listr2`))
-    console.log(chalk.green(`✅ V2 Release: Complete Git → Cloudflare → npm pipeline`))
-    console.log(chalk.green(`✅ V2 Error Recovery: Automated error fixing system`))
-    console.log(chalk.yellow(`🚧 V2 Feature: Branch management (coming soon)`))
-    console.log(chalk.yellow(`🚧 V2 Config: Smart configuration system (coming soon)`))
-    console.log(chalk.gray(`📦 Version: ${version}`))
-    console.log()
-    console.log(chalk.cyan.bold('🧪 Test Commands'))
-    console.log(
-      chalk.gray(`  workflow test-error-recovery     Test error recovery with sample workflow`)
+    intro(`${G1_ICONS.g1} G1 Workflow Status`)
+
+    g1Log.success('V2 Core: Task Engine with listr2')
+    g1Log.success('V2 Release: Complete Git → Cloudflare → npm pipeline')
+    g1Log.success('V2 Error Recovery: Automated error fixing system')
+    g1Log.warning('V2 Feature: Branch management (coming soon)')
+    g1Log.warning('V2 Config: Smart configuration system (coming soon)')
+    g1Log.info(`Version: ${version}`)
+
+    note(
+      `${G1_ICONS.test} workflow test-error-recovery     Test error recovery with sample workflow\n${G1_ICONS.test} workflow test-error-recovery --direct    Test error recovery directly`,
+      'Test Commands'
     )
-    console.log(
-      chalk.gray(`  workflow test-error-recovery --direct    Test error recovery directly`)
-    )
+
+    outro(`${G1_ICONS.success} Status check complete`)
   })
 
 // Error handling

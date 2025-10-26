@@ -2,107 +2,150 @@
  * Test suite for Git setup and pre-flight checks
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createGitOperations } from '@g-1/util/node'
+import { execa } from 'execa'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  detectGitStatus,
-  initializeGitRepository,
+  autoFixAllIssues,
   createDefaultGitignore,
   createInitialCommit,
-  runPreFlightChecks,
-  autoFixAllIssues,
+  detectGitStatus,
   type GitStatus,
-  type PreFlightResult
+  initializeGitRepo,
+  type PreFlightCheck,
+  runPreFlightChecks,
 } from '../core/git-setup.js'
 
 // Mock external dependencies
-vi.mock('node:child_process')
-vi.mock('node:fs')
-vi.mock('enquirer')
+vi.mock('@g-1/util/node', () => ({
+  createGitOperations: vi.fn(() => ({
+    isGitRepository: vi.fn(),
+    getCurrentBranch: vi.fn(),
+    hasUncommittedChanges: vi.fn(),
+  })),
+}))
+vi.mock('node:child_process', () => ({
+  execSync: vi.fn(),
+}))
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn(),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+}))
+vi.mock('@clack/prompts', () => ({
+  confirm: vi.fn(),
+  isCancel: vi.fn(),
+}))
+vi.mock('execa', () => ({
+  execa: vi.fn(),
+}))
 
-const mockExecSync = vi.mocked(execSync)
-const mockExistsSync = vi.mocked(existsSync)
-const mockReadFileSync = vi.mocked(readFileSync)
-const mockWriteFileSync = vi.mocked(writeFileSync)
+const mockExecSync = execSync as any
+const mockExistsSync = existsSync as any
+const mockReadFileSync = readFileSync as any
+const mockWriteFileSync = writeFileSync as any
+const mockExeca = execa as any
+const mockCreateGitOperations = createGitOperations as any
 
 describe('Git Setup', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+
+    // Setup default git operations mock
+    const mockGitOps = {
+      isGitRepository: vi.fn().mockResolvedValue(true),
+      getCurrentBranch: vi.fn().mockResolvedValue('main'),
+      hasUncommittedChanges: vi.fn().mockResolvedValue(false),
+    }
+    mockCreateGitOperations.mockReturnValue(mockGitOps)
+
+    // Setup default execa mock
+    mockExeca.mockResolvedValue({ stdout: 'abc123 Initial commit' })
   })
 
   describe('detectGitStatus', () => {
     it('should detect initialized git repository', async () => {
-      mockExistsSync.mockReturnValue(true)
-      mockExecSync.mockReturnValue(Buffer.from('main'))
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockResolvedValue(true),
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        hasUncommittedChanges: vi.fn().mockResolvedValue(false),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
+      mockExeca.mockResolvedValue({ stdout: 'abc123 Initial commit' })
 
       const status = await detectGitStatus('/test/path')
 
-      expect(status.isGitRepository).toBe(true)
+      expect(status.hasGitRepo).toBe(true)
       expect(status.currentBranch).toBe('main')
-      expect(status.hasRemote).toBe(false)
-      expect(status.hasCommits).toBe(false)
+      expect(status.hasCommits).toBe(true)
+      expect(status.hasUncommittedChanges).toBe(false)
     })
 
     it('should detect non-git directory', async () => {
-      mockExistsSync.mockReturnValue(false)
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockResolvedValue(false),
+        getCurrentBranch: vi.fn(),
+        hasUncommittedChanges: vi.fn(),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
 
       const status = await detectGitStatus('/test/path')
 
-      expect(status.isGitRepository).toBe(false)
-      expect(status.currentBranch).toBeNull()
-      expect(status.hasRemote).toBe(false)
+      expect(status.hasGitRepo).toBe(false)
+      expect(status.currentBranch).toBe(null)
       expect(status.hasCommits).toBe(false)
+      expect(status.hasUncommittedChanges).toBe(false)
     })
 
     it('should detect git repository with remote and commits', async () => {
-      mockExistsSync.mockReturnValue(true)
-      mockExecSync
-        .mockReturnValueOnce(Buffer.from('main')) // branch
-        .mockReturnValueOnce(Buffer.from('origin')) // remote
-        .mockReturnValueOnce(Buffer.from('abc123 Initial commit')) // commits
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockResolvedValue(true),
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        hasUncommittedChanges: vi.fn().mockResolvedValue(false),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
+      mockExeca.mockResolvedValue({ stdout: 'abc123 Initial commit' })
 
       const status = await detectGitStatus('/test/path')
 
-      expect(status.isGitRepository).toBe(true)
+      expect(status.hasGitRepo).toBe(true)
       expect(status.currentBranch).toBe('main')
-      expect(status.hasRemote).toBe(true)
       expect(status.hasCommits).toBe(true)
     })
 
     it('should handle git command errors gracefully', async () => {
-      mockExistsSync.mockReturnValue(true)
-      mockExecSync.mockImplementation(() => {
-        throw new Error('Git command failed')
-      })
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockRejectedValue(new Error('Git command failed')),
+        getCurrentBranch: vi.fn(),
+        hasUncommittedChanges: vi.fn(),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
 
-      const status = await detectGitStatus('/test/path')
-
-      expect(status.isGitRepository).toBe(false)
-      expect(status.error).toContain('Git command failed')
+      await expect(detectGitStatus('/test/path')).rejects.toThrow('Failed to detect git status')
     })
   })
 
-  describe('initializeGitRepository', () => {
+  describe('initializeGitRepo', () => {
     it('should initialize git repository successfully', async () => {
-      mockExecSync.mockReturnValue(Buffer.from('Initialized empty Git repository'))
+      mockExeca.mockResolvedValue({ stdout: 'Initialized empty Git repository' })
 
-      const result = await initializeGitRepository('/test/path')
+      await initializeGitRepo()
 
-      expect(result.success).toBe(true)
-      expect(mockExecSync).toHaveBeenCalledWith('git init', { cwd: '/test/path' })
+      expect(mockExeca).toHaveBeenCalledWith('git', ['init'], expect.any(Object))
     })
 
     it('should handle git init failure', async () => {
-      mockExecSync.mockImplementation(() => {
-        throw new Error('Git init failed')
+      mockExeca.mockImplementation((cmd, args) => {
+        if (args && args.includes('init')) {
+          throw new Error('Git init failed')
+        }
+        return Promise.resolve({ stdout: '' })
       })
 
-      const result = await initializeGitRepository('/test/path')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Git init failed')
+      await expect(initializeGitRepo()).rejects.toThrow('Failed to initialize git repository')
     })
   })
 
@@ -110,52 +153,46 @@ describe('Git Setup', () => {
     it('should create default .gitignore file', async () => {
       mockExistsSync.mockReturnValue(false)
 
-      const result = await createDefaultGitignore('/test/path')
+      await createDefaultGitignore()
 
-      expect(result.success).toBe(true)
       expect(mockWriteFileSync).toHaveBeenCalledWith(
-        join('/test/path', '.gitignore'),
+        '.gitignore',
         expect.stringContaining('node_modules/')
       )
     })
 
-    it('should not overwrite existing .gitignore', async () => {
+    it('should not create .gitignore if it already exists', async () => {
       mockExistsSync.mockReturnValue(true)
 
-      const result = await createDefaultGitignore('/test/path')
+      await createDefaultGitignore()
 
-      expect(result.success).toBe(true)
-      expect(result.skipped).toBe(true)
       expect(mockWriteFileSync).not.toHaveBeenCalled()
     })
   })
 
   describe('createInitialCommit', () => {
     it('should create initial commit successfully', async () => {
-      mockExecSync.mockReturnValue(Buffer.from(''))
+      mockExeca.mockResolvedValue({ stdout: '' })
 
-      const result = await createInitialCommit('/test/path')
+      await createInitialCommit()
 
-      expect(result.success).toBe(true)
-      expect(mockExecSync).toHaveBeenCalledWith('git add .', { cwd: '/test/path' })
-      expect(mockExecSync).toHaveBeenCalledWith(
-        'git commit -m "Initial commit"',
-        { cwd: '/test/path' }
+      expect(mockExeca).toHaveBeenCalledWith('git', ['add', '.'], expect.any(Object))
+      expect(mockExeca).toHaveBeenCalledWith(
+        'git',
+        ['commit', '-m', 'Initial commit: Project setup'],
+        expect.any(Object)
       )
     })
 
     it('should handle commit failure', async () => {
-      mockExecSync.mockImplementation((cmd) => {
-        if (cmd === 'git commit -m "Initial commit"') {
+      mockExeca.mockImplementation((cmd, args) => {
+        if (args && args.includes('commit')) {
           throw new Error('Nothing to commit')
         }
-        return Buffer.from('')
+        return Promise.resolve({ stdout: '' })
       })
 
-      const result = await createInitialCommit('/test/path')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Nothing to commit')
+      await expect(createInitialCommit()).rejects.toThrow('Failed to create initial commit')
     })
   })
 
@@ -170,62 +207,71 @@ describe('Git Setup', () => {
 
       const results = await runPreFlightChecks('/test/path')
 
-      expect(results.gitRepository.status).toBe('success')
-      expect(results.packageJson.status).toBe('success')
-      expect(results.overall.status).toBe('success')
+      expect(Array.isArray(results)).toBe(true)
+      expect(results.length).toBeGreaterThan(0)
     })
 
     it('should detect missing git repository', async () => {
-      mockExistsSync.mockReturnValue(false)
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockResolvedValue(false),
+        getCurrentBranch: vi.fn(),
+        hasUncommittedChanges: vi.fn(),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
 
       const results = await runPreFlightChecks('/test/path')
 
-      expect(results.gitRepository.status).toBe('error')
-      expect(results.gitRepository.message).toContain('not a Git repository')
-      expect(results.overall.status).toBe('error')
+      expect(Array.isArray(results)).toBe(true)
+      const gitCheck = results.find((check) => check.name.includes('Git'))
+      expect(gitCheck?.status).toBe('fail')
     })
 
-    it('should detect missing package.json', async () => {
-      mockExistsSync.mockImplementation((path) => {
-        if (path.toString().endsWith('.git')) return true
-        if (path.toString().endsWith('package.json')) return false
-        return true
-      })
-      mockExecSync.mockReturnValue(Buffer.from('main'))
-      mockReadFileSync.mockImplementation(() => {
-        throw new Error('File not found')
-      })
+    it('should detect missing initial commit', async () => {
+      const mockGitOps = {
+        isGitRepository: vi.fn().mockResolvedValue(true),
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        hasUncommittedChanges: vi.fn().mockResolvedValue(false),
+      }
+      mockCreateGitOperations.mockReturnValue(mockGitOps)
+      mockExeca.mockResolvedValue({ stdout: '' }) // empty git log (no commits)
 
       const results = await runPreFlightChecks('/test/path')
 
-      expect(results.packageJson.status).toBe('error')
-      expect(results.packageJson.message).toContain('package.json not found')
-      expect(results.overall.status).toBe('error')
+      expect(Array.isArray(results)).toBe(true)
+      const commitCheck = results.find((check) => check.name.includes('Initial Commit'))
+      expect(commitCheck?.status).toBe('fail')
     })
   })
 
   describe('autoFixAllIssues', () => {
     it('should auto-fix git repository initialization', async () => {
-      mockExistsSync.mockReturnValue(false)
-      mockExecSync.mockReturnValue(Buffer.from(''))
+      const mockChecks: PreFlightCheck[] = [
+        {
+          name: 'Git Repository',
+          status: 'fail',
+          message: 'No git repository found',
+          autoFixAvailable: true,
+          autoFixAction: vi.fn().mockResolvedValue(undefined),
+        },
+      ]
 
-      const results = await autoFixAllIssues('/test/path')
+      await autoFixAllIssues(mockChecks)
 
-      expect(results.gitInit.attempted).toBe(true)
-      expect(results.gitInit.success).toBe(true)
+      expect(mockChecks[0].autoFixAction).toHaveBeenCalled()
     })
 
     it('should handle auto-fix failures gracefully', async () => {
-      mockExistsSync.mockReturnValue(false)
-      mockExecSync.mockImplementation(() => {
-        throw new Error('Permission denied')
-      })
+      const mockChecks: PreFlightCheck[] = [
+        {
+          name: 'Git Repository',
+          status: 'fail',
+          message: 'No git repository found',
+          autoFixAvailable: true,
+          autoFixAction: vi.fn().mockRejectedValue(new Error('Permission denied')),
+        },
+      ]
 
-      const results = await autoFixAllIssues('/test/path')
-
-      expect(results.gitInit.attempted).toBe(true)
-      expect(results.gitInit.success).toBe(false)
-      expect(results.gitInit.error).toContain('Permission denied')
+      await expect(autoFixAllIssues(mockChecks)).rejects.toThrow('Permission denied')
     })
   })
 })

@@ -3,12 +3,14 @@
  */
 
 import process from 'node:process'
+import { isCancel, select, text } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import * as semver from 'semver'
 import { createErrorBox } from '../core/error-formatter.js'
 import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
+import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git-context.js'
 
 // Detection functions (detectCloudflareSetup moved to exports below)
 
@@ -213,53 +215,56 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
       process.stdout.write('\n')
 
       if (!options.nonInteractive) {
-        const enquirer = await import('enquirer')
-        const response = (await enquirer.default.prompt({
-          type: 'select',
-          name: 'action',
-          message: '  Choose an action:',
-          choices: [
-            { name: 'commit', message: 'Commit all changes now', value: 'commit' },
-            { name: 'stash', message: 'Stash changes for later', value: 'stash' },
-            { name: 'force', message: 'Continue anyway (--force)', value: 'force' },
+        const action = await select({
+          message: 'Choose an action:',
+          options: [
+            { value: 'commit', label: 'Commit all changes now' },
+            { value: 'stash', label: 'Stash changes for later' },
+            { value: 'force', label: 'Continue anyway (--force)' },
           ],
-          prefix: '  ',
-        })) as { action: 'commit' | 'stash' | 'force' }
+        })
+
+        if (isCancel(action)) {
+          process.stdout.write('\n\x1B[31mOperation cancelled\x1B[0m\n')
+          process.exit(1)
+        }
 
         process.stdout.write('\n')
 
-        if (response.action === 'commit') {
+        if (action === 'commit') {
           process.stdout.write('\x1B[1m\x1B[36m→ Commit Configuration\x1B[0m\n')
           process.stdout.write('  Enter a commit message for these changes\n')
           process.stdout.write('\n')
 
           // Get commit message
-          const commitResponse = (await enquirer.default.prompt({
-            type: 'input',
-            name: 'message',
-            message: '  Commit message:',
-            initial: 'chore: commit changes before release',
-            prefix: '  ',
-          })) as { message: string }
+          const message = await text({
+            message: 'Commit message:',
+            placeholder: 'chore: commit changes before release',
+          })
+
+          if (isCancel(message)) {
+            process.stdout.write('\n\x1B[31mOperation cancelled\x1B[0m\n')
+            process.exit(1)
+          }
 
           // Commit changes
           process.stdout.write('\n\x1B[2mCommitting changes...\x1B[0m\n')
           await git.stageFiles(changedFiles)
-          await git.commit(commitResponse.message)
-          process.stdout.write('\x1B[32m✅ Changes committed successfully\x1B[0m\n')
-        } else if (response.action === 'stash') {
+          await git.commit(message)
+          process.stdout.write('\x1B[32mChanges committed successfully\x1B[0m\n')
+        } else if (action === 'stash') {
           process.stdout.write('\x1B[2mStashing changes...\x1B[0m\n')
           await execa('git', ['stash', 'push', '-m', 'Pre-release stash'], { stdio: 'pipe' })
-          process.stdout.write('\x1B[32m✅ Changes stashed successfully\x1B[0m\n')
-        } else if (response.action === 'force') {
+          process.stdout.write('\x1B[32mChanges stashed successfully\x1B[0m\n')
+        } else if (action === 'force') {
           options.force = true
-          process.stdout.write('\x1B[33m⚠️  Continuing with uncommitted changes\x1B[0m\n')
+          process.stdout.write('\x1B[33mContinuing with uncommitted changes\x1B[0m\n')
         }
 
         process.stdout.write('\n')
       } else {
         // Non-interactive mode - just show error and exit
-        process.stdout.write('❌ Cannot proceed with uncommitted changes in non-interactive mode\n')
+        process.stdout.write('Cannot proceed with uncommitted changes in non-interactive mode\n')
         process.stdout.write('Use --force flag to override or commit/stash changes first\n')
         process.exit(1)
       }
@@ -299,7 +304,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 const result = await execa(command, args, { stdio: 'pipe', reject: false })
 
                 if (result.exitCode === 0) {
-                  helpers.setTitle(`Auto-fix linting issues - ✅ Fixed (${command})`)
+                  helpers.setTitle(`Auto-fix linting issues - Fixed (${command})`)
                   commandWorked = true
                   break // Success! Exit early
                 } else if (result.exitCode === 1) {
@@ -327,13 +332,13 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
                     if (problems > 0) {
                       helpers.setTitle(
-                        `Auto-fix linting issues - ⚠️ ${problems} issues remain (${command})`
+                        `Auto-fix linting issues - ${problems} issues remain (${command})`
                       )
                       helpers.setOutput(
                         `Found ${problems} linting issues that could not be auto-fixed`
                       )
                     } else {
-                      helpers.setTitle(`Auto-fix linting issues - ✅ Fixed (${command})`)
+                      helpers.setTitle(`Auto-fix linting issues - Fixed (${command})`)
                     }
                     commandWorked = true
                     break
@@ -357,7 +362,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             }
 
             if (!commandWorked) {
-              helpers.setTitle('Auto-fix linting issues - ⚠️ No lint command available')
+              helpers.setTitle('Auto-fix linting issues - No lint command available')
               helpers.setOutput('Could not find eslint or lint:fix script')
             }
           },
@@ -369,15 +374,15 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
             try {
               await execa('bun', ['run', 'typecheck'], { stdio: 'pipe' })
-              helpers.setTitle('Type checking - ✅ Passed')
+              helpers.setTitle('Type checking - Passed')
             } catch {
               try {
                 await execa('npm', ['run', 'typecheck'], { stdio: 'pipe' })
-                helpers.setTitle('Type checking - ✅ Passed with npm')
+                helpers.setTitle('Type checking - Passed with npm')
               } catch {
                 try {
                   await execa('bunx', ['tsc', '--noEmit'], { stdio: 'pipe' })
-                  helpers.setTitle('Type checking - ✅ Passed with bunx')
+                  helpers.setTitle('Type checking - Passed with bunx')
                 } catch {
                   throw new Error('TypeScript errors found. Please fix before releasing.')
                 }
@@ -408,7 +413,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
                 const _result = await execa(command, args, { stdio: 'pipe' })
                 ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-                helpers.setTitle(`Running tests - ✅ All tests passed (${command})`)
+                helpers.setTitle(`Running tests - All tests passed (${command})`)
                 return // Success! Exit early
               } catch (error) {
                 const errorOutput = error instanceof Error ? error.message : String(error)
@@ -448,7 +453,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               lastErrorOutput.includes('Missing script')
             ) {
               ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-              helpers.setTitle('Running tests - ✅ No tests found (skipping)')
+              helpers.setTitle('Running tests - No tests found (skipping)')
               return
             }
 
@@ -464,8 +469,22 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
     {
       title: 'Git repository analysis',
       task: async (ctx, helpers) => {
-        helpers.setOutput('Initializing Git operations...')
-        const git = createGitOperations()
+        helpers.setOutput('Analyzing git context...')
+        const gitContext = await analyzeGitContext()
+        
+        if (!gitContext.isValidContext) {
+          throw new Error('Invalid git context - no repository found')
+        }
+        
+        if (gitContext.isMonorepo) {
+          helpers.setOutput(`Detected monorepo structure at ${gitContext.gitRoot}`)
+          if (gitContext.relativePath) {
+            helpers.setOutput(`Working in package: ${gitContext.relativePath}`)
+          }
+        }
+
+        helpers.setOutput('Initializing Git operations with optimal context...')
+        const git = await createContextAwareGitOperations()
 
         helpers.setOutput('Checking repository status...')
         const isRepo = await git.isGitRepository()
@@ -500,7 +519,11 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           strategy: 'semantic',
         }
 
-        helpers.setTitle(`Git repository analysis - ✅ ${repository} on ${currentBranch}`)
+        const contextInfo = gitContext.isMonorepo 
+          ? `${repository} (monorepo) on ${currentBranch}`
+          : `${repository} on ${currentBranch}`
+        
+        helpers.setTitle(`Git repository analysis - ✅ ${contextInfo}`)
       },
     },
 
@@ -508,11 +531,16 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
     {
       title: 'Version calculation',
       task: async (ctx, helpers) => {
-        const git = createGitOperations()
+        const git = await createContextAwareGitOperations()
 
         helpers.setOutput('Analyzing commits since last release...')
         const commits = await git.getCommitsSinceTag()
-        ctx.git!.commits = commits
+        // Map util CommitInfo to workflow CommitInfo by adding files property
+        const workflowCommits = commits.map((commit) => ({
+          ...commit,
+          files: [], // Add empty files array to match workflow CommitInfo interface
+        }))
+        ctx.git!.commits = workflowCommits
 
         let versionBump = options.type || 'patch'
 
@@ -1262,8 +1290,8 @@ async function handleCompletedWorkflow(
       `View details: https://github.com/${repositoryName}/actions/runs/${workflow.databaseId}`
     )
 
-    // Enhanced red error display
-    const errorBox = createErrorBox(
+    // Enhanced error display using @clack/prompts
+    createErrorBox(
       'PUBLISHING WORKFLOW FAILED',
       `GitHub Actions workflow "${workflow.workflowName}" failed`,
       [
@@ -1272,7 +1300,6 @@ async function handleCompletedWorkflow(
         'Verify npm token configuration',
       ]
     )
-    console.error(errorBox)
 
     // Trigger automated error recovery
     await triggerErrorRecovery(repositoryName, workflow.databaseId)

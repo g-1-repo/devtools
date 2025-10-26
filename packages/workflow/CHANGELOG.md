@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.5.12] - 2025-10-26
+
+### Other Changes
+
+- chore: commit changes before release
+- chore: commit changes before release
+- chore: commit changes before release
+- chore: commit changes during workflow setup
+
+
+## [3.5.11] - 2025-10-26
+
+### Other Changes
+
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- Initial commit: Project setup
+- Initial commit: Project setup
+
+
 ## [3.5.10] - 2025-10-25
 
 ### Bug Fixes

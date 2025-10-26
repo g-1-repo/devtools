@@ -49,10 +49,17 @@ await recovery.executeWorkflow(workflow)
 - **Well-Architected**: Clean separation of concerns, modular design patterns
 - **Extensible Plugin System**: Ready for custom workflows and enterprise integrations
 
-### 🤖 **AI-Ready Architecture**
-- **Future-Proof**: Placeholder integrations for LLM-powered suggestions
-- **Smart Suggestions**: Ready for AI-powered branch names and commit messages
-- **Intelligent Workflows**: Foundation for machine learning integration
+### 🤖 **AI-Powered Development**
+- **Smart Changelog Generation**: AI analyzes git commits to generate professional changelogs
+- **Intelligent Version Suggestions**: AI recommends version bumps based on code changes
+- **Impact Analysis**: AI evaluates cross-package dependencies and breaking changes
+- **Future-Ready**: Extensible architecture for advanced AI integrations
+
+### 🔍 **Framework Detection & Analysis**
+- **Multi-Framework Support**: Detects React, Vue, Angular, SvelteKit, Next.js, Nuxt, and more
+- **Deployment Strategy Recommendations**: AI suggests optimal deployment platforms
+- **Configuration Analysis**: Automatically identifies build tools and configurations
+- **Monorepo Awareness**: Scans entire workspace for framework dependencies
 
 ## 💪 Professional Grade
 
@@ -158,15 +165,69 @@ Execute the complete release workflow with interactive configuration:
 - `--dry-run` - Show what would be done without executing *(coming soon)*
 - `--verbose` - Show detailed output
 
-### `workflow feature` *(Coming Soon)*
+### `workflow ai`
 
-Create and manage feature branches with AI-powered suggestions:
+AI-powered development assistance with intelligent analysis:
 
 ```bash
-workflow feature                    # AI suggests branch name
-workflow feature "add-user-auth"    # Create specific feature
-workflow feature --auto-merge       # Enable auto-merge on PR
+# Generate changelog from git commits
+workflow ai changelog                    # Analyze recent commits
+workflow ai changelog --since HEAD~10   # Analyze last 10 commits
+workflow ai changelog --format json     # Output in JSON format
+workflow ai changelog --dry-run         # Preview without writing
+
+# Get AI version bump suggestions
+workflow ai version                      # Analyze changes and suggest version
+workflow ai version --dry-run           # Preview suggestions only
+
+# Analyze cross-package impact
+workflow ai impact                       # Analyze impact of recent changes
+workflow ai impact --since HEAD~5       # Analyze specific commit range
 ```
+
+**AI Changelog Features:**
+- **Intelligent Categorization**: Automatically groups commits by type (features, fixes, breaking changes)
+- **Professional Formatting**: Generates clean, readable changelog entries
+- **Multiple Formats**: Supports markdown and JSON output
+- **Git Integration**: Analyzes commit messages and code changes
+
+**Version Analysis:**
+- **Smart Recommendations**: Suggests patch, minor, or major version bumps
+- **Confidence Scoring**: Provides confidence levels for suggestions
+- **Reasoning**: Explains why specific version bumps are recommended
+- **Breaking Change Detection**: Identifies potentially breaking changes
+
+**Impact Analysis:**
+- **Cross-Package Dependencies**: Analyzes how changes affect other packages
+- **Risk Assessment**: Provides risk levels (LOW, MEDIUM, HIGH)
+- **Dependency Mapping**: Shows which packages might be affected
+
+### `workflow framework`
+
+Framework detection and deployment strategy recommendations:
+
+```bash
+# Detect frameworks in current project
+workflow framework detect               # Scan for frameworks
+workflow framework detect --json       # Output in JSON format
+
+# Get deployment recommendations (coming soon)
+workflow framework deploy              # AI-powered deployment suggestions
+```
+
+**Framework Detection Features:**
+- **Multi-Framework Support**: Detects React, Vue, Angular, SvelteKit, Next.js, Nuxt, Vite, and more
+- **Configuration Analysis**: Identifies build tools, config files, and dependencies
+- **Deployment Strategy**: Suggests optimal platforms (Vercel, Netlify, Cloudflare, etc.)
+- **Monorepo Awareness**: Scans entire workspace including common patterns
+
+**Supported Frameworks:**
+- **React**: Create React App, Vite + React
+- **Vue**: Vue CLI, Nuxt.js, Vite + Vue
+- **Angular**: Angular CLI projects
+- **Svelte**: SvelteKit applications
+- **Next.js**: All Next.js configurations
+- **Static Sites**: Vite, custom build tools
 
 ### `workflow init`
 
@@ -195,9 +256,47 @@ Show project and workflow status.
 Use as a library in your Node.js applications:
 
 ```typescript
-import { createReleaseWorkflow, createTaskEngine, createWorkflow, quickRelease } from '@g-1/workflow'
+import { 
+  createReleaseWorkflow, 
+  createTaskEngine, 
+  createWorkflow, 
+  quickRelease,
+  AIService,
+  FrameworkDetector 
+} from '@g-1/workflow'
 
 // Quick release with interactive prompts
+await quickRelease()
+
+// AI-powered development assistance
+const aiService = new AIService()
+const changelog = await aiService.generateChangelog(commits)
+const versionSuggestions = await aiService.suggestVersionBumps(changes, packages)
+const impact = await aiService.analyzeImpact(changes, packages)
+
+// Framework detection
+const detector = new FrameworkDetector()
+const frameworks = await detector.detectAllFrameworks()
+const recommendations = detector.getDeploymentRecommendations(frameworks)
+
+// Custom workflow creation
+const workflow = createWorkflow('custom-deploy', [
+  {
+    title: 'Build Application',
+    task: async () => {
+      // Custom build logic
+    }
+  },
+  {
+    title: 'Deploy to Production',
+    task: async () => {
+      // Custom deployment logic
+    }
+  }
+])
+
+await workflow.run()
+```
 await quickRelease({ type: 'minor' })
 
 // Custom workflow (note: createReleaseWorkflow is now async)
@@ -275,11 +374,22 @@ export default {
     verboseLogging: false
   },
 
-  hooks: {
-    beforeRelease: [],
-    afterRelease: [],
-    onError: []
-  }
+  features: {
+    frameworkDetection: {
+      enabled: true,
+      workspacePatterns: ['packages/*', 'apps/*', 'docs']
+    },
+    aiAssistance: {
+      enabled: true,
+      provider: 'openai', // 'openai' | 'anthropic' | 'local'
+      model: 'gpt-4',
+      features: {
+        changelog: true,
+        versionSuggestions: true,
+        impactAnalysis: true
+      }
+    }
+  },
 }
 ```
 
@@ -303,6 +413,14 @@ export default {
 - `cli.showProgress`: Show progress indicators (default: true)
 - `cli.colorOutput`: Enable colored output (default: true)
 - `cli.verboseLogging`: Enable verbose logging (default: false)
+
+**Features Configuration**
+- `features.frameworkDetection.enabled`: Enable framework detection (default: true)
+- `features.frameworkDetection.workspacePatterns`: Patterns to scan for frameworks
+- `features.aiAssistance.enabled`: Enable AI-powered features (default: true)
+- `features.aiAssistance.provider`: AI provider ('openai', 'anthropic', 'local')
+- `features.aiAssistance.model`: AI model to use
+- `features.aiAssistance.features`: Individual AI feature toggles
 
 **Hooks System**
 - `hooks.beforeRelease`: Commands to run before release

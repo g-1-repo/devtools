@@ -3,6 +3,7 @@
  */
 
 import type { ListrRenderer } from 'listr2'
+import type { PackageManager } from '../core/monorepo-detector'
 
 // =============================================================================
 // Core Workflow Types
@@ -96,9 +97,71 @@ export interface CommitInfo {
   message: string
   author: string
   date: Date
-  type?: 'feat' | 'fix' | 'docs' | 'style' | 'refactor' | 'test' | 'chore'
+  files: string[]
+  type?: string
   scope?: string
   breaking?: boolean
+}
+
+// AI Service Types
+export interface AIConfig {
+  enabled: boolean
+  provider?: 'openai' | 'anthropic' | 'local'
+  suggestBranchNames: boolean
+  suggestCommitMessages: boolean
+  generateReleaseNotes: boolean
+  apiKey?: string
+  model?: string
+}
+
+export interface ChangelogEntry {
+  type: 'feat' | 'fix' | 'docs' | 'style' | 'refactor' | 'test' | 'chore' | 'breaking'
+  scope?: string
+  description: string
+  breaking: boolean
+  impact: 'major' | 'minor' | 'patch'
+  affectedPackages: string[]
+  originalCommit: CommitInfo
+}
+
+export interface VersionSuggestion {
+  package: string
+  currentVersion: string
+  suggestedVersion: string
+  bumpType: 'major' | 'minor' | 'patch'
+  reasoning: string
+  confidence: number
+}
+
+export interface ImpactAnalysis {
+  changedPackages: string[]
+  affectedPackages: string[]
+  riskLevel: 'low' | 'medium' | 'high'
+  breakingChanges: boolean
+  migrationRequired: boolean
+  testingRecommendations: string[]
+}
+
+// Framework Detection Types
+export interface FrameworkInfo {
+  name: string
+  version?: string
+  type: 'ssr' | 'spa' | 'static' | 'hybrid'
+  buildCommand?: string
+  outputDir?: string
+  devCommand?: string
+  configFiles: string[]
+  dependencies: string[]
+  deploymentStrategy: DeploymentStrategy
+}
+
+export interface DeploymentStrategy {
+  type: 'static' | 'serverless' | 'server' | 'edge'
+  platforms: string[]
+  buildOutputs: string[]
+  environmentVariables?: string[]
+  healthCheckPath?: string
+  previewCommand?: string
 }
 
 export interface BranchOptions {
@@ -156,7 +219,7 @@ export interface WorkflowConfig {
   project: {
     name: string
     type: 'library' | 'cli' | 'web-app' | 'api'
-    packageManager: 'bun' | 'npm' | 'yarn' | 'pnpm'
+    packageManager: PackageManager
   }
 
   // Git settings

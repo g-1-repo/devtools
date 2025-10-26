@@ -4,6 +4,7 @@
 
 import * as fs from 'node:fs/promises'
 import process from 'node:process'
+import { intro, log } from '@clack/prompts'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import { ErrorRecoveryService } from './core/error-recovery.js'
@@ -11,15 +12,13 @@ import { createTaskEngine } from './core/task-engine.js'
 import type { WorkflowStep } from './types/index.js'
 
 export async function testErrorRecovery(): Promise<void> {
-  console.error(chalk.cyan('╔════════════════════════════════════════════════════════════════╗'))
-  console.error(chalk.cyan('║                  ERROR RECOVERY TEST SUITE                     ║'))
-  console.error(chalk.cyan('╚════════════════════════════════════════════════════════════════╝\\n'))
+  intro('Error Recovery Test Suite')
 
   const testFile = './test-lint-error.ts'
 
   try {
     // Step 1: Create a test file with linting errors
-    console.error(chalk.blue('🧪 Creating test file with linting errors...'))
+    log.info('Creating test file with linting errors...')
     await createTestFileWithLintErrors(testFile)
 
     // Step 2: Create a workflow that will fail due to linting
@@ -31,9 +30,9 @@ export async function testErrorRecovery(): Promise<void> {
 
           try {
             await execa('bun', ['run', 'lint'], { stdio: 'pipe' })
-            helpers.setTitle('Test Linting - ✅ Unexpected success')
+            helpers.setTitle('Test Linting - Unexpected success')
           } catch (error) {
-            helpers.setTitle('Test Linting - ❌ Expected failure')
+            helpers.setTitle('Test Linting - Expected failure')
             throw new Error(
               `Linting failed: ${error instanceof Error ? error.message : String(error)}`
             )
@@ -43,7 +42,7 @@ export async function testErrorRecovery(): Promise<void> {
     ]
 
     // Step 3: Run the workflow with error recovery enabled
-    console.error(chalk.blue('🔄 Running workflow with automated error recovery...\\n'))
+    console.error(chalk.blue('Running workflow with automated error recovery...\\n'))
 
     const taskEngine = createTaskEngine({
       autoRecovery: true,
@@ -71,9 +70,7 @@ export async function testErrorRecovery(): Promise<void> {
 }
 
 export async function testErrorRecoveryDirectly(): Promise<void> {
-  console.error(chalk.cyan('╔════════════════════════════════════════════════════════════════╗'))
-  console.error(chalk.cyan('║               DIRECT ERROR RECOVERY TEST                      ║'))
-  console.error(chalk.cyan('╚════════════════════════════════════════════════════════════════╝\\n'))
+  intro('Direct Error Recovery Test')
 
   const recoveryService = ErrorRecoveryService.getInstance()
 
@@ -87,15 +84,15 @@ export async function testErrorRecoveryDirectly(): Promise<void> {
   ]
 
   for (const error of testErrors) {
-    console.error(chalk.blue(`\\n🧪 Testing error: ${error.message.slice(0, 50)}...`))
+    console.error(chalk.blue(`\\nTesting error: ${error.message.slice(0, 50)}...`))
 
     try {
       await recoveryService.executeRecovery(error)
-      console.error(chalk.green('✅ Recovery workflow completed'))
+      console.error(chalk.green('Recovery workflow completed'))
     } catch (recoveryError) {
       console.error(
         chalk.red(
-          `❌ Recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`
+          `Recovery failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`
         )
       )
     }
@@ -122,7 +119,7 @@ export default badFormatting
 `
 
   await fs.writeFile(filePath, badCode)
-  console.error(chalk.gray(`  📄 Created ${filePath} with linting errors`))
+  console.error(chalk.gray(`  Created ${filePath} with linting errors`))
 }
 
 // Command-line interface

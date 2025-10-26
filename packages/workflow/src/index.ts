@@ -8,25 +8,34 @@ export type { FormattedError } from '@g-1/util/debug'
 export { ErrorFormatter } from '@g-1/util/debug'
 // Re-export consolidated Git operations from @g-1/util
 export { createGitOperations as createGitStore, GitOperations as GitStore } from '@g-1/util/node'
+export { AIService } from './core/ai-service.js'
 export type { ErrorAnalysis } from './core/error-recovery.js'
 export { ErrorRecoveryService } from './core/error-recovery.js'
+export { FrameworkDetector } from './core/framework-detector.js'
 // Core exports
 export { createTaskEngine, TaskEngine } from './core/task-engine.js'
+export { WebSocketDeploymentService } from './core/websocket-deployment.js'
 // Type exports
 export type {
+  AIConfig,
   BranchOptions,
+  ChangelogEntry,
   CloudflareDeployment,
   CommitInfo,
   ConfigError,
   CustomDeployment,
   DeploymentError,
+  DeploymentStrategy,
   FeatureOptions,
+  FrameworkInfo,
   GitError,
+  ImpactAnalysis,
   NpmDeployment,
   PullRequestOptions,
   ReleaseOptions,
   TaskEngineOptions,
   TaskHelpers,
+  VersionSuggestion,
   WorkflowConfig,
   WorkflowContext,
   WorkflowError,

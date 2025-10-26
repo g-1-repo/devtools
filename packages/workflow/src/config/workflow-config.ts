@@ -1,12 +1,16 @@
 /**
  * Workflow Configuration System - .workflow.config.js Support
- * 
+ *
  * This module provides comprehensive configuration management with support for
  * .workflow.config.js files and flexible configuration options as specified
  * in WORKFLOW_IMPROVEMENTS_SPEC.md
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+/**
+ * Workflow Configuration System - Enhanced type safety and validation
+ */
+
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import process from 'node:process'
 import { cosmiconfig } from 'cosmiconfig'
@@ -72,14 +76,290 @@ const HooksConfigSchema = z.object({
 })
 
 /**
+ * Monorepo configuration schema
+ */
+const MonorepoConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  type: z
+    .enum(['lerna', 'nx', 'yarn-workspaces', 'pnpm-workspaces', 'rush', 'single-package'])
+    .optional(),
+  packageManager: z.enum(['npm', 'yarn', 'pnpm', 'bun']).optional(),
+  workspacePatterns: z.array(z.string()).default(['packages/*', 'apps/*']),
+  ignorePatterns: z.array(z.string()).default(['**/node_modules/**', '**/dist/**', '**/.git/**']),
+  selectiveOperations: z
+    .object({
+      enabled: z.boolean().default(true),
+      since: z.string().default('HEAD~1'),
+      parallel: z.boolean().default(true),
+      maxParallel: z.number().default(4),
+      forceAll: z.boolean().default(false),
+    })
+    .default(() => ({
+      enabled: true,
+      since: 'HEAD~1',
+      parallel: true,
+      maxParallel: 4,
+      forceAll: false,
+    })),
+  dependencyAnalysis: z
+    .object({
+      enabled: z.boolean().default(true),
+      includeDevDependencies: z.boolean().default(false),
+      includeExternal: z.boolean().default(false),
+      cacheResults: z.boolean().default(true),
+    })
+    .default(() => ({
+      enabled: true,
+      includeDevDependencies: false,
+      includeExternal: false,
+      cacheResults: true,
+    })),
+  buildOrder: z
+    .object({
+      respectDependencies: z.boolean().default(true),
+      allowCircular: z.boolean().default(false),
+      topologicalSort: z.boolean().default(true),
+    })
+    .default(() => ({
+      respectDependencies: true,
+      allowCircular: false,
+      topologicalSort: true,
+    })),
+  packageFilters: z
+    .object({
+      scope: z.array(z.string()).default([]),
+      ignore: z.array(z.string()).default([]),
+      includePrivate: z.boolean().default(false),
+      onlyChanged: z.boolean().default(false),
+    })
+    .default(() => ({
+      scope: [],
+      ignore: [],
+      includePrivate: false,
+      onlyChanged: false,
+    })),
+})
+
+/**
+ * AI configuration schema
+ */
+const AIConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  provider: z.enum(['openai', 'anthropic', 'local']).default('local'),
+  suggestBranchNames: z.boolean().default(true),
+  suggestCommitMessages: z.boolean().default(true),
+  generateReleaseNotes: z.boolean().default(true),
+  apiKey: z.string().optional(),
+  model: z.string().optional(),
+  features: z
+    .object({
+      changelog: z
+        .object({
+          enabled: z.boolean().default(true),
+          includeBreakingChanges: z.boolean().default(true),
+          categorizeCommits: z.boolean().default(true),
+          generateSummary: z.boolean().default(true),
+        })
+        .default(() => ({
+          enabled: true,
+          includeBreakingChanges: true,
+          categorizeCommits: true,
+          generateSummary: true,
+        })),
+      versionBump: z
+        .object({
+          enabled: z.boolean().default(true),
+          analyzeImpact: z.boolean().default(true),
+          suggestBumpType: z.boolean().default(true),
+          confidenceThreshold: z.number().min(0).max(1).default(0.8),
+        })
+        .default(() => ({
+          enabled: true,
+          analyzeImpact: true,
+          suggestBumpType: true,
+          confidenceThreshold: 0.8,
+        })),
+      impactAnalysis: z
+        .object({
+          enabled: z.boolean().default(true),
+          crossPackageAnalysis: z.boolean().default(true),
+          riskAssessment: z.boolean().default(true),
+          testingRecommendations: z.boolean().default(true),
+        })
+        .default(() => ({
+          enabled: true,
+          crossPackageAnalysis: true,
+          riskAssessment: true,
+          testingRecommendations: true,
+        })),
+    })
+    .default(() => ({
+      changelog: {
+        enabled: true,
+        includeBreakingChanges: true,
+        categorizeCommits: true,
+        generateSummary: true,
+      },
+      versionBump: {
+        enabled: true,
+        analyzeImpact: true,
+        suggestBumpType: true,
+        confidenceThreshold: 0.8,
+      },
+      impactAnalysis: {
+        enabled: true,
+        crossPackageAnalysis: true,
+        riskAssessment: true,
+        testingRecommendations: true,
+      },
+    })),
+})
+
+/**
+ * Framework detection configuration schema
+ */
+const FrameworkConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  autoDetect: z.boolean().default(true),
+  supportedFrameworks: z
+    .array(z.string())
+    .default(['sveltekit', 'nextjs', 'nuxt', 'vite', 'create-react-app', 'angular', 'vue-cli']),
+  deployment: z
+    .object({
+      enabled: z.boolean().default(true),
+      autoOptimize: z.boolean().default(true),
+      platforms: z.array(z.string()).default(['vercel', 'netlify', 'cloudflare']),
+      healthChecks: z.boolean().default(true),
+      websocketMonitoring: z.boolean().default(false),
+    })
+    .default(() => ({
+      enabled: true,
+      autoOptimize: true,
+      platforms: ['vercel', 'netlify', 'cloudflare'],
+      healthChecks: true,
+      websocketMonitoring: false,
+    })),
+})
+
+/**
  * Main workflow configuration schema
  */
 const WorkflowConfigSchema = z.object({
-  git: GitConfigSchema.default({}),
-  release: ReleaseConfigSchema.default({}),
-  errorHandling: ErrorHandlingConfigSchema.default({}),
-  cli: CliConfigSchema.default({}),
-  hooks: HooksConfigSchema.default({}),
+  git: GitConfigSchema.default(() => ({
+    autoInit: false,
+    autoCommit: false,
+    commitMessage: 'chore: automated commit',
+    createGitignore: true,
+    requireCleanWorkingDirectory: true,
+    allowUncommittedChanges: false,
+  })),
+  release: ReleaseConfigSchema.default(() => ({
+    skipTests: false,
+    skipLint: false,
+    skipBuild: false,
+    skipPublish: false,
+    versionBump: 'auto' as const,
+    createGitTag: true,
+    pushToRemote: true,
+    generateChangelog: true,
+    changelogFile: 'CHANGELOG.md',
+  })),
+  errorHandling: ErrorHandlingConfigSchema.default(() => ({
+    autoFix: false,
+    interactive: true,
+    exitOnError: true,
+    showSuggestions: true,
+    verboseErrors: false,
+  })),
+  cli: CliConfigSchema.default(() => ({
+    colorOutput: true,
+    progressBars: true,
+    confirmActions: true,
+    logLevel: 'info' as const,
+  })),
+  hooks: HooksConfigSchema.default(() => ({
+    preRelease: [],
+    postRelease: [],
+    preCommit: [],
+    postCommit: [],
+    onError: [],
+  })),
+  monorepo: MonorepoConfigSchema.default(() => ({
+    enabled: false,
+    workspacePatterns: ['packages/*', 'apps/*'],
+    ignorePatterns: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+    selectiveOperations: {
+      enabled: true,
+      since: 'HEAD~1',
+      parallel: true,
+      maxParallel: 4,
+      forceAll: false,
+    },
+    dependencyAnalysis: {
+      enabled: true,
+      includeDevDependencies: false,
+      includeExternal: false,
+      cacheResults: true,
+    },
+    buildOrder: {
+      respectDependencies: true,
+      allowCircular: false,
+      topologicalSort: true,
+    },
+    packageFilters: {
+      scope: [],
+      ignore: [],
+      includePrivate: false,
+      onlyChanged: false,
+    },
+  })),
+  ai: AIConfigSchema.default(() => ({
+    enabled: false,
+    provider: 'local' as const,
+    suggestBranchNames: true,
+    suggestCommitMessages: true,
+    generateReleaseNotes: true,
+    features: {
+      changelog: {
+        enabled: true,
+        includeBreakingChanges: true,
+        categorizeCommits: true,
+        generateSummary: true,
+      },
+      versionBump: {
+        enabled: true,
+        analyzeImpact: true,
+        suggestBumpType: true,
+        confidenceThreshold: 0.8,
+      },
+      impactAnalysis: {
+        enabled: true,
+        crossPackageAnalysis: true,
+        riskAssessment: true,
+        testingRecommendations: true,
+      },
+    },
+  })),
+  framework: FrameworkConfigSchema.default(() => ({
+    enabled: true,
+    autoDetect: true,
+    supportedFrameworks: [
+      'sveltekit',
+      'nextjs',
+      'nuxt',
+      'vite',
+      'create-react-app',
+      'angular',
+      'vue-cli',
+    ],
+    deployment: {
+      enabled: true,
+      autoOptimize: true,
+      platforms: ['vercel', 'netlify', 'cloudflare'],
+      healthChecks: true,
+      websocketMonitoring: false,
+    },
+  })),
   extends: z.string().optional(),
   plugins: z.array(z.string()).default([]),
   customCommands: z.record(z.string(), z.any()).default({}),
@@ -94,6 +374,9 @@ export type ReleaseConfig = z.infer<typeof ReleaseConfigSchema>
 export type ErrorHandlingConfig = z.infer<typeof ErrorHandlingConfigSchema>
 export type CliConfig = z.infer<typeof CliConfigSchema>
 export type HooksConfig = z.infer<typeof HooksConfigSchema>
+export type MonorepoConfig = z.infer<typeof MonorepoConfigSchema>
+export type AIConfig = z.infer<typeof AIConfigSchema>
+export type FrameworkConfig = z.infer<typeof FrameworkConfigSchema>
 
 /**
  * Default configuration
@@ -137,6 +420,82 @@ export const DEFAULT_CONFIG: WorkflowConfig = {
     preCommit: [],
     postCommit: [],
     onError: [],
+  },
+  monorepo: {
+    enabled: false,
+    workspacePatterns: ['packages/*', 'apps/*'],
+    ignorePatterns: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+    selectiveOperations: {
+      enabled: true,
+      since: 'HEAD~1',
+      parallel: true,
+      maxParallel: 4,
+      forceAll: false,
+    },
+    dependencyAnalysis: {
+      enabled: true,
+      includeDevDependencies: false,
+      includeExternal: false,
+      cacheResults: true,
+    },
+    buildOrder: {
+      respectDependencies: true,
+      allowCircular: false,
+      topologicalSort: true,
+    },
+    packageFilters: {
+      scope: [],
+      ignore: [],
+      includePrivate: false,
+      onlyChanged: false,
+    },
+  },
+  ai: {
+    enabled: false,
+    provider: 'local',
+    suggestBranchNames: true,
+    suggestCommitMessages: true,
+    generateReleaseNotes: true,
+    features: {
+      changelog: {
+        enabled: true,
+        includeBreakingChanges: true,
+        categorizeCommits: true,
+        generateSummary: true,
+      },
+      versionBump: {
+        enabled: true,
+        analyzeImpact: true,
+        suggestBumpType: true,
+        confidenceThreshold: 0.8,
+      },
+      impactAnalysis: {
+        enabled: true,
+        crossPackageAnalysis: true,
+        riskAssessment: true,
+        testingRecommendations: true,
+      },
+    },
+  },
+  framework: {
+    enabled: true,
+    autoDetect: true,
+    supportedFrameworks: [
+      'sveltekit',
+      'nextjs',
+      'nuxt',
+      'vite',
+      'create-react-app',
+      'angular',
+      'vue-cli',
+    ],
+    deployment: {
+      enabled: true,
+      autoOptimize: true,
+      platforms: ['vercel', 'netlify', 'cloudflare'],
+      healthChecks: true,
+      websocketMonitoring: false,
+    },
   },
   plugins: [],
   customCommands: {},
@@ -227,15 +586,17 @@ async function loadJavaScriptConfig(filePath: string): Promise<Partial<WorkflowC
     // Use dynamic import for ES modules and CommonJS
     const module = await import(filePath)
     let config = module.default || module
-    
+
     // If the config is a function, call it to get the actual config
     if (typeof config === 'function') {
       config = config()
     }
-    
+
     return config
   } catch (error) {
-    throw new Error(`Failed to load configuration from ${filePath}: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `Failed to load configuration from ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -248,8 +609,9 @@ function mergeConfigs(base: WorkflowConfig, override: Partial<WorkflowConfig>): 
   for (const [key, value] of Object.entries(override)) {
     if (value !== undefined) {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        const baseValue = result[key as keyof WorkflowConfig] as Record<string, any>
         result[key as keyof WorkflowConfig] = {
-          ...result[key as keyof WorkflowConfig],
+          ...baseValue,
           ...value,
         } as any
       } else {
@@ -368,6 +730,22 @@ export function mergeConfigWithFlags(
 ): WorkflowConfig {
   const overrides: Partial<WorkflowConfig> = {}
 
+  // Handle nested flag paths (e.g., 'errorHandling.interactive')
+  for (const [key, value] of Object.entries(flags)) {
+    if (key.includes('.')) {
+      const [section, property] = key.split('.')
+      if (section && property && value !== undefined) {
+        if (!overrides[section as keyof WorkflowConfig]) {
+          const configSection = config[section as keyof WorkflowConfig] as Record<string, any>
+          overrides[section as keyof WorkflowConfig] = {
+            ...configSection,
+          } as any
+        }
+        ;(overrides[section as keyof WorkflowConfig] as any)[property] = value
+      }
+    }
+  }
+
   // Map CLI flags to configuration options
   if (flags.autoFix !== undefined) {
     overrides.errorHandling = { ...config.errorHandling, autoFix: flags.autoFix }
@@ -401,6 +779,10 @@ export function mergeConfigWithFlags(
     overrides.cli = { ...config.cli, colorOutput: !flags.noColor }
   }
 
+  if (flags.color !== undefined) {
+    overrides.cli = { ...config.cli, colorOutput: flags.color }
+  }
+
   return mergeConfigs(config, overrides)
 }
 
@@ -420,5 +802,5 @@ export async function findConfigFile(searchFrom: string = process.cwd()): Promis
  * Checks if a configuration file exists
  */
 export function hasConfigFile(searchFrom: string = process.cwd()): boolean {
-  return CONFIG_FILE_NAMES.some(name => existsSync(join(searchFrom, name)))
+  return CONFIG_FILE_NAMES.some((name) => existsSync(join(searchFrom, name)))
 }

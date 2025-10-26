@@ -4,16 +4,19 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  WorkflowError,
   analyzeError,
+  createWorkflowError,
   displayStructuredError,
   handleError,
-  createWorkflowError,
-  withErrorHandling
+  WorkflowError,
+  withErrorHandling,
 } from '../core/error-handler.js'
 
 // Mock external dependencies
-vi.mock('enquirer')
+vi.mock('@clack/prompts', () => ({
+  select: vi.fn(),
+  isCancel: vi.fn(),
+}))
 vi.mock('chalk', () => ({
   default: {
     red: vi.fn((text) => `red:${text}`),
@@ -22,8 +25,8 @@ vi.mock('chalk', () => ({
     blue: vi.fn((text) => `blue:${text}`),
     gray: vi.fn((text) => `gray:${text}`),
     bold: vi.fn((text) => `bold:${text}`),
-    dim: vi.fn((text) => `dim:${text}`)
-  }
+    dim: vi.fn((text) => `dim:${text}`),
+  },
 }))
 
 describe('Error Handler', () => {
@@ -131,8 +134,10 @@ describe('Error Handler', () => {
 
       displayStructuredError(error)
 
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('red:'))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Test error'))
+      // Check that error details are displayed in structured format with ANSI codes
+      expect(console.log).toHaveBeenCalledWith('\x1b[31m\x1b[1mError:\x1b[0m', 'Test error')
+      expect(console.log).toHaveBeenCalledWith('\x1b[90mCode:\x1b[0m', '\x1b[33mTEST_ERROR\x1b[0m')
+      expect(console.log).toHaveBeenCalledWith('\x1b[90mCategory:\x1b[0m', '\x1b[34mgit\x1b[0m')
     })
 
     it('should display error without suggestions', () => {
@@ -140,7 +145,8 @@ describe('Error Handler', () => {
 
       displayStructuredError(error)
 
-      expect(console.log).toHaveBeenCalled()
+      expect(console.log).toHaveBeenCalledWith('\x1b[31m\x1b[1mError:\x1b[0m', 'Simple error')
+      expect(console.log).toHaveBeenCalledWith('\x1b[90mCategory:\x1b[0m', '\x1b[34munknown\x1b[0m')
     })
   })
 
@@ -154,8 +160,8 @@ describe('Error Handler', () => {
         interactive: false,
         context: 'test',
         autoFixFunctions: {
-          git: mockAutoFix
-        }
+          git: mockAutoFix,
+        },
       })
 
       expect(mockAutoFix).toHaveBeenCalled()
@@ -167,10 +173,10 @@ describe('Error Handler', () => {
       await handleError(error, {
         autoFix: false,
         interactive: false,
-        context: 'test'
+        context: 'test',
       })
 
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Test error'))
+      expect(console.log).toHaveBeenCalledWith('\x1b[31m\x1b[1mError:\x1b[0m', 'Test error')
     })
 
     it('should handle WorkflowError instances', async () => {
@@ -179,10 +185,10 @@ describe('Error Handler', () => {
       await handleError(error, {
         autoFix: false,
         interactive: false,
-        context: 'test'
+        context: 'test',
       })
 
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Workflow error'))
+      expect(console.log).toHaveBeenCalledWith('\x1b[31m\x1b[1mError:\x1b[0m', 'Workflow error')
     })
   })
 
@@ -209,38 +215,41 @@ describe('Error Handler', () => {
   describe('withErrorHandling', () => {
     it('should execute function successfully', async () => {
       const mockFn = vi.fn().mockResolvedValue('success')
-      const result = await withErrorHandling(mockFn, {
+      const wrappedFn = withErrorHandling(mockFn, {
         autoFix: false,
         interactive: false,
-        context: 'test'
+        context: 'test',
       })
 
+      const result = await wrappedFn()
       expect(result).toBe('success')
       expect(mockFn).toHaveBeenCalled()
     })
 
     it('should handle function errors', async () => {
       const mockFn = vi.fn().mockRejectedValue(new Error('Function error'))
-      
-      await expect(withErrorHandling(mockFn, {
+      const wrappedFn = withErrorHandling(mockFn, {
         autoFix: false,
         interactive: false,
-        context: 'test'
-      })).rejects.toThrow('Function error')
+        context: 'test',
+      })
 
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Function error'))
+      await expect(wrappedFn()).rejects.toThrow('Function error')
+      expect(mockFn).toHaveBeenCalled()
     })
 
     it('should handle synchronous function errors', async () => {
       const mockFn = vi.fn().mockImplementation(() => {
         throw new Error('Sync error')
       })
-      
-      await expect(withErrorHandling(mockFn, {
+      const wrappedFn = withErrorHandling(mockFn, {
         autoFix: false,
         interactive: false,
-        context: 'test'
-      })).rejects.toThrow('Sync error')
+        context: 'test',
+      })
+
+      await expect(wrappedFn()).rejects.toThrow('Sync error')
+      expect(mockFn).toHaveBeenCalled()
     })
   })
 })

@@ -1,22 +1,23 @@
 /**
  * Workflow Init Command - Guided Setup and Configuration
- * 
+ *
  * This module provides a guided setup process for initializing workflow
  * configuration and git repository setup as specified in WORKFLOW_IMPROVEMENTS_SPEC.md
  */
 
 import { existsSync } from 'node:fs'
 import process from 'node:process'
+import { confirm, intro, isCancel, log } from '@clack/prompts'
 import chalk from 'chalk'
 import { createDefaultConfigFile, hasConfigFile } from '../config/workflow-config.js'
-import { 
-  detectGitStatus, 
-  initializeGitRepo, 
-  createInitialCommit,
-  runPreFlightChecks,
-  displayPreFlightResults,
+import {
   autoFixAllIssues,
-  interactiveFixIssues
+  createInitialCommit,
+  detectGitStatus,
+  displayPreFlightResults,
+  initializeGitRepo,
+  interactiveFixIssues,
+  runPreFlightChecks,
 } from '../core/git-setup.js'
 
 /**
@@ -34,33 +35,39 @@ export interface InitOptions {
  * Runs the workflow initialization process
  */
 export async function runInitCommand(options: InitOptions = {}): Promise<void> {
-  const { 
-    force = false, 
-    autoFix = false, 
+  const {
+    force = false,
+    autoFix = false,
     interactive = true,
     skipGit = false,
-    skipConfig = false
+    skipConfig = false,
   } = options
 
-  console.log()
-  console.log(chalk.cyan.bold('╔══════════════════════════════════════════════════════════╗'))
-  console.log(chalk.cyan.bold('║                WORKFLOW INITIALIZATION                   ║'))
-  console.log(chalk.cyan.bold('╚══════════════════════════════════════════════════════════╝'))
-  console.log()
+  intro('🔧 Workflow Initialization')
 
   try {
     // Step 1: Check current status
-    console.log(chalk.blue('🔍 Analyzing current project setup...'))
+    log.info('Analyzing current project setup...')
     const gitStatus = await detectGitStatus()
     const hasConfig = hasConfigFile()
 
     console.log()
     console.log(chalk.gray('Current Status:'))
-    console.log(`  Git Repository: ${gitStatus.hasGitRepo ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`)
-    console.log(`  Git Commits: ${gitStatus.hasCommits ? chalk.green('✅ Found') : chalk.yellow('⚠️  None')}`)
-    console.log(`  Working Directory: ${gitStatus.hasUncommittedChanges ? chalk.yellow('⚠️  Uncommitted changes') : chalk.green('✅ Clean')}`)
-    console.log(`  Workflow Config: ${hasConfig ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`)
-    console.log(`  Package.json: ${existsSync('package.json') ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`)
+    console.log(
+      `  Git Repository: ${gitStatus.hasGitRepo ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+    )
+    console.log(
+      `  Git Commits: ${gitStatus.hasCommits ? chalk.green('✅ Found') : chalk.yellow('⚠️  None')}`
+    )
+    console.log(
+      `  Working Directory: ${gitStatus.hasUncommittedChanges ? chalk.yellow('⚠️  Uncommitted changes') : chalk.green('✅ Clean')}`
+    )
+    console.log(
+      `  Workflow Config: ${hasConfig ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+    )
+    console.log(
+      `  Package.json: ${existsSync('package.json') ? chalk.green('✅ Found') : chalk.red('❌ Not found')}`
+    )
     console.log()
 
     // Step 2: Git setup
@@ -78,7 +85,7 @@ export async function runInitCommand(options: InitOptions = {}): Promise<void> {
     const finalChecks = await runPreFlightChecks()
     displayPreFlightResults(finalChecks)
 
-    const failedChecks = finalChecks.filter(check => check.status === 'fail')
+    const failedChecks = finalChecks.filter((check) => check.status === 'fail')
     if (failedChecks.length === 0) {
       console.log()
       console.log(chalk.green.bold('🎉 Workflow initialization completed successfully!'))
@@ -94,7 +101,6 @@ export async function runInitCommand(options: InitOptions = {}): Promise<void> {
       console.log(chalk.gray('Use `workflow status` to see remaining issues.'))
       console.log()
     }
-
   } catch (error) {
     console.log()
     console.log(chalk.red('❌ Initialization failed:'))
@@ -120,13 +126,15 @@ async function setupGitRepository(
     if (autoFix) {
       await initializeGitRepo({ createGitignore: true })
     } else if (interactive) {
-      const { prompt } = await import('enquirer')
-      const { shouldInit } = await prompt<{ shouldInit: boolean }>({
-        type: 'confirm',
-        name: 'shouldInit',
+      const shouldInit = await confirm({
         message: 'Initialize git repository?',
-        initial: true,
+        initialValue: true,
       })
+
+      if (isCancel(shouldInit)) {
+        console.log(chalk.yellow('⚠️  Operation cancelled'))
+        process.exit(1)
+      }
 
       if (shouldInit) {
         await initializeGitRepo({ createGitignore: true })
@@ -144,23 +152,25 @@ async function setupGitRepository(
   const updatedGitStatus = await detectGitStatus()
   if (!updatedGitStatus.hasCommits) {
     if (autoFix) {
-      await createInitialCommit({ 
+      await createInitialCommit({
         commitMessage: 'Initial commit: Project setup with workflow',
-        includeAll: true 
+        includeAll: true,
       })
     } else if (interactive) {
-      const { prompt } = await import('enquirer')
-      const { shouldCommit } = await prompt<{ shouldCommit: boolean }>({
-        type: 'confirm',
-        name: 'shouldCommit',
+      const shouldCommit = await confirm({
         message: 'Create initial commit with current files?',
-        initial: true,
+        initialValue: true,
       })
 
+      if (isCancel(shouldCommit)) {
+        console.log(chalk.yellow('⚠️  Operation cancelled'))
+        process.exit(1)
+      }
+
       if (shouldCommit) {
-        await createInitialCommit({ 
+        await createInitialCommit({
           commitMessage: 'Initial commit: Project setup with workflow',
-          includeAll: true 
+          includeAll: true,
         })
       }
     }
@@ -170,22 +180,24 @@ async function setupGitRepository(
   if (updatedGitStatus.hasUncommittedChanges && !force) {
     if (autoFix) {
       const { stageAndCommitChanges } = await import('../core/git-setup.js')
-      await stageAndCommitChanges({ 
-        commitMessage: 'chore: commit changes during workflow setup' 
+      await stageAndCommitChanges({
+        commitMessage: 'chore: commit changes during workflow setup',
       })
     } else if (interactive) {
-      const { prompt } = await import('enquirer')
-      const { shouldCommit } = await prompt<{ shouldCommit: boolean }>({
-        type: 'confirm',
-        name: 'shouldCommit',
+      const shouldCommit = await confirm({
         message: 'Commit uncommitted changes?',
-        initial: true,
+        initialValue: true,
       })
+
+      if (isCancel(shouldCommit)) {
+        console.log(chalk.yellow('⚠️  Operation cancelled'))
+        process.exit(1)
+      }
 
       if (shouldCommit) {
         const { stageAndCommitChanges } = await import('../core/git-setup.js')
-        await stageAndCommitChanges({ 
-          commitMessage: 'chore: commit changes during workflow setup' 
+        await stageAndCommitChanges({
+          commitMessage: 'chore: commit changes during workflow setup',
         })
       }
     }
@@ -207,13 +219,15 @@ async function setupWorkflowConfig(
 
   if (hasExistingConfig && !force) {
     if (interactive) {
-      const { prompt } = await import('enquirer')
-      const { shouldOverwrite } = await prompt<{ shouldOverwrite: boolean }>({
-        type: 'confirm',
-        name: 'shouldOverwrite',
+      const shouldOverwrite = await confirm({
         message: 'Workflow configuration already exists. Overwrite?',
-        initial: false,
+        initialValue: false,
       })
+
+      if (isCancel(shouldOverwrite)) {
+        console.log(chalk.yellow('⚠️  Operation cancelled'))
+        process.exit(1)
+      }
 
       if (!shouldOverwrite) {
         console.log(chalk.yellow('⚠️  Keeping existing configuration'))
