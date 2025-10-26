@@ -6,407 +6,225 @@
  */
 
 import chalk from 'chalk'
-import { existsSync } from 'node:fs'
-import { execa } from 'execa'
-
-/**
- * Error severity levels
- */
-export type ErrorSeverity = 'error' | 'warning' | 'info'
-
-/**
- * Structured error information
- */
-export interface StructuredError {
-  code: string
-  title: string
-  message: string
-  severity: ErrorSeverity
-  suggestions: string[]
-  autoFixAvailable: boolean
-  autoFixAction?: () => Promise<void>
-  context?: Record<string, unknown>
-  originalError?: Error
-}
+import { enquirer } from 'enquirer'
 
 /**
  * Error categories for better organization
  */
-export enum ErrorCategory {
-  GIT = 'git',
-  NPM = 'npm',
-  BUILD = 'build',
-  NETWORK = 'network',
-  FILESYSTEM = 'filesystem',
-  CONFIGURATION = 'configuration',
-  AUTHENTICATION = 'authentication',
-  UNKNOWN = 'unknown',
-}
+export type ErrorCategory = 'git' | 'npm' | 'build' | 'network' | 'auth' | 'unknown'
 
 /**
  * Enhanced error class with structured information
  */
 export class WorkflowError extends Error {
-  public readonly code: string
-  public readonly severity: ErrorSeverity
-  public readonly suggestions: string[]
-  public readonly autoFixAvailable: boolean
-  public readonly autoFixAction?: () => Promise<void>
-  public readonly context?: Record<string, unknown>
   public readonly category: ErrorCategory
+  public readonly code?: string
+  public readonly suggestions: string[]
+  public readonly context: Record<string, unknown>
 
-  constructor(options: {
-    code: string
-    title: string
-    message: string
-    severity?: ErrorSeverity
-    suggestions?: string[]
-    autoFixAvailable?: boolean
-    autoFixAction?: () => Promise<void>
-    context?: Record<string, unknown>
-    category?: ErrorCategory
-    originalError?: Error
-  }) {
-    super(options.message)
+  constructor(
+    message: string,
+    category: ErrorCategory = 'unknown',
+    code?: string,
+    suggestions: string[] = [],
+    context: Record<string, unknown> = {}
+  ) {
+    super(message)
     this.name = 'WorkflowError'
-    this.code = options.code
-    this.severity = options.severity ?? 'error'
-    this.suggestions = options.suggestions ?? []
-    this.autoFixAvailable = options.autoFixAvailable ?? false
-    this.autoFixAction = options.autoFixAction
-    this.context = options.context
-    this.category = options.category ?? ErrorCategory.UNKNOWN
-
-    if (options.originalError) {
-      this.stack = options.originalError.stack
-      this.cause = options.originalError
-    }
+    this.category = category
+    this.code = code
+    this.suggestions = suggestions
+    this.context = context
   }
 }
 
 /**
- * Analyzes an error and returns structured error information
+ * Analyze error and categorize it with suggestions
  */
-export function analyzeError(error: Error | unknown): StructuredError {
-  if (error instanceof WorkflowError) {
-    return {
-      code: error.code,
-      title: error.name,
-      message: error.message,
-      severity: error.severity,
-      suggestions: error.suggestions,
-      autoFixAvailable: error.autoFixAvailable,
-      autoFixAction: error.autoFixAction,
-      context: error.context,
-      originalError: error.cause as Error,
-    }
-  }
-
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  const errorStack = error instanceof Error ? error.stack : undefined
-
+export function analyzeError(error: Error | string): WorkflowError {
+  const message = typeof error === 'string' ? error : error.message
+  
   // Git-related errors
-  if (errorMessage.includes('not a git repository')) {
-    return {
-      code: 'GIT_NOT_INITIALIZED',
-      title: 'Git Repository Not Found',
-      message: 'This directory is not a git repository',
-      severity: 'error',
-      suggestions: [
-        'Run `git init` to initialize a git repository',
-        'Navigate to a directory that contains a git repository',
-        'Use the --auto-fix flag to automatically initialize git',
-      ],
-      autoFixAvailable: true,
-      autoFixAction: async () => {
-        await execa('git', ['init'], { stdio: 'inherit' })
-      },
-      originalError: error instanceof Error ? error : undefined,
-    }
+  if (message.includes('not a git repository') || message.includes('fatal: not a git repository')) {
+    return new WorkflowError(message, 'git', 'GIT_NOT_REPOSITORY', [
+      'Initialize a Git repository with `git init`',
+      'Navigate to the correct project directory',
+      'Clone the repository if it exists remotely'
+    ])
   }
-
-  if (errorMessage.includes('nothing to commit')) {
-    return {
-      code: 'GIT_NOTHING_TO_COMMIT',
-      title: 'No Changes to Commit',
-      message: 'Working directory is clean, nothing to commit',
-      severity: 'warning',
-      suggestions: [
-        'Make some changes to your files',
-        'Check if you\'re in the correct directory',
-        'Use `git status` to see the current state',
-      ],
-      autoFixAvailable: false,
-      originalError: error instanceof Error ? error : undefined,
-    }
-  }
-
-  if (errorMessage.includes('uncommitted changes')) {
-    return {
-      code: 'GIT_UNCOMMITTED_CHANGES',
-      title: 'Uncommitted Changes Detected',
-      message: 'There are uncommitted changes in the working directory',
-      severity: 'warning',
-      suggestions: [
-        'Commit your changes with `git commit -am "Your message"`',
-        'Stash your changes with `git stash`',
-        'Use the --auto-fix flag to automatically commit changes',
-      ],
-      autoFixAvailable: true,
-      autoFixAction: async () => {
-        await execa('git', ['add', '.'], { stdio: 'inherit' })
-        await execa('git', ['commit', '-m', 'chore: commit changes before release'], { stdio: 'inherit' })
-      },
-      originalError: error instanceof Error ? error : undefined,
-    }
-  }
-
+  
   // NPM-related errors
-  if (errorMessage.includes('npm ERR!') || errorMessage.includes('ENOENT: no such file or directory, open \'package.json\'')) {
-    return {
-      code: 'NPM_PACKAGE_JSON_MISSING',
-      title: 'Package.json Not Found',
-      message: 'No package.json file found in the current directory',
-      severity: 'error',
-      suggestions: [
-        'Run `npm init` to create a package.json file',
-        'Navigate to a directory that contains a package.json file',
-        'Check if you\'re in the correct project directory',
-      ],
-      autoFixAvailable: true,
-      autoFixAction: async () => {
-        await execa('npm', ['init', '-y'], { stdio: 'inherit' })
-      },
-      originalError: error instanceof Error ? error : undefined,
-    }
+  if (message.includes('npm ERR!') || message.includes('ENOENT') && message.includes('package.json')) {
+    return new WorkflowError(message, 'npm', 'NPM_ERROR', [
+      'Run `npm install` to install dependencies',
+      'Check if package.json exists',
+      'Verify npm registry access'
+    ])
   }
-
-  if (errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
-    return {
-      code: 'NPM_PERMISSION_DENIED',
-      title: 'Permission Denied',
-      message: 'Insufficient permissions to perform npm operation',
-      severity: 'error',
-      suggestions: [
-        'Try running with sudo (not recommended for npm)',
-        'Fix npm permissions: https://docs.npmjs.com/resolving-eacces-permissions-errors',
-        'Use a Node version manager like nvm',
-        'Check your npm configuration',
-      ],
-      autoFixAvailable: false,
-      originalError: error instanceof Error ? error : undefined,
-    }
+  
+  // Build errors
+  if (message.includes('TypeScript error') || message.includes('Cannot find module')) {
+    return new WorkflowError(message, 'build', 'BUILD_ERROR', [
+      'Run `npm install` to install dependencies',
+      'Check TypeScript configuration',
+      'Verify import paths are correct'
+    ])
   }
-
-  // Network-related errors
-  if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
-    return {
-      code: 'NETWORK_ERROR',
-      title: 'Network Connection Error',
-      message: 'Unable to connect to remote services',
-      severity: 'error',
-      suggestions: [
-        'Check your internet connection',
-        'Verify proxy settings if behind a corporate firewall',
-        'Try again in a few minutes',
-        'Check if the remote service is available',
-      ],
-      autoFixAvailable: false,
-      originalError: error instanceof Error ? error : undefined,
-    }
+  
+  // Network errors
+  if (message.includes('ENOTFOUND') || message.includes('ECONNREFUSED')) {
+    return new WorkflowError(message, 'network', 'NETWORK_ERROR', [
+      'Check your internet connection',
+      'Verify the URL or hostname',
+      'Check firewall settings'
+    ])
   }
-
-  // Build-related errors
-  if (errorMessage.includes('build failed') || errorMessage.includes('compilation error')) {
-    return {
-      code: 'BUILD_FAILED',
-      title: 'Build Process Failed',
-      message: 'The build process encountered errors',
-      severity: 'error',
-      suggestions: [
-        'Check the build logs for specific error details',
-        'Ensure all dependencies are installed',
-        'Verify your TypeScript/JavaScript syntax',
-        'Run `npm run lint` to check for code issues',
-      ],
-      autoFixAvailable: false,
-      originalError: error instanceof Error ? error : undefined,
-    }
-  }
-
+  
   // Authentication errors
-  if (errorMessage.includes('authentication failed') || errorMessage.includes('401') || errorMessage.includes('403')) {
-    return {
-      code: 'AUTH_FAILED',
-      title: 'Authentication Failed',
-      message: 'Unable to authenticate with remote service',
-      severity: 'error',
-      suggestions: [
-        'Check your authentication credentials',
-        'Verify your access tokens are valid',
-        'Ensure you have the necessary permissions',
-        'Try logging in again',
-      ],
-      autoFixAvailable: false,
-      originalError: error instanceof Error ? error : undefined,
-    }
+  if (message.includes('Permission denied') || message.includes('publickey')) {
+    return new WorkflowError(message, 'auth', 'AUTH_ERROR', [
+      'Check your SSH key configuration',
+      'Verify authentication credentials',
+      'Ensure proper permissions are set'
+    ])
   }
-
-  // Generic error fallback
-  return {
-    code: 'UNKNOWN_ERROR',
-    title: 'Unknown Error',
-    message: errorMessage,
-    severity: 'error',
-    suggestions: [
-      'Check the error details above',
-      'Try running the command again',
-      'Ensure all prerequisites are met',
-      'Check the documentation for troubleshooting',
-    ],
-    autoFixAvailable: false,
-    originalError: error instanceof Error ? error : undefined,
-  }
+  
+  // Unknown errors
+  return new WorkflowError(message, 'unknown', 'UNKNOWN_ERROR', [
+    'Check the error message for specific details',
+    'Review the documentation',
+    'Contact support if the issue persists'
+  ])
 }
 
 /**
- * Displays a structured error with formatting and suggestions
+ * Display structured error with formatting
  */
-export function displayStructuredError(structuredError: StructuredError): void {
-  const severityIcon = structuredError.severity === 'error' ? '❌' : 
-                      structuredError.severity === 'warning' ? '⚠️' : 'ℹ️'
-  const severityColor = structuredError.severity === 'error' ? chalk.red : 
-                       structuredError.severity === 'warning' ? chalk.yellow : chalk.blue
-
+export function displayStructuredError(error: WorkflowError): void {
   console.log()
-  console.log(severityColor.bold('╔══════════════════════════════════════════════════════════╗'))
-  console.log(severityColor.bold(`║  ${severityIcon} ${structuredError.title.toUpperCase().padEnd(50)} ║`))
-  console.log(severityColor.bold('╚══════════════════════════════════════════════════════════╝'))
+  console.log(chalk.red.bold('❌ Workflow Error'))
+  console.log(chalk.red('─'.repeat(50)))
   console.log()
-
-  // Error code and message
-  console.log(chalk.gray(`Code: ${structuredError.code}`))
-  console.log(chalk.white(structuredError.message))
+  
+  console.log(chalk.red.bold('Error:'), error.message)
+  
+  if (error.code) {
+    console.log(chalk.gray('Code:'), chalk.yellow(error.code))
+  }
+  
+  console.log(chalk.gray('Category:'), chalk.blue(error.category))
+  
+  if (error.suggestions.length > 0) {
+    console.log()
+    console.log(chalk.yellow.bold('💡 Suggestions:'))
+    error.suggestions.forEach((suggestion, index) => {
+      console.log(chalk.yellow(`  ${index + 1}. ${suggestion}`))
+    })
+  }
+  
+  if (Object.keys(error.context).length > 0) {
+    console.log()
+    console.log(chalk.gray.bold('Context:'))
+    Object.entries(error.context).forEach(([key, value]) => {
+      console.log(chalk.gray(`  ${key}: ${value}`))
+    })
+  }
+  
   console.log()
-
-  // Context information
-  if (structuredError.context && Object.keys(structuredError.context).length > 0) {
-    console.log(chalk.cyan('Context:'))
-    for (const [key, value] of Object.entries(structuredError.context)) {
-      console.log(chalk.gray(`  ${key}: ${String(value)}`))
-    }
-    console.log()
-  }
-
-  // Suggestions
-  if (structuredError.suggestions.length > 0) {
-    console.log(chalk.cyan('💡 Suggestions:'))
-    for (const suggestion of structuredError.suggestions) {
-      console.log(chalk.gray(`  • ${suggestion}`))
-    }
-    console.log()
-  }
-
-  // Auto-fix availability
-  if (structuredError.autoFixAvailable) {
-    console.log(chalk.green('🔧 Auto-fix available! Use the --auto-fix flag to automatically resolve this issue.'))
-    console.log()
-  }
 }
 
 /**
- * Handles errors with enhanced display and recovery options
+ * Handle error with auto-fix and interactive options
  */
 export async function handleError(
   error: Error | unknown,
   options: {
     autoFix?: boolean
     interactive?: boolean
-    exitOnError?: boolean
+    context?: string
+    autoFixFunctions?: Record<string, () => Promise<{ success: boolean; error?: string }>>
   } = {}
 ): Promise<void> {
-  const { autoFix = false, interactive = false, exitOnError = true } = options
-  const structuredError = analyzeError(error)
-
-  displayStructuredError(structuredError)
-
-  // Auto-fix if available and requested
-  if (autoFix && structuredError.autoFixAvailable && structuredError.autoFixAction) {
+  const workflowError = error instanceof WorkflowError 
+    ? error 
+    : analyzeError(error as Error)
+  
+  displayStructuredError(workflowError)
+  
+  if (options.autoFix && options.autoFixFunctions?.[workflowError.category]) {
+    console.log(chalk.blue('🔧 Attempting auto-fix...'))
     try {
-      console.log(chalk.blue('🔧 Attempting auto-fix...'))
-      await structuredError.autoFixAction()
-      console.log(chalk.green('✅ Auto-fix completed successfully'))
-      return
-    } catch (fixError) {
-      console.log(chalk.red(`❌ Auto-fix failed: ${fixError instanceof Error ? fixError.message : String(fixError)}`))
-    }
-  }
-
-  // Interactive fix if available and requested
-  if (interactive && structuredError.autoFixAvailable && structuredError.autoFixAction) {
-    const { prompt } = await import('enquirer')
-    const { shouldFix } = await prompt<{ shouldFix: boolean }>({
-      type: 'confirm',
-      name: 'shouldFix',
-      message: 'Would you like to attempt an automatic fix?',
-      initial: true,
-    })
-
-    if (shouldFix) {
-      try {
-        console.log(chalk.blue('🔧 Attempting auto-fix...'))
-        await structuredError.autoFixAction()
-        console.log(chalk.green('✅ Auto-fix completed successfully'))
+      const result = await options.autoFixFunctions[workflowError.category]()
+      if (result.success) {
+        console.log(chalk.green('✅ Auto-fix successful'))
         return
-      } catch (fixError) {
-        console.log(chalk.red(`❌ Auto-fix failed: ${fixError instanceof Error ? fixError.message : String(fixError)}`))
+      } else {
+        console.log(chalk.red('❌ Auto-fix failed:', result.error))
       }
+    } catch (fixError) {
+      console.log(chalk.red('❌ Auto-fix error:', (fixError as Error).message))
     }
   }
-
-  // Exit if requested
-  if (exitOnError) {
-    process.exit(1)
+  
+  if (options.interactive && workflowError.suggestions.length > 0) {
+    try {
+      const { action } = await enquirer.prompt({
+        type: 'select',
+        name: 'action',
+        message: 'How would you like to proceed?',
+        choices: [
+          { name: 'continue', message: 'Continue anyway' },
+          { name: 'exit', message: 'Exit and fix manually' },
+          ...workflowError.suggestions.map((suggestion, index) => ({
+            name: `suggestion-${index}`,
+            message: suggestion
+          }))
+        ]
+      })
+      
+      if (action === 'exit') {
+        process.exit(1)
+      }
+    } catch {
+      // User cancelled or error in prompt
+      process.exit(1)
+    }
   }
 }
 
 /**
- * Creates a workflow error with predefined patterns
+ * Create a WorkflowError from a regular error
  */
 export function createWorkflowError(
-  category: ErrorCategory,
-  code: string,
-  message: string,
-  options: Partial<{
-    severity: ErrorSeverity
-    suggestions: string[]
-    autoFixAvailable: boolean
-    autoFixAction: () => Promise<void>
-    context: Record<string, unknown>
-    originalError: Error
-  }> = {}
+  error: Error | WorkflowError,
+  category?: ErrorCategory,
+  code?: string
 ): WorkflowError {
-  return new WorkflowError({
+  if (error instanceof WorkflowError) {
+    return error
+  }
+  
+  return new WorkflowError(
+    error.message,
+    category || 'unknown',
     code,
-    title: `${category.toUpperCase()} Error`,
-    message,
-    category,
-    ...options,
-  })
+    [],
+    { originalError: error }
+  )
 }
 
 /**
- * Wraps a function with error handling
+ * Wrap a function with error handling
  */
 export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   options: {
     autoFix?: boolean
     interactive?: boolean
-    exitOnError?: boolean
+    context?: string
   } = {}
 ): T {
-  return (async (...args: Parameters<T>) => {
+  return (async (...args: any[]) => {
     try {
       return await fn(...args)
     } catch (error) {
