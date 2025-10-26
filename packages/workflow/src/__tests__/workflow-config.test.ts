@@ -2,15 +2,13 @@
  * Test suite for workflow configuration system
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   loadWorkflowConfig,
-  mergeConfigs,
-  validateConfig,
-  createDefaultConfig,
   mergeConfigWithFlags,
+  validateConfig,
   type WorkflowConfig
 } from '../config/workflow-config.js'
 
@@ -34,7 +32,7 @@ describe('Workflow Configuration', () => {
         git: { autoInit: true },
         release: { skipTests: false }
       }
-      
+
       mockExistsSync.mockReturnValue(true)
       mockReadFileSync.mockReturnValue(`module.exports = ${JSON.stringify(mockConfig)}`)
 
@@ -280,14 +278,17 @@ describe('Workflow Configuration', () => {
 
     it('should handle function export format', async () => {
       mockExistsSync.mockReturnValue(true)
-      mockReadFileSync.mockReturnValue(`
-        module.exports = function() {
-          return { git: { autoInit: true } }
-        }
-      `)
+      mockJoin.mockReturnValue('/test/path/.workflow.config.js')
+
+      // Mock the dynamic import to return a function
+      vi.doMock('/test/path/.workflow.config.js', () => ({
+        default: () => ({ git: { autoInit: true } })
+      }))
 
       const loaded = await loadWorkflowConfig('/test/path')
       expect(loaded.git.autoInit).toBe(true)
+
+      vi.doUnmock('/test/path/.workflow.config.js')
     })
   })
 })

@@ -5,7 +5,6 @@
  * structured display, and recovery mechanisms as specified in WORKFLOW_IMPROVEMENTS_SPEC.md
  */
 
-import chalk from 'chalk'
 import enquirer from 'enquirer'
 
 /**
@@ -102,31 +101,31 @@ export function analyzeError(error: Error | string): WorkflowError {
  */
 export function displayStructuredError(error: WorkflowError): void {
   console.log()
-  console.log(chalk.red.bold('❌ Workflow Error'))
-  console.log(chalk.red('─'.repeat(50)))
+  console.log('\x1b[31m\x1b[1m❌ Workflow Error\x1b[0m')
+  console.log('\x1b[31m' + '─'.repeat(50) + '\x1b[0m')
   console.log()
   
-  console.log(chalk.red.bold('Error:'), error.message)
+  console.log('\x1b[31m\x1b[1mError:\x1b[0m', error.message)
   
   if (error.code) {
-    console.log(chalk.gray('Code:'), chalk.yellow(error.code))
+    console.log('\x1b[90mCode:\x1b[0m', '\x1b[33m' + error.code + '\x1b[0m')
   }
   
-  console.log(chalk.gray('Category:'), chalk.blue(error.category))
+  console.log('\x1b[90mCategory:\x1b[0m', '\x1b[34m' + error.category + '\x1b[0m')
   
   if (error.suggestions.length > 0) {
     console.log()
-    console.log(chalk.yellow.bold('💡 Suggestions:'))
+    console.log('\x1b[33m\x1b[1m💡 Suggestions:\x1b[0m')
     error.suggestions.forEach((suggestion, index) => {
-      console.log(chalk.yellow(`  ${index + 1}. ${suggestion}`))
+      console.log('\x1b[33m' + `  ${index + 1}. ${suggestion}` + '\x1b[0m')
     })
   }
   
   if (Object.keys(error.context).length > 0) {
     console.log()
-    console.log(chalk.gray.bold('Context:'))
+    console.log('\x1b[90m\x1b[1mContext:\x1b[0m')
     Object.entries(error.context).forEach(([key, value]) => {
-      console.log(chalk.gray(`  ${key}: ${value}`))
+      console.log('\x1b[90m' + `  ${key}: ${value}` + '\x1b[0m')
     })
   }
   
@@ -152,17 +151,17 @@ export async function handleError(
   displayStructuredError(workflowError)
   
   if (options.autoFix && options.autoFixFunctions?.[workflowError.category]) {
-    console.log(chalk.blue('🔧 Attempting auto-fix...'))
+    console.log('\x1b[34m🔧 Attempting auto-fix...\x1b[0m')
     try {
       const result = await options.autoFixFunctions[workflowError.category]()
       if (result.success) {
-        console.log(chalk.green('✅ Auto-fix successful'))
+        console.log('\x1b[32m✅ Auto-fix successful\x1b[0m')
         return
       } else {
-        console.log(chalk.red('❌ Auto-fix failed:', result.error))
+        console.log('\x1b[31m❌ Auto-fix failed:\x1b[0m', result.error)
       }
     } catch (fixError) {
-      console.log(chalk.red('❌ Auto-fix error:', (fixError as Error).message))
+      console.log('\x1b[31m❌ Auto-fix error:\x1b[0m', (fixError as Error).message)
     }
   }
   

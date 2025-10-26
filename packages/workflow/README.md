@@ -168,6 +168,24 @@ workflow feature "add-user-auth"    # Create specific feature
 workflow feature --auto-merge       # Enable auto-merge on PR
 ```
 
+### `workflow init`
+
+Initialize a new project with Git setup and workflow configuration:
+
+```bash
+workflow init                       # Interactive setup
+workflow init --skip-git          # Skip Git initialization
+workflow init --skip-config       # Skip configuration setup
+workflow init --force             # Overwrite existing configuration
+```
+
+**Features:**
+- **Git Repository Setup**: Initializes Git repository with proper configuration
+- **Workflow Configuration**: Creates `.go-workflow.config.js` with project defaults
+- **Pre-flight Checks**: Validates environment and dependencies
+- **Auto-fix Capabilities**: Automatically resolves common setup issues
+- **Interactive Prompts**: Guides through configuration options
+
 ### `workflow status`
 
 Show project and workflow status.
@@ -205,7 +223,7 @@ const customWorkflow = createWorkflow('deploy')
   .build()
 ```
 
-## ⚙️ Configuration *(Coming Soon)*
+## ⚙️ Configuration
 
 Create `.go-workflow.config.js` in your project root:
 
@@ -218,6 +236,7 @@ export default {
 
   git: {
     defaultBranch: 'main',
+    autoInit: true,
     branchNaming: {
       feature: 'feature/{name}',
       bugfix: 'bugfix/{name}',
@@ -242,9 +261,64 @@ export default {
       autoMerge: true,
       deleteBranch: true
     }
+  },
+
+  errorHandling: {
+    autoFix: true,
+    interactive: true,
+    retryAttempts: 3
+  },
+
+  cli: {
+    showProgress: true,
+    colorOutput: true,
+    verboseLogging: false
+  },
+
+  hooks: {
+    beforeRelease: [],
+    afterRelease: [],
+    onError: []
   }
 }
 ```
+
+### Configuration Options
+
+**Project Settings**
+- `project.type`: Project type for optimized workflows
+- `project.packageManager`: Preferred package manager
+
+**Git Configuration**
+- `git.defaultBranch`: Default branch name (default: 'main')
+- `git.autoInit`: Auto-initialize Git repository (default: true)
+- `git.branchNaming`: Branch naming conventions
+
+**Error Handling**
+- `errorHandling.autoFix`: Enable automatic error fixes (default: true)
+- `errorHandling.interactive`: Show interactive error recovery options (default: true)
+- `errorHandling.retryAttempts`: Number of retry attempts for failed operations (default: 3)
+
+**CLI Options**
+- `cli.showProgress`: Show progress indicators (default: true)
+- `cli.colorOutput`: Enable colored output (default: true)
+- `cli.verboseLogging`: Enable verbose logging (default: false)
+
+**Hooks System**
+- `hooks.beforeRelease`: Commands to run before release
+- `hooks.afterRelease`: Commands to run after release
+- `hooks.onError`: Commands to run on error
+
+### Configuration Loading
+
+The workflow system supports multiple configuration formats:
+
+1. **JavaScript**: `.go-workflow.config.js` (ES modules)
+2. **TypeScript**: `.go-workflow.config.ts` (with ts-node)
+3. **JSON**: `.go-workflow.config.json`
+4. **Package.json**: `"workflow"` field in package.json
+
+Configuration files are loaded in order of preference, with later files overriding earlier ones.
 
 ## 🔧 Requirements
 
@@ -264,6 +338,14 @@ Enforces code quality before any release with intelligent error recovery:
 - **TypeScript Checking**: Comprehensive type validation with graceful fallbacks
 - **Test Execution**: Smart test running with coverage reporting
 - **Build Verification**: Automated build validation and error recovery
+
+### **🛡️ Enhanced Error Handling & Recovery**
+Comprehensive error handling system with intelligent recovery:
+- **Structured Error Display**: Professional error formatting with categories and suggestions
+- **Auto-Fix Capabilities**: Automatically detects and fixes common issues (linting, dependencies, build errors)
+- **Interactive Recovery**: User-friendly prompts for error resolution
+- **Error Categorization**: Git, NPM, build, network, auth, and unknown error types
+- **Context Preservation**: Detailed error context for debugging and support
 
 ### **📊 Smart Version Management**
 - **Semantic Versioning**: Git analysis with conventional commits parsing
@@ -321,12 +403,14 @@ This is an enterprise-grade TypeScript workflow automation tool with a modular a
 - Crash-proof execution with error resilience
 
 **Error Handling Strategy**
-- **Interactive Error Recovery**: Uncommitted changes and deployment failures handled gracefully
-- **Non-Fatal Deployments**: npm publish failures don't stop the workflow
-- **Clear Error Messages**: Specific guidance for authentication, permission, and OTP errors
+- **Structured Error System**: Professional error categorization (Git, NPM, build, network, auth, unknown)
+- **Interactive Error Recovery**: User-friendly prompts with actionable suggestions
+- **Auto-Fix Capabilities**: Automated detection and fixing of common issues
+- **Context Preservation**: Detailed error context for debugging and support
+- **Graceful Degradation**: Non-fatal deployment failures with clear guidance
 - **Crash Prevention**: All interactive prompts moved upfront to prevent mid-workflow freezing
-- **Custom Error Types**: WorkflowError, GitError, ConfigError, DeploymentError
-- **Comprehensive Context**: Error context preserved throughout the workflow
+- **Custom Error Types**: WorkflowError with category, code, suggestions, and context
+- **Comprehensive Recovery**: Uncommitted changes and deployment failures handled gracefully
 
 ## 🤝 Contributing
 
@@ -341,6 +425,7 @@ MIT © [G1](https://github.com/g-1-repo)
 - 📖 [Documentation](https://github.com/g-1-repo/workflow/wiki)
 - 🐛 [Issue Tracker](https://github.com/g-1-repo/workflow/issues)
 - 💬 [Discussions](https://github.com/g-1-repo/workflow/discussions)
+- 🔧 [Troubleshooting Guide](TROUBLESHOOTING.md)
 
 ---
 
