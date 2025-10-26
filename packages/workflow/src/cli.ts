@@ -64,7 +64,7 @@ program
 program
   .command('release')
   .description(
-    'Execute complete release workflow: quality gates → git → cloudflare → GitHub release'
+    `${G1_ICONS.rocket} Execute complete release workflow: quality gates → git → cloudflare → GitHub release`
   )
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
