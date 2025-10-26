@@ -23,7 +23,7 @@
     "workflow:release": "bunx workflow release",
     "workflow:feature": "bunx workflow feature",
     "workflow:test": "bunx workflow test-error-recovery",
-    "release": "changeset publish",
+    "release": "bunx workflow release",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:status": "changeset status"
