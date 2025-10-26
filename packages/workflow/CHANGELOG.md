@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.5.14] - 2025-10-26
+
+### Other Changes
+
+- chore: update util package version to 3.5.13 for monorepo sync
+- chore: stage changes for release
+- chore: stage changes for release
+
+
 ## [3.5.13] - 2025-10-26
 
 ### Other Changes
