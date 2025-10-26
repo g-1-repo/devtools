@@ -164,22 +164,22 @@ program
         // We need to calculate the version first to show the approval prompt
         const { analyzeGitContext } = await import('./utils/git-context.js')
         const gitContext = await analyzeGitContext()
-        
+
         // Get git operations to access version and commits
         const { createContextAwareGitOperations } = await import('./utils/git-context.js')
         const git = await createContextAwareGitOperations()
-        
+
         const currentVersion = await git.getCurrentVersion()
         const commits = await git.getCommitsSinceTag()
-        
+
         if (currentVersion) {
           // Import version calculation logic
           const { loadWorkflowConfig } = await import('./config/workflow-config.js')
           const { AIService } = await import('./core/ai-service.js')
           const semver = await import('semver')
-          
+
           let versionBump: 'major' | 'minor' | 'patch' = 'patch'
-          
+
           // Use the same version calculation logic as in the workflow
           const config = await loadWorkflowConfig()
           if (config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
@@ -229,9 +229,12 @@ program
 
           // Show version approval prompt OUTSIDE of Listr2
           const { select, isCancel, note } = await import('@clack/prompts')
-          
-          note(`Calculated version: ${currentVersion} → ${nextVersion} (${versionBump})`, '📋 Version Approval')
-          
+
+          note(
+            `Calculated version: ${currentVersion} → ${nextVersion} (${versionBump})`,
+            '📋 Version Approval'
+          )
+
           const approval = await select({
             message: `Approve version ${nextVersion}?`,
             options: [
@@ -264,7 +267,7 @@ program
             // User confirmed the calculated version
             options.type = versionBump
           }
-          
+
           console.log() // Add spacing before workflow starts
         }
       }
