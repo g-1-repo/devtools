@@ -237,10 +237,12 @@ export class AIService {
       return 'chore: update configuration'
     } else if (hasSource) {
       // Try to infer the type of change based on file patterns
-      const hasComponents = stagedFiles.some((f) => f.includes('component') || f.includes('Component'))
+      const hasComponents = stagedFiles.some(
+        (f) => f.includes('component') || f.includes('Component')
+      )
       const hasUtils = stagedFiles.some((f) => f.includes('util') || f.includes('helper'))
       const hasTypes = stagedFiles.some((f) => f.includes('type') || f.includes('.d.ts'))
-      
+
       if (hasComponents) {
         return 'feat: update components'
       } else if (hasUtils) {

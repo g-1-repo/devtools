@@ -20,11 +20,13 @@ export interface GitStatus {
   hasGitRepo: boolean
   hasCommits: boolean
   hasUncommittedChanges: boolean
+  hasUntrackedFiles: boolean
   currentBranch: string | null
   gitRoot?: string
   hasNestedGitRepo?: boolean
   parentGitRoot?: string
   isInMonorepo?: boolean
+  untrackedFiles?: string[]
 }
 
 /**
@@ -67,6 +69,7 @@ export async function detectGitStatus(workingDir: string = process.cwd()): Promi
         hasGitRepo: false,
         hasCommits: false,
         hasUncommittedChanges: false,
+        hasUntrackedFiles: false,
         currentBranch: null,
         hasNestedGitRepo: false,
         parentGitRoot: parentGitInfo.parentGitRoot,
@@ -98,6 +101,24 @@ export async function detectGitStatus(workingDir: string = process.cwd()): Promi
     // Check for uncommitted changes
     const hasUncommittedChanges = await git.hasUncommittedChanges()
 
+    // Check for untracked files
+    let hasUntrackedFiles = false
+    let untrackedFiles: string[] = []
+    try {
+      const statusResult = await execa('git', ['status', '--porcelain'], {
+        cwd: workingDir,
+        stdio: 'pipe',
+      })
+      const statusLines = statusResult.stdout.split('\n').filter(line => line.trim())
+      untrackedFiles = statusLines
+        .filter(line => line.startsWith('??'))
+        .map(line => line.substring(3).trim())
+      hasUntrackedFiles = untrackedFiles.length > 0
+    } catch {
+      hasUntrackedFiles = false
+      untrackedFiles = []
+    }
+
     // Get git root
     let gitRoot: string | undefined
     try {
@@ -118,11 +139,13 @@ export async function detectGitStatus(workingDir: string = process.cwd()): Promi
       hasGitRepo,
       hasCommits,
       hasUncommittedChanges,
+      hasUntrackedFiles,
       currentBranch,
       gitRoot,
       hasNestedGitRepo,
       parentGitRoot: parentGitInfo.parentGitRoot,
       isInMonorepo: parentGitInfo.isInMonorepo,
+      untrackedFiles,
     }
   } catch (error) {
     throw new Error(
@@ -301,8 +324,19 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
       // Get list of changed files for AI analysis
       const changedFiles = statusResult.stdout
         .split('\n')
-        .filter(line => line.trim())
-        .map(line => line.substring(3).trim()) // Remove git status prefix
+        .filter((line) => line.trim())
+        .map((line) => line.substring(3).trim()) // Remove git status prefix
+
+      // Separate untracked files for better messaging
+      const untrackedFiles = statusResult.stdout
+        .split('\n')
+        .filter((line) => line.startsWith('??'))
+        .map((line) => line.substring(3).trim())
+
+      if (untrackedFiles.length > 0) {
+        console.log(chalk.yellow(`Found ${untrackedFiles.length} untracked file(s):`))
+        untrackedFiles.forEach(file => console.log(chalk.gray(`  ${file}`)))
+      }
 
       let finalCommitMessage = commitMessage
 
@@ -326,7 +360,16 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
         }
       }
 
-      await execa('git', ['add', '.'], { stdio: 'inherit' })
+      // Use git add -A to include untracked files
+      await execa('git', ['add', '-A'], { stdio: 'inherit' })
+
+      // Verify we have staged changes before committing
+      const stagedResult = await execa('git', ['diff', '--cached', '--name-only'], { stdio: 'pipe' })
+      if (!stagedResult.stdout.trim()) {
+        console.log(chalk.yellow('No staged changes to commit after git add'))
+        return
+      }
+
       await execa('git', ['commit', '-m', finalCommitMessage!], { stdio: 'inherit' })
       console.log(chalk.green('Changes staged and committed'))
     } else {
@@ -385,11 +428,15 @@ export async function runPreFlightChecks(
   }
 
   // Working Directory Check
-  if (gitStatus.hasUncommittedChanges) {
+  if (gitStatus.hasUncommittedChanges || gitStatus.hasUntrackedFiles) {
+    const issues = []
+    if (gitStatus.hasUncommittedChanges) issues.push('uncommitted changes')
+    if (gitStatus.hasUntrackedFiles) issues.push(`untracked files (${gitStatus.untrackedFiles?.length || 0})`)
+
     checks.push({
       name: 'Working Directory',
       status: 'warning',
-      message: 'Uncommitted changes detected',
+      message: `${issues.join(' and ')} detected`,
       autoFixAvailable: true,
       autoFixAction: async () => await stageAndCommitChanges(),
     })
