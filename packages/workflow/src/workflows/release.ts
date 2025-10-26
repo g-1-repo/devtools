@@ -195,7 +195,8 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
   }
 
   // Handle uncommitted changes upfront (before workflow starts) - skip in dry-run mode
-  if (!options.force && !options.dryRun) {
+  // Skip this check if version approval was already handled (indicated by options.type being set)
+  if (!options.force && !options.dryRun && !options.type) {
     const git = createGitOperations()
     const hasChanges = await git.hasUncommittedChanges()
 
