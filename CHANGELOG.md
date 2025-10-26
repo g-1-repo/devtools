@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.7] - 2025-10-26
+
+### Other Changes
+
+- swd
+
+
 ## [4.0.6] - 2025-10-26
 
 ### Other Changes
