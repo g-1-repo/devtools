@@ -214,7 +214,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
       createStyledBox(
         'Changed Files',
-        changedFiles.map(file => `  ${file}`),
+        changedFiles.map((file) => `  ${file}`),
         'warning'
       )
 
@@ -225,17 +225,17 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             {
               value: 'commit',
               label: `${chalk.green('●')} Commit all changes now`,
-              hint: 'Stage and commit all uncommitted changes'
+              hint: 'Stage and commit all uncommitted changes',
             },
             {
               value: 'stash',
               label: `${chalk.blue('●')} Stash changes for later`,
-              hint: 'Save changes to stash and continue'
+              hint: 'Save changes to stash and continue',
             },
             {
               value: 'force',
               label: `${chalk.yellow('●')} Continue anyway (--force)`,
-              hint: 'Proceed with uncommitted changes (not recommended)'
+              hint: 'Proceed with uncommitted changes (not recommended)',
             },
           ],
         })
@@ -263,7 +263,8 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               if (value.trim().length < 10) {
                 return 'Commit message should be at least 10 characters'
               }
-            }
+              return undefined // Valid input
+            },
           })
 
           if (isCancel(message)) {
