@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.6.0] - 2025-10-26
+
+- ✨ feat: update utilities
+- ✨ feat: enhance AI commit message generation for better changelog entries
+
 ## [3.5.16] - 2025-10-26
 
 ### Other Changes
