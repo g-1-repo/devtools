@@ -15,6 +15,10 @@ import {
   hasNpmPublishingWorkflow,
   watchGitHubActions,
 } from './workflows/release.js'
+import { loadWorkflowConfig, mergeConfigWithFlags } from './config/workflow-config.js'
+import { runPreFlightChecks, displayPreFlightResults, autoFixAllIssues, interactiveFixIssues } from './core/git-setup.js'
+import { handleError } from './core/error-handler.js'
+import { runInitCommand, showInitHelp } from './cli/init.js'
 
 // Load version from package.json
 function getVersion(): string {
@@ -35,6 +39,15 @@ program
   .description('🚀 Enterprise release automation and workflow orchestration')
   .version(version)
 
+// Global options
+program
+  .option('--config <path>', 'Path to configuration file')
+  .option('--auto-fix', 'Automatically fix common issues')
+  .option('--no-interactive', 'Disable interactive prompts')
+  .option('--log-level <level>', 'Set log level (silent, error, warn, info, debug)', 'info')
+  .option('--no-color', 'Disable colored output')
+  .option('--verbose', 'Show detailed output')
+
 // Release command
 program
   .command('release')
@@ -44,6 +57,8 @@ program
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
   .option('--skip-lint', 'Skip linting')
+  .option('--skip-build', 'Skip build step')
+  .option('--skip-publish', 'Skip publishing to npm')
   .option('--skip-cloudflare', 'Skip Cloudflare deployment')
   .option('--skip-npm', 'Skip npm publishing for all packages')
   .option(
@@ -57,6 +72,31 @@ program
   .option('--force', 'Skip uncommitted changes check (use with caution)')
   .action(async (options: ReleaseOptions) => {
     try {
+      // Load configuration
+      const globalOptions = program.opts()
+      const config = await loadWorkflowConfig(process.cwd(), globalOptions.config)
+      const mergedConfig = mergeConfigWithFlags(config, { ...globalOptions, ...options })
+
+      // Run pre-flight checks if not disabled
+      if (!options.force && !globalOptions.noInteractive) {
+        console.log(chalk.blue('🔍 Running pre-flight checks...'))
+        const checks = await runPreFlightChecks()
+        displayPreFlightResults(checks)
+
+        const failedChecks = checks.filter(check => check.status === 'fail' || check.status === 'warning')
+        
+        if (failedChecks.length > 0) {
+          if (globalOptions.autoFix || mergedConfig.errorHandling.autoFix) {
+            await autoFixAllIssues(checks)
+          } else if (!globalOptions.noInteractive && mergedConfig.errorHandling.interactive) {
+            await interactiveFixIssues(checks)
+          } else {
+            console.log(chalk.red('❌ Pre-flight checks failed. Use --auto-fix to automatically resolve issues.'))
+            process.exit(1)
+          }
+        }
+      }
+
       // Handle interactive package selection for --skip-npm-packages
       if (options.skipNpmPackages === true && !options.nonInteractive) {
         // Interactive mode - prompt user to select packages
@@ -244,6 +284,28 @@ program
         }
       }
 
+      process.exit(1)
+    }
+  })
+
+// Initialize workflow command
+program
+  .command('init')
+  .description('🔧 Initialize workflow configuration and Git repository')
+  .option('--force', 'Force initialization even if files exist')
+  .option('--auto-fix', 'Automatically fix issues without prompting')
+  .option('--skip-git', 'Skip Git repository initialization')
+  .option('--skip-config', 'Skip workflow configuration setup')
+  .option('--non-interactive', 'Run in non-interactive mode')
+  .action(async (options) => {
+    try {
+      await runInitCommand(options)
+    } catch (error) {
+      await handleError(error as Error, {
+        autoFix: options.autoFix,
+        interactive: !options.nonInteractive,
+        context: 'init'
+      })
       process.exit(1)
     }
   })
