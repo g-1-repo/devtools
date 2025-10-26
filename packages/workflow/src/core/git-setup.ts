@@ -5,13 +5,13 @@
  * functionality as specified in WORKFLOW_IMPROVEMENTS_SPEC.md
  */
 
+import { existsSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import process from 'node:process'
 import { confirm, intro, log } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
-import { existsSync, writeFileSync } from 'node:fs'
-import path from 'node:path'
-import process from 'node:process'
 
 /**
  * Git repository status information
@@ -109,10 +109,10 @@ export async function detectGitStatus(workingDir: string = process.cwd()): Promi
         cwd: workingDir,
         stdio: 'pipe',
       })
-      const statusLines = statusResult.stdout.split('\n').filter(line => line.trim())
+      const statusLines = statusResult.stdout.split('\n').filter((line) => line.trim())
       untrackedFiles = statusLines
-        .filter(line => line.startsWith('??'))
-        .map(line => line.substring(3).trim())
+        .filter((line) => line.startsWith('??'))
+        .map((line) => line.substring(3).trim())
       hasUntrackedFiles = untrackedFiles.length > 0
     } catch {
       hasUntrackedFiles = false
@@ -335,7 +335,7 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
 
       if (untrackedFiles.length > 0) {
         console.log(chalk.yellow(`Found ${untrackedFiles.length} untracked file(s):`))
-        untrackedFiles.forEach(file => console.log(chalk.gray(`  ${file}`)))
+        untrackedFiles.forEach((file) => console.log(chalk.gray(`  ${file}`)))
       }
 
       let finalCommitMessage = commitMessage
@@ -364,7 +364,9 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
       await execa('git', ['add', '-A'], { stdio: 'inherit' })
 
       // Verify we have staged changes before committing
-      const stagedResult = await execa('git', ['diff', '--cached', '--name-only'], { stdio: 'pipe' })
+      const stagedResult = await execa('git', ['diff', '--cached', '--name-only'], {
+        stdio: 'pipe',
+      })
       if (!stagedResult.stdout.trim()) {
         console.log(chalk.yellow('No staged changes to commit after git add'))
         return
@@ -431,7 +433,8 @@ export async function runPreFlightChecks(
   if (gitStatus.hasUncommittedChanges || gitStatus.hasUntrackedFiles) {
     const issues = []
     if (gitStatus.hasUncommittedChanges) issues.push('uncommitted changes')
-    if (gitStatus.hasUntrackedFiles) issues.push(`untracked files (${gitStatus.untrackedFiles?.length || 0})`)
+    if (gitStatus.hasUntrackedFiles)
+      issues.push(`untracked files (${gitStatus.untrackedFiles?.length || 0})`)
 
     checks.push({
       name: 'Working Directory',
