@@ -5,13 +5,13 @@
  * functionality as specified in WORKFLOW_IMPROVEMENTS_SPEC.md
  */
 
-import { existsSync, writeFileSync } from 'node:fs'
-import path from 'node:path'
-import process from 'node:process'
 import { confirm, intro, log } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
+import { existsSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import process from 'node:process'
 
 /**
  * Git repository status information
@@ -286,7 +286,7 @@ export async function createInitialCommit(options: GitSetupOptions = {}): Promis
  * Stages and commits uncommitted changes
  */
 export async function stageAndCommitChanges(options: GitSetupOptions = {}): Promise<void> {
-  const { commitMessage = 'chore: stage changes for release' } = options
+  const { commitMessage } = options
 
   console.log(chalk.blue('Staging uncommitted changes...'))
 
@@ -298,8 +298,36 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
       console.log(chalk.gray('Files to be committed:'))
       console.log(statusResult.stdout)
 
+      // Get list of changed files for AI analysis
+      const changedFiles = statusResult.stdout
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.substring(3).trim()) // Remove git status prefix
+
+      let finalCommitMessage = commitMessage
+
+      // Try to use AI to suggest a better commit message if not provided
+      if (!commitMessage) {
+        try {
+          const { loadWorkflowConfig } = await import('../config/workflow-config.js')
+          const { AIService } = await import('./ai-service.js')
+
+          const config = await loadWorkflowConfig()
+          if (config.ai?.enabled && config.ai?.suggestCommitMessages) {
+            const aiService = new AIService(config.ai)
+            finalCommitMessage = await aiService.suggestCommitMessage(changedFiles)
+            console.log(chalk.cyan(`AI suggested commit message: ${finalCommitMessage}`))
+          } else {
+            finalCommitMessage = 'chore: stage changes for release'
+          }
+        } catch (error) {
+          console.log(chalk.yellow('Failed to get AI commit suggestion, using fallback'))
+          finalCommitMessage = 'chore: stage changes for release'
+        }
+      }
+
       await execa('git', ['add', '.'], { stdio: 'inherit' })
-      await execa('git', ['commit', '-m', commitMessage], { stdio: 'inherit' })
+      await execa('git', ['commit', '-m', finalCommitMessage!], { stdio: 'inherit' })
       console.log(chalk.green('Changes staged and committed'))
     } else {
       console.log(chalk.yellow('No changes to commit'))

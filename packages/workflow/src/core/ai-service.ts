@@ -217,17 +217,39 @@ export class AIService {
     const hasDocs = stagedFiles.some((f) => f.includes('.md') || f.includes('README'))
     const hasConfig = stagedFiles.some((f) => f.includes('config') || f.includes('.json'))
     const hasSource = stagedFiles.some(
-      (f) => f.includes('.ts') || f.includes('.js') || f.includes('.tsx')
+      (f) => f.includes('.ts') || f.includes('.js') || f.includes('.tsx') || f.includes('.jsx')
     )
+    const hasPackageJson = stagedFiles.some((f) => f.includes('package.json'))
+    const hasChangelog = stagedFiles.some((f) => f.includes('CHANGELOG.md'))
 
-    if (hasTests && !hasSource) {
+    // More specific analysis for release-related changes
+    if (hasPackageJson && hasChangelog) {
+      return 'chore: prepare release with version and changelog updates'
+    } else if (hasPackageJson) {
+      return 'chore: update package version'
+    } else if (hasChangelog) {
+      return 'docs: update changelog'
+    } else if (hasTests && !hasSource) {
       return 'test: add/update test cases'
     } else if (hasDocs && !hasSource) {
       return 'docs: update documentation'
     } else if (hasConfig && !hasSource) {
       return 'chore: update configuration'
     } else if (hasSource) {
-      return 'feat: implement new functionality'
+      // Try to infer the type of change based on file patterns
+      const hasComponents = stagedFiles.some((f) => f.includes('component') || f.includes('Component'))
+      const hasUtils = stagedFiles.some((f) => f.includes('util') || f.includes('helper'))
+      const hasTypes = stagedFiles.some((f) => f.includes('type') || f.includes('.d.ts'))
+      
+      if (hasComponents) {
+        return 'feat: update components'
+      } else if (hasUtils) {
+        return 'feat: update utilities'
+      } else if (hasTypes) {
+        return 'feat: update type definitions'
+      } else {
+        return 'feat: implement new functionality'
+      }
     }
 
     return 'chore: update files'
