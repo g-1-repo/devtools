@@ -1,6 +1,6 @@
 {
   "name": "@g-1/test",
-  "version": "2.0.5",
+  "version": "3.5.14",
   "description": "G1 Test Suite. The unified, high-rigor test framework and suite for all G1 services. Guarantees code integrity and compliance across all products.",
   "type": "module",
   "main": "./dist/index.js",

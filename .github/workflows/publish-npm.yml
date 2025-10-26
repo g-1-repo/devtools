@@ -35,14 +35,38 @@ jobs:
       - name: Run tests
         run: npm test
         
-      - name: Publish workflow package
+      - name: Smart publish workflow package
         working-directory: ./packages/workflow
-        run: npm publish --provenance --access public
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "Checking if $PACKAGE_NAME@$PACKAGE_VERSION already exists on npm..."
+          
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null; then
+            echo "✅ $PACKAGE_NAME@$PACKAGE_VERSION already exists on npm - skipping publish"
+          else
+            echo "📦 Publishing $PACKAGE_NAME@$PACKAGE_VERSION to npm..."
+            npm publish --provenance --access public
+            echo "✅ Successfully published $PACKAGE_NAME@$PACKAGE_VERSION"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
-      - name: Publish util package
+      - name: Smart publish util package
         working-directory: ./packages/util
-        run: npm publish --provenance --access public
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "Checking if $PACKAGE_NAME@$PACKAGE_VERSION already exists on npm..."
+          
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version 2>/dev/null; then
+            echo "✅ $PACKAGE_NAME@$PACKAGE_VERSION already exists on npm - skipping publish"
+          else
+            echo "📦 Publishing $PACKAGE_NAME@$PACKAGE_VERSION to npm..."
+            npm publish --provenance --access public
+            echo "✅ Successfully published $PACKAGE_NAME@$PACKAGE_VERSION"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

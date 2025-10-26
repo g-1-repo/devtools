@@ -1,7 +1,7 @@
 {
   "name": "@g-1/util",
   "type": "module",
-  "version": "3.5.13",
+  "version": "3.5.14",
   "description": "G1 Shared Utilities. The centralized library for common G1 business logic and utilities. Designed for high-performance and Cloudflare Workers compatibility. The single source of truth for shared functions across all products.",
   "author": "G1 <dev@golive.me>",
   "license": "MIT",
