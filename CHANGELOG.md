@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.1.0] - 2025-10-27
+
+### Features
+
+- add @g-1/ai-core package with Cloudflare Workers AI integration
+- enhance workflow with smart package detection and AI framework improvements
+- implement new functionality
+- update components
+- update components
+- implement new functionality
+- implement new functionality
+- implement new functionality
+
+### Other Changes
+
+- chore: commit changes before release
+- chore: release v3.13.0
+- chore: commit changes during workflow setup
+- chore: release v3.12.0
+- chore: release v3.11.0
+- chore: release v3.10.0
+- chore: update package version
+- chore: release v3.9.0
+
+
 ## [4.0.7] - 2025-10-26
 
 ### Other Changes
