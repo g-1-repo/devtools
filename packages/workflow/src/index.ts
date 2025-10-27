@@ -9,6 +9,7 @@ export { ErrorFormatter } from '@g-1/util/debug'
 // Re-export consolidated Git operations from @g-1/util
 export { createGitOperations as createGitStore, GitOperations as GitStore } from '@g-1/util/node'
 export { AIService } from './core/ai-service.js'
+export { AIServiceV2 } from './core/ai-service-v2.js'
 export type { ErrorAnalysis } from './core/error-recovery.js'
 export { ErrorRecoveryService } from './core/error-recovery.js'
 export { FrameworkDetector } from './core/framework-detector.js'

@@ -204,6 +204,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@g-1/ai-core": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "@paralleldrive/cuid2": "^3.1.0",
     "@clack/prompts": "^0.11.0",

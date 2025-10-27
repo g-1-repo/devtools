@@ -9,7 +9,7 @@ import chalk from 'chalk'
 import { execa } from 'execa'
 import * as semver from 'semver'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
-import { AIService } from '../core/ai-service.js'
+import { AIServiceV2 } from '../core/ai-service-v2.js'
 import { createErrorBox } from '../core/error-formatter.js'
 import { G1_ICONS } from '../core/ui-components.js'
 import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
@@ -579,7 +579,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
         if (!options.type && config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
           try {
             helpers.setOutput('Using AI to determine version bump...')
-            const aiService = new AIService(config.ai)
+            const aiService = new AIServiceV2(config.ai)
 
             // Generate changelog entries first to analyze for version bump
             const changelogEntries = await aiService.generateChangelog(workflowCommits)
@@ -734,7 +734,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             if (config.ai?.enabled && config.ai?.features?.changelog?.enabled) {
               try {
                 helpers.setOutput('Using AI to generate changelog...')
-                const aiService = new AIService(config.ai)
+                const aiService = new AIServiceV2(config.ai)
                 const aiChangelog = await aiService.generateChangelog(ctx.git!.commits)
 
                 if (aiChangelog && aiChangelog.length > 0) {

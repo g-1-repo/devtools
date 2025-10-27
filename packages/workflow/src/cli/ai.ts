@@ -9,7 +9,7 @@ import { confirm, intro, log, note, outro, select } from '@clack/prompts'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
-import { AIService } from '../core/ai-service.js'
+import { AIServiceV2 } from '../core/ai-service-v2.js'
 import { G1_ICONS, g1Log } from '../core/error-formatter.js'
 
 export interface AICommandOptions {
@@ -97,7 +97,7 @@ async function runChangelogCommand(options: AICommandOptions): Promise<void> {
       return
     }
 
-    const aiService = new AIService(config.ai)
+    const aiService = new AIServiceV2(config.ai)
 
     g1Log.info(`Analyzing commits since ${options.since || 'HEAD~1'}...`)
 
@@ -160,7 +160,7 @@ async function runVersionCommand(options: AICommandOptions): Promise<void> {
       return
     }
 
-    const aiService = new AIService(config.ai)
+    const aiService = new AIServiceV2(config.ai)
 
     g1Log.info(`Analyzing changes since ${options.since}...`)
 
@@ -220,7 +220,7 @@ async function runImpactCommand(options: AICommandOptions): Promise<void> {
       return
     }
 
-    const aiService = new AIService(config.ai)
+    const aiService = new AIServiceV2(config.ai)
 
     g1Log.info(`Analyzing cross-package impact since ${options.since}...`)
 
@@ -278,7 +278,7 @@ async function runSuggestCommand(type: string, options: AICommandOptions): Promi
       return
     }
 
-    const aiService = new AIService(config.ai)
+    const aiService = new AIServiceV2(config.ai)
 
     if (type === 'branch' && config.ai.suggestBranchNames) {
       const suggestion = await aiService.suggestBranchName([], 'feature')

@@ -1,0 +1,79 @@
+{
+    "name": "@g-1/ai-core",
+    "version": "1.0.0",
+    "description": "AI-powered core services for G1 DevTools. Provides intelligent code analysis, automated insights, and AI-driven development assistance with Cloudflare Workers AI integration.",
+    "license": "MIT",
+    "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/ai-core#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/g-1-repo/devtools.git",
+        "directory": "packages/ai-core"
+    },
+    "bugs": {
+        "url": "https://github.com/g-1-repo/studio/issues"
+    },
+    "keywords": [
+        "ai",
+        "code-analysis",
+        "cloudflare-workers",
+        "automation",
+        "typescript",
+        "devtools",
+        "machine-learning",
+        "code-quality"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.esm.js",
+            "require": "./dist/index.js"
+        },
+        "./providers": {
+            "types": "./dist/providers/index.d.ts",
+            "import": "./dist/providers/index.esm.js",
+            "require": "./dist/providers/index.js"
+        },
+        "./services": {
+            "types": "./dist/services/index.d.ts",
+            "import": "./dist/services/index.esm.js",
+            "require": "./dist/services/index.js"
+        }
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "CHANGELOG.md",
+        "README.md",
+        "dist"
+    ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest --no-watch",
+        "test:watch": "vitest",
+        "test:coverage": "vitest --no-watch --coverage",
+        "typecheck": "tsc --noEmit",
+        "lint": "bunx @biomejs/biome@2.3.0 check src/",
+        "lint:fix": "bunx @biomejs/biome@2.3.0 check --write src/",
+        "format": "bunx @biomejs/biome@2.3.0 format --write src/",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@ai-sdk/provider": "^0.0.24",
+        "zod": "^3.23.8"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.3.0",
+        "@types/node": "^20.0.0",
+        "tsup": "^8.0.0",
+        "typescript": "^5.0.0",
+        "vitest": "^2.0.0"
+    },
+    "peerDependencies": {
+        "@g-1/util": "workspace:*"
+    }
+}

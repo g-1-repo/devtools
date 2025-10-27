@@ -9,6 +9,20 @@ export {
 export { ErrorFormatter } from './error-formatter.js'
 
 export type { FormattedError } from './error-formatter.js'
+
+// AI-powered error analysis
+export {
+  AIErrorAnalyzer,
+  defaultAIErrorAnalyzer,
+  analyzeErrorWithAI,
+  getAICodeSuggestions,
+} from './ai-error-analyzer.js'
+
+export type {
+  AIErrorAnalysis,
+  AIErrorAnalyzerConfig,
+} from './ai-error-analyzer.js'
+
 // Structured logger (new comprehensive API)
 export {
   createLogger,
