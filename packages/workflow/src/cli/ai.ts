@@ -340,7 +340,7 @@ function formatChangelog(entries: any[], format: string): string {
  * Format version suggestion for display
  */
 function formatVersionSuggestion(suggestion: any): string {
-  let output = `${chalk.cyan('Recommended version bump:')} ${chalk.bold(suggestion.suggestedBump)}\n`
+  let output = `${chalk.cyan('Recommended version:')} ${chalk.bold(suggestion.suggestedVersion)} (${suggestion.bumpType})\n`
   output += `${chalk.cyan('Confidence:')} ${(suggestion.confidence * 100).toFixed(1)}%\n`
 
   if (suggestion.reasoning) {
