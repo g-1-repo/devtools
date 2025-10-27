@@ -5,19 +5,20 @@
  * quality assessment, security scanning, and performance analysis.
  */
 
-import { confirm, intro, log, note, outro, select, text } from '@clack/prompts'
+import { statSync } from 'node:fs'
+import { relative } from 'node:path'
+import { confirm, intro, outro, select, text } from '@clack/prompts'
+import {
+  CloudflareWorkersAI,
+  type CodeAnalysisResult,
+  CodeAnalyzer,
+  createAIConfigFromEnv,
+  type FileAnalysisResult,
+  type ProjectAnalysisResult,
+} from '@g-1/ai-core'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { glob } from 'glob'
-import { readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
-import { 
-  CodeAnalyzer, 
-  createAIConfigFromEnv,
-  CloudflareWorkersAI,
-  type CodeAnalysisResult,
-  type FileAnalysisResult 
-} from '@g-1/ai-core'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { G1_ICONS, g1Log } from '../core/error-formatter.js'
 
@@ -108,16 +109,16 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
         { value: 'file', label: 'Single file' },
         { value: 'project', label: 'Entire project' },
         { value: 'directory', label: 'Specific directory' },
-        { value: 'compare', label: 'Compare two files' }
-      ]
+        { value: 'compare', label: 'Compare two files' },
+      ],
     })
 
     if (analysisType === 'file') {
       const filePath = await text({
         message: 'Enter file path to analyze:',
-        placeholder: 'src/components/Button.tsx'
+        placeholder: 'src/components/Button.tsx',
       })
-      
+
       if (typeof filePath === 'string') {
         await runFileAnalysisCommand(filePath, options)
       }
@@ -126,23 +127,23 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
     } else if (analysisType === 'directory') {
       const directory = await text({
         message: 'Enter directory path to analyze:',
-        placeholder: 'src/components'
+        placeholder: 'src/components',
       })
-      
+
       if (typeof directory === 'string') {
         await runProjectAnalysisCommand(directory, options)
       }
     } else if (analysisType === 'compare') {
       const file1 = await text({
         message: 'Enter first file path:',
-        placeholder: 'src/old-component.tsx'
+        placeholder: 'src/old-component.tsx',
       })
-      
+
       const file2 = await text({
         message: 'Enter second file path:',
-        placeholder: 'src/new-component.tsx'
+        placeholder: 'src/new-component.tsx',
       })
-      
+
       if (typeof file1 === 'string' && typeof file2 === 'string') {
         await runCompareCommand(file1, file2, options)
       }
@@ -159,14 +160,14 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
  * Run file analysis command
  */
 async function runFileAnalysisCommand(
-  filePath: string, 
+  filePath: string,
   options: CodeAnalyzerCommandOptions
 ): Promise<void> {
   try {
     intro(`${G1_ICONS.ai} Analyzing File: ${filePath}`)
 
     const analyzer = await createCodeAnalyzer(options)
-    
+
     if (!analyzer) {
       outro('Code analyzer not available - check AI configuration')
       return
@@ -175,13 +176,13 @@ async function runFileAnalysisCommand(
     // Check file exists and size
     try {
       const stats = statSync(filePath)
-      const maxSize = parseInt(options.maxFileSize || '1048576')
-      
+      const maxSize = parseInt(options.maxFileSize || '1048576', 10)
+
       if (stats.size > maxSize && !options.force) {
         const shouldContinue = await confirm({
-          message: `File is ${Math.round(stats.size / 1024)}KB (max: ${Math.round(maxSize / 1024)}KB). Continue anyway?`
+          message: `File is ${Math.round(stats.size / 1024)}KB (max: ${Math.round(maxSize / 1024)}KB). Continue anyway?`,
         })
-        
+
         if (!shouldContinue) {
           outro('Analysis cancelled')
           return
@@ -199,15 +200,15 @@ async function runFileAnalysisCommand(
     }
 
     g1Log.info('Running AI analysis...')
-    
+
     const result = await analyzer.analyzeFile(filePath, {
       includeSecurityAnalysis: !options.performanceOnly && !options.qualityOnly,
       includePerformanceAnalysis: !options.securityOnly && !options.qualityOnly,
-      includeQualityAnalysis: !options.securityOnly && !options.performanceOnly
+      includeQualityAnalysis: !options.securityOnly && !options.performanceOnly,
     })
 
     await displayFileAnalysisResult(result, options)
-    
+
     if (options.output) {
       await saveAnalysisResult(result, options.output, options.format || 'text')
       g1Log.success(`Results saved to ${options.output}`)
@@ -231,7 +232,7 @@ async function runProjectAnalysisCommand(
     intro(`${G1_ICONS.ai} Analyzing Project: ${directory}`)
 
     const analyzer = await createCodeAnalyzer(options)
-    
+
     if (!analyzer) {
       outro('Code analyzer not available - check AI configuration')
       return
@@ -240,7 +241,7 @@ async function runProjectAnalysisCommand(
     // Find files to analyze
     const patterns = options.files || [
       '**/*.{js,ts,jsx,tsx,vue,svelte}',
-      ...(options.includeTests ? ['**/*.{test,spec}.{js,ts,jsx,tsx}'] : [])
+      ...(options.includeTests ? ['**/*.{test,spec}.{js,ts,jsx,tsx}'] : []),
     ]
 
     const excludePatterns = [
@@ -249,15 +250,15 @@ async function runProjectAnalysisCommand(
       'build/**',
       '.git/**',
       ...(options.exclude || []),
-      ...(options.includeTests ? [] : ['**/*.{test,spec}.*', '**/__tests__/**'])
+      ...(options.includeTests ? [] : ['**/*.{test,spec}.*', '**/__tests__/**']),
     ]
 
     g1Log.info('Finding files to analyze...')
-    
+
     const files = await glob(patterns, {
       cwd: directory,
       ignore: excludePatterns,
-      absolute: true
+      absolute: true,
     })
 
     if (files.length === 0) {
@@ -269,7 +270,7 @@ async function runProjectAnalysisCommand(
     g1Log.info(`Found ${files.length} files to analyze`)
 
     if (options.dryRun) {
-      files.forEach(file => {
+      files.forEach((file) => {
         g1Log.info(`Would analyze: ${relative(directory, file)}`)
       })
       outro('Dry run complete')
@@ -281,11 +282,11 @@ async function runProjectAnalysisCommand(
       includePerformanceAnalysis: !options.securityOnly && !options.qualityOnly,
       includeQualityAnalysis: !options.securityOnly && !options.performanceOnly,
       filePatterns: patterns,
-      excludePatterns
+      excludePatterns,
     })
 
     await displayProjectAnalysisResult(results, options)
-    
+
     if (options.output) {
       await saveAnalysisResult(results, options.output, options.format || 'text')
       g1Log.success(`Results saved to ${options.output}`)
@@ -310,7 +311,7 @@ async function runCompareCommand(
     intro(`${G1_ICONS.ai} Comparing Files`)
 
     const analyzer = await createCodeAnalyzer(options)
-    
+
     if (!analyzer) {
       outro('Code analyzer not available - check AI configuration')
       return
@@ -327,7 +328,7 @@ async function runCompareCommand(
     const comparison = await analyzer.compareCodeQuality(file1, file2)
 
     await displayComparisonResult(comparison, options)
-    
+
     if (options.output) {
       await saveAnalysisResult(comparison, options.output, options.format || 'text')
       g1Log.success(`Results saved to ${options.output}`)
@@ -343,7 +344,9 @@ async function runCompareCommand(
 /**
  * Create code analyzer instance
  */
-async function createCodeAnalyzer(options: CodeAnalyzerCommandOptions): Promise<CodeAnalyzer | null> {
+async function createCodeAnalyzer(
+  options: CodeAnalyzerCommandOptions
+): Promise<CodeAnalyzer | null> {
   try {
     const config = await loadWorkflowConfig(process.cwd(), options.config)
 
@@ -355,21 +358,31 @@ async function createCodeAnalyzer(options: CodeAnalyzerCommandOptions): Promise<
     // Try to create AI provider
     const aiConfig = createAIConfigFromEnv()
     const providerConfig = aiConfig.getProviderConfig('cloudflare')
-    
+
     if (!providerConfig) {
       g1Log.warning('No AI provider configured')
       return null
     }
 
     const provider = new CloudflareWorkersAI(providerConfig)
-    
+
     return new CodeAnalyzer({
       provider,
-      maxFileSize: parseInt(options.maxFileSize || '1048576'),
+      maxFileSize: parseInt(options.maxFileSize || '1048576', 10),
       supportedExtensions: [
-        '.js', '.ts', '.jsx', '.tsx', '.vue', '.svelte',
-        '.py', '.rb', '.go', '.rs', '.java', '.kt'
-      ]
+        '.js',
+        '.ts',
+        '.jsx',
+        '.tsx',
+        '.vue',
+        '.svelte',
+        '.py',
+        '.rb',
+        '.go',
+        '.rs',
+        '.java',
+        '.kt',
+      ],
     })
   } catch (error) {
     g1Log.error('Failed to create code analyzer:', error)
@@ -392,32 +405,43 @@ async function displayFileAnalysisResult(
   console.log(chalk.bold(`\n📊 Analysis Results for ${result.filePath}\n`))
 
   // Overall score
-  console.log(chalk.bold('Overall Quality Score:'), getScoreColor(result.overallScore), `${result.overallScore}/100`)
+  console.log(
+    chalk.bold('Overall Quality Score:'),
+    getScoreColor(result.overallScore),
+    `${result.overallScore}/100`
+  )
 
   // Quality metrics
-  if (result.qualityMetrics) {
+  if (result.quality) {
     console.log(chalk.bold('\n🎯 Quality Metrics:'))
-    console.log(`  Maintainability: ${getScoreColor(result.qualityMetrics.maintainability)} ${result.qualityMetrics.maintainability}/100`)
-    console.log(`  Readability: ${getScoreColor(result.qualityMetrics.readability)} ${result.qualityMetrics.readability}/100`)
-    console.log(`  Complexity: ${getScoreColor(result.qualityMetrics.complexity)} ${result.qualityMetrics.complexity}/100`)
-    console.log(`  Test Coverage: ${getScoreColor(result.qualityMetrics.testCoverage)} ${result.qualityMetrics.testCoverage}/100`)
+    console.log(
+      `  Maintainability: ${getScoreColor(result.quality.maintainability)} ${result.quality.maintainability}/100`
+    )
+    console.log(
+      `  Complexity: ${getScoreColor(result.quality.complexity)} ${result.quality.complexity}/100`
+    )
+    if (result.quality.testCoverage !== undefined) {
+      console.log(
+        `  Test Coverage: ${getScoreColor(result.quality.testCoverage)} ${result.quality.testCoverage}/100`
+      )
+    }
   }
 
   // Security issues
-  if (result.securityIssues && result.securityIssues.length > 0) {
+  if (result.security && result.security.length > 0) {
     console.log(chalk.bold('\n🔒 Security Issues:'))
-    result.securityIssues.forEach(issue => {
+    result.security.forEach((issue) => {
       const severity = getSeverityColor(issue.severity)
       console.log(`  ${severity} ${issue.type}: ${issue.description}`)
       if (issue.line) console.log(`    Line ${issue.line}`)
-      if (issue.suggestion) console.log(`    💡 ${issue.suggestion}`)
+      if (issue.fix) console.log(`    💡 ${issue.fix}`)
     })
   }
 
   // Performance issues
-  if (result.performanceIssues && result.performanceIssues.length > 0) {
+  if (result.performance && result.performance.length > 0) {
     console.log(chalk.bold('\n⚡ Performance Issues:'))
-    result.performanceIssues.forEach(issue => {
+    result.performance.forEach((issue) => {
       const severity = getSeverityColor(issue.severity)
       console.log(`  ${severity} ${issue.type}: ${issue.description}`)
       if (issue.line) console.log(`    Line ${issue.line}`)
@@ -428,7 +452,7 @@ async function displayFileAnalysisResult(
   // Suggestions
   if (result.suggestions && result.suggestions.length > 0) {
     console.log(chalk.bold('\n💡 Suggestions:'))
-    result.suggestions.forEach(suggestion => {
+    result.suggestions.forEach((suggestion) => {
       console.log(`  ${suggestion.type}: ${suggestion.description}`)
       if (suggestion.line) console.log(`    Line ${suggestion.line}`)
       if (suggestion.example) console.log(`    Example: ${suggestion.example}`)
@@ -440,7 +464,7 @@ async function displayFileAnalysisResult(
  * Display project analysis result
  */
 async function displayProjectAnalysisResult(
-  result: any,
+  result: ProjectAnalysisResult,
   options: CodeAnalyzerCommandOptions
 ): Promise<void> {
   if (options.format === 'json') {
@@ -458,7 +482,13 @@ async function displayProjectAnalysisResult(
  * Display comparison result
  */
 async function displayComparisonResult(
-  result: any,
+  result: {
+    oldMetrics: any
+    newMetrics: any
+    improvement: number
+    regressions: string[]
+    improvements: string[]
+  },
   options: CodeAnalyzerCommandOptions
 ): Promise<void> {
   if (options.format === 'json') {
@@ -476,14 +506,14 @@ async function displayComparisonResult(
  * Save analysis result to file
  */
 async function saveAnalysisResult(
-  result: any,
+  result: ProjectAnalysisResult | FileAnalysisResult | CodeAnalysisResult,
   outputPath: string,
   format: string
 ): Promise<void> {
   const fs = await import('node:fs/promises')
-  
+
   let content: string
-  
+
   if (format === 'json') {
     content = JSON.stringify(result, null, 2)
   } else if (format === 'markdown') {
@@ -491,21 +521,25 @@ async function saveAnalysisResult(
   } else {
     content = formatAsText(result)
   }
-  
+
   await fs.writeFile(outputPath, content, 'utf-8')
 }
 
 /**
  * Format result as markdown
  */
-function formatAsMarkdown(result: any): string {
-  return `# Code Analysis Results\n\n${JSON.stringify(result, null, 2)}`
+function formatAsMarkdown(
+  result: ProjectAnalysisResult | FileAnalysisResult | CodeAnalysisResult
+): string {
+  return `# Analysis Result\n\n${JSON.stringify(result, null, 2)}`
 }
 
 /**
  * Format result as text
  */
-function formatAsText(result: any): string {
+function formatAsText(
+  result: ProjectAnalysisResult | FileAnalysisResult | CodeAnalysisResult
+): string {
   return `Code Analysis Results\n\n${JSON.stringify(result, null, 2)}`
 }
 

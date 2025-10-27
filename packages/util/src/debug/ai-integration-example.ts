@@ -1,11 +1,11 @@
 /**
  * AI Integration Example
- * 
+ *
  * Demonstrates how to use the AI-powered error analysis and code suggestions
  * within the util package ecosystem.
  */
 
-import { analyzeErrorWithAI, getAICodeSuggestions, defaultAIErrorAnalyzer } from './ai-error-analyzer.js'
+import { analyzeErrorWithAI, defaultAIErrorAnalyzer, getAICodeSuggestions } from './ai-error-analyzer.js'
 import { ErrorFormatter } from './error-formatter.js'
 
 /**
@@ -30,10 +30,11 @@ export async function enhancedErrorHandler(error: Error, context?: {
 
     // Display AI-enhanced error information
     const enhancedOutput = defaultAIErrorAnalyzer.formatErrorWithAI(analysis)
-    console.log('\n' + enhancedOutput)
+    console.log(`\n${enhancedOutput}`)
 
     return analysis
-  } catch (aiError) {
+  }
+  catch {
     console.warn('AI analysis failed, falling back to basic error handling')
     return null
   }
@@ -55,12 +56,14 @@ export async function reviewCodeWithAI(codeSnippet: string, language = 'typescri
       suggestions.forEach((suggestion, index) => {
         console.log(`  ${index + 1}. ${suggestion}`)
       })
-    } else {
+    }
+    else {
       console.log('\n✅ No AI suggestions - code looks good!')
     }
 
     return suggestions
-  } catch (error) {
+  }
+  catch (error) {
     console.warn('AI code review failed:', error)
     return []
   }
@@ -77,7 +80,7 @@ export async function aiAssistedErrorRecovery(
     totalSteps: number
     previousSteps: string[]
     failedAttempts: number
-  }
+  },
 ) {
   console.log(`\n❌ Workflow step "${workflowStep}" failed (attempt ${context.failedAttempts + 1})`)
 
@@ -120,11 +123,11 @@ export async function getPerformanceOptimizations(codeSnippet: string) {
       purpose: 'performance-optimization',
     })
 
-    const performanceSuggestions = suggestions.filter(s => 
-      s.toLowerCase().includes('performance') || 
-      s.toLowerCase().includes('optimize') ||
-      s.toLowerCase().includes('faster') ||
-      s.toLowerCase().includes('memory')
+    const performanceSuggestions = suggestions.filter(s =>
+      s.toLowerCase().includes('performance')
+      || s.toLowerCase().includes('optimize')
+      || s.toLowerCase().includes('faster')
+      || s.toLowerCase().includes('memory'),
     )
 
     if (performanceSuggestions.length > 0) {
@@ -135,7 +138,8 @@ export async function getPerformanceOptimizations(codeSnippet: string) {
     }
 
     return performanceSuggestions
-  } catch (error) {
+  }
+  catch (error) {
     console.warn('Performance analysis failed:', error)
     return []
   }
@@ -150,14 +154,15 @@ export async function demonstrateAIIntegration() {
   // Example 1: Error analysis
   try {
     throw new Error('ENOENT: no such file or directory, open \'/missing/file.txt\'')
-  } catch (error) {
+  }
+  catch (error) {
     await enhancedErrorHandler(error as Error, {
       filePath: '/src/utils/file-reader.ts',
       operation: 'file-read',
     })
   }
 
-  console.log('\n' + '='.repeat(50) + '\n')
+  console.log(`\n${'='.repeat(50)}\n`)
 
   // Example 2: Code review
   const sampleCode = `
@@ -174,7 +179,7 @@ function processData(data) {
 
   await reviewCodeWithAI(sampleCode, 'javascript')
 
-  console.log('\n' + '='.repeat(50) + '\n')
+  console.log(`\n${'='.repeat(50)}\n`)
 
   // Example 3: Performance optimization
   const performanceCode = `

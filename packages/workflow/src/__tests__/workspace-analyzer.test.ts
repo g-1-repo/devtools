@@ -173,7 +173,7 @@ describe('WorkspaceAnalyzer', () => {
     ]
 
     it('should build correct dependency graph', async () => {
-      analyzer['monorepoInfo'].packages = mockPackages
+      analyzer.monorepoInfo.packages = mockPackages
       const graph = await analyzer.buildDependencyGraph()
 
       expect(Array.from(graph.nodes.keys())).toEqual(['package-a', 'package-b', 'package-c'])
@@ -215,7 +215,7 @@ describe('WorkspaceAnalyzer', () => {
         },
       ]
 
-      analyzer['monorepoInfo'].packages = packagesWithDevDeps
+      analyzer.monorepoInfo.packages = packagesWithDevDeps
       const graph = await analyzer.buildDependencyGraph()
 
       // Check that package-a has dependencies on package-b
@@ -268,7 +268,7 @@ describe('WorkspaceAnalyzer', () => {
       }
 
       // Set the dependency graph directly for this test
-      analyzer['dependencyGraph'] = graph
+      analyzer.dependencyGraph = graph
 
       const buildOrder = analyzer.getBuildOrder()
 
@@ -329,7 +329,7 @@ describe('WorkspaceAnalyzer', () => {
       }
 
       // Set the dependency graph directly for this test
-      analyzer['dependencyGraph'] = graph
+      analyzer.dependencyGraph = graph
 
       const buildOrder = analyzer.getBuildOrder()
 
@@ -368,7 +368,7 @@ describe('WorkspaceAnalyzer', () => {
       }
 
       // Set the dependency graph directly for this test
-      analyzer['dependencyGraph'] = graph
+      analyzer.dependencyGraph = graph
 
       expect(() => analyzer.getBuildOrder()).toThrow(/Circular dependency detected/)
     })
@@ -422,8 +422,8 @@ describe('WorkspaceAnalyzer', () => {
     ]
 
     beforeEach(async () => {
-      analyzer['monorepoInfo'].packages = mockPackages
-      analyzer['dependencyGraph'] = await analyzer.buildDependencyGraph()
+      analyzer.monorepoInfo.packages = mockPackages
+      analyzer.dependencyGraph = await analyzer.buildDependencyGraph()
     })
 
     it('should return affected packages when a dependency changes', () => {
@@ -494,7 +494,7 @@ describe('WorkspaceAnalyzer', () => {
     ]
 
     beforeEach(() => {
-      analyzer['monorepoInfo'].packages = mockPackages
+      analyzer.monorepoInfo.packages = mockPackages
     })
 
     it('should return correct workspace statistics', () => {

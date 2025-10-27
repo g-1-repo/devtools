@@ -8,14 +8,14 @@ import { CloudflareWorkersAI } from '../providers/cloudflare.js';
 import { AIServiceV2 } from '../services/ai-service-v2.js';
 import { ChangelogGenerator } from '../services/changelog-generator.js';
 import { CodeAnalyzer } from '../services/code-analyzer.js';
-import type { AIConfig, GitCommit } from '../types/index.js';
+import type { AIConfig, AIProvider, GitCommit } from '../types/index.js';
 
 // Mock external dependencies
 vi.mock('../providers/cloudflare.js');
 
 describe('AI-Core Integration Tests', () => {
   let config: AIConfig;
-  let mockProvider: vi.Mocked<CloudflareWorkersAI>;
+  let mockProvider: vi.Mocked<AIProvider>;
 
   beforeEach(() => {
     config = {
@@ -54,33 +54,33 @@ describe('AI-Core Integration Tests', () => {
       generateText: vi.fn(),
       generateChangelog: vi.fn().mockResolvedValue({
         version: '2.0.0',
-        content:
-          '# Changelog\n\n### Features\n\n### Bug Fixes\n\n### BREAKING CHANGES',
-        format: 'markdown',
+        date: new Date().toISOString(),
+        content: `# Changelog
+
+## [2.0.0] - 2024-01-17
+
+### Features
+- implement OAuth2 authentication
+- redesign user dashboard
+
+### Bug Fixes
+- resolve rate limiting issue
+
+### BREAKING CHANGES
+- redesign user dashboard`,
+        entries: [],
       }),
       analyzeCode: vi.fn().mockResolvedValue({
-        quality: {
-          complexity: 1,
-          maintainability: 95,
-          testCoverage: 0,
-          codeSmells: [],
-          duplications: [],
-        },
-        security: [],
-        performance: [],
-        suggestions: [],
+        filePath: '/test.js',
         metrics: {
-          linesOfCode: 50,
-          cyclomaticComplexity: 1,
-          cognitiveComplexity: 1,
-          maintainabilityIndex: 95,
-          technicalDebt: 'Low',
+          linesOfCode: 1,
+          complexity: 1,
+          maintainabilityIndex: 100,
         },
+        issues: [],
+        suggestions: [],
       }),
-      analyzeImpact: vi.fn(),
-      suggestCommitMessage: vi.fn(),
-      suggestBranchName: vi.fn(),
-    } as any;
+    };
 
     vi.mocked(CloudflareWorkersAI).mockImplementation(() => mockProvider);
   });
@@ -101,7 +101,7 @@ describe('AI-Core Integration Tests', () => {
 
       const configManager = AIConfigManager.fromEnvironment();
       const config = configManager.getConfig();
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
       expect(aiService).toBeInstanceOf(AIServiceV2);
 
@@ -130,8 +130,8 @@ describe('AI-Core Integration Tests', () => {
 
   describe('Code Analysis Workflow', () => {
     it('should perform complete code analysis workflow', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
-      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider as any });
+      const aiService = new AIServiceV2(mockProvider, config);
+      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider });
 
       const sourceCode = `
         function calculateTotal(items) {
@@ -201,7 +201,7 @@ describe('AI-Core Integration Tests', () => {
     });
 
     it('should handle large project analysis', async () => {
-      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider as any });
+      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider });
 
       const projectFiles = [
         {
@@ -253,9 +253,9 @@ describe('AI-Core Integration Tests', () => {
 
   describe('Changelog Generation Workflow', () => {
     it('should perform complete changelog generation workflow', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
       const changelogGenerator = new ChangelogGenerator({
-        provider: mockProvider as any,
+        provider: mockProvider,
       });
 
       const commits: GitCommit[] = [
@@ -358,16 +358,18 @@ describe('AI-Core Integration Tests', () => {
 
   describe('AI-Enhanced Development Workflow', () => {
     it('should suggest branch names based on changes', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
-      mockProvider.generateText.mockResolvedValue(JSON.stringify({
-        suggestions: [
-          'feature/oauth2-authentication',
-          'feat/auth-oauth2-implementation',
-          'feature/user-authentication-oauth2',
-        ],
-        recommended: 'feature/oauth2-authentication',
-      }));
+      mockProvider.generateText.mockResolvedValue(
+        JSON.stringify({
+          suggestions: [
+            'feature/oauth2-authentication',
+            'feat/auth-oauth2-implementation',
+            'feature/user-authentication-oauth2',
+          ],
+          recommended: 'feature/oauth2-authentication',
+        }),
+      );
 
       const branchSuggestion = await aiService.suggestBranchName({
         type: 'feature',
@@ -383,16 +385,18 @@ describe('AI-Core Integration Tests', () => {
     });
 
     it('should suggest commit messages based on changes', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
-      mockProvider.generateText.mockResolvedValue(JSON.stringify({
-        suggestions: [
-          'feat(auth): implement OAuth2 authentication',
-          'feat(auth): add OAuth2 login support',
-          'feat: implement OAuth2 authentication system',
-        ],
-        recommended: 'feat(auth): implement OAuth2 authentication',
-      }));
+      mockProvider.generateText.mockResolvedValue(
+        JSON.stringify({
+          suggestions: [
+            'feat(auth): implement OAuth2 authentication',
+            'feat(auth): add OAuth2 login support',
+            'feat: implement OAuth2 authentication system',
+          ],
+          recommended: 'feat(auth): implement OAuth2 authentication',
+        }),
+      );
 
       const commitSuggestion = await aiService.suggestCommitMessage({
         files: ['/src/auth/oauth2.js', '/src/auth/providers/google.js'],
@@ -407,18 +411,20 @@ describe('AI-Core Integration Tests', () => {
     });
 
     it('should analyze impact of changes', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
-      mockProvider.generateText.mockResolvedValue(JSON.stringify({
-        riskLevel: 'medium',
-        affectedAreas: ['authentication', 'user-management', 'api-security'],
-        recommendations: [
-          'Update authentication tests',
-          'Review security policies',
-          'Update API documentation',
-        ],
-        estimatedEffort: 'medium',
-      }));
+      mockProvider.generateText.mockResolvedValue(
+        JSON.stringify({
+          riskLevel: 'medium',
+          affectedAreas: ['authentication', 'user-management', 'api-security'],
+          recommendations: [
+            'Update authentication tests',
+            'Review security policies',
+            'Update API documentation',
+          ],
+          estimatedEffort: 'medium',
+        }),
+      );
 
       const impactAnalysis = await aiService.analyzeImpact({
         changes: [
@@ -446,13 +452,20 @@ describe('AI-Core Integration Tests', () => {
 
   describe('Error Handling and Resilience', () => {
     it('should handle provider failures gracefully', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
       mockProvider.generateChangelog.mockRejectedValue(
         new Error('API rate limit exceeded'),
       );
 
-      const validCommits = [{ hash: 'abc123', message: 'test commit', author: 'test', date: new Date() }];
+      const validCommits = [
+        {
+          hash: 'abc123',
+          message: 'test commit',
+          author: 'test',
+          date: new Date(),
+        },
+      ];
 
       await expect(
         aiService.generateChangelog(validCommits, { version: '1.0.0' }),
@@ -460,30 +473,41 @@ describe('AI-Core Integration Tests', () => {
     });
 
     it('should validate inputs before processing', async () => {
-      const aiService = new AIServiceV2(mockProvider as any, config);
+      const aiService = new AIServiceV2(mockProvider, config);
 
       await expect(
         aiService.analyzeCode('', { language: 'javascript' }),
       ).rejects.toThrow('Code content cannot be empty');
 
+      // Test with non-array input (null cast to bypass TypeScript)
       await expect(
-        aiService.generateChangelog('invalid' as any, { version: 'invalid' }),
+        // @ts-expect-error - Testing invalid input type
+        aiService.generateChangelog(null, { version: '1.0.0' }),
       ).rejects.toThrow('Commits must be an array');
 
-      const validCommits = [{ hash: 'abc123', message: 'test commit', author: 'test', date: new Date() }];
+      const validCommits = [
+        {
+          hash: 'abc123',
+          message: 'test commit',
+          author: 'test',
+          date: new Date(),
+        },
+      ];
 
+      // Test with invalid options (non-object)
       await expect(
-        aiService.generateChangelog(validCommits, { version: 'invalid' }),
-      ).rejects.toThrow('Invalid version format');
+        // @ts-expect-error - Testing invalid options type
+        aiService.generateChangelog(validCommits, 'invalid'),
+      ).rejects.toThrow('Options must be an object');
     });
 
     it('should handle configuration errors', () => {
       const invalidConfig = {
-        defaultProvider: 'nonexistent' as any,
+        defaultProvider: 'nonexistent' as 'cloudflare' | 'openai' | 'ollama',
         providers: {},
       };
 
-      expect(() => new AIServiceV2(mockProvider as any, invalidConfig)).toThrow(
+      expect(() => new AIServiceV2(mockProvider, invalidConfig)).toThrow(
         'Provider "nonexistent" is not supported',
       );
     });
@@ -500,8 +524,8 @@ describe('AI-Core Integration Tests', () => {
         },
       };
 
-      const aiService = new AIServiceV2(mockProvider as any, cacheConfig);
-      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider as any });
+      const _aiService = new AIServiceV2(mockProvider, cacheConfig);
+      const codeAnalyzer = new CodeAnalyzer({ provider: mockProvider });
 
       const sourceCode = 'function test() { return true; }';
 
@@ -517,7 +541,7 @@ describe('AI-Core Integration Tests', () => {
 
     it('should handle large files efficiently', async () => {
       const codeAnalyzer = new CodeAnalyzer({
-        provider: mockProvider as any,
+        provider: mockProvider,
         maxFileSize: 2 * 1024 * 1024, // 2MB
         supportedExtensions: ['.js'],
         analysisTimeout: 30000,

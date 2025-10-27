@@ -8,8 +8,6 @@
  * - Cross-package impact analysis
  */
 
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import type { CommitInfo } from '../types'
 
 export interface AIConfig {
@@ -52,7 +50,6 @@ export interface ImpactAnalysis {
 
 export class AIService {
   private config: AIConfig
-  private rootPath: string
 
   constructor(config: AIConfig, rootPath: string = process.cwd()) {
     this.config = config

@@ -5,7 +5,7 @@
  * and health monitoring for web applications.
  */
 
-import { confirm, intro, log, note, outro, select } from '@clack/prompts'
+import { intro, outro } from '@clack/prompts'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
@@ -422,7 +422,7 @@ function displayFrameworks(frameworks: any[], format: string): void {
   }
 
   if (format === 'table') {
-    console.log('\n' + chalk.cyan('Detected Frameworks:'))
+    console.log(`\n${chalk.cyan('Detected Frameworks:')}`)
     frameworks.forEach((fw) => {
       console.log(
         `  ${chalk.green('✓')} ${chalk.bold(fw.name)} ${chalk.gray(`(v${fw.version || 'unknown'})`)}`
@@ -444,7 +444,7 @@ function displayFrameworks(frameworks: any[], format: string): void {
  * Display deployment strategy
  */
 function displayDeploymentStrategy(strategy: any): void {
-  console.log('\n' + chalk.cyan('Deployment Strategy:'))
+  console.log(`\n${chalk.cyan('Deployment Strategy:')}`)
   console.log(`  ${chalk.gray('Framework:')} ${strategy.framework}`)
   console.log(`  ${chalk.gray('Platform:')} ${strategy.platform}`)
 

@@ -5,8 +5,8 @@
  * Supports multiple deployment targets and live progress tracking
  */
 
-import { EventEmitter } from 'events'
-import { createServer } from 'http'
+import { EventEmitter } from 'node:events'
+import { createServer } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
 import type { FrameworkInfo } from '../types'
 

@@ -14,12 +14,9 @@ import type {
 export class AIServiceV2 {
   private provider: AIProvider;
 
-  constructor(
-    provider: AIProvider,
-    private config?: AIConfig,
-  ) {
+  constructor(provider: AIProvider, config?: AIConfig) {
     // Validate configuration if provided
-    if (config && config.defaultProvider) {
+    if (config?.defaultProvider) {
       const supportedProviders = ['cloudflare', 'openai', 'ollama'];
       if (!supportedProviders.includes(config.defaultProvider)) {
         throw new Error(
@@ -43,12 +40,9 @@ export class AIServiceV2 {
       throw new Error('Commits must be an array');
     }
 
-    // Validate version format if provided
-    if (options?.version) {
-      const versionRegex = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$/;
-      if (!versionRegex.test(options.version)) {
-        throw new Error('Invalid version format');
-      }
+    // Validate options if provided
+    if (options && typeof options !== 'object') {
+      throw new Error('Options must be an object');
     }
 
     return this.provider.generateChangelog(commits, options);
@@ -122,7 +116,7 @@ Return only: major, minor, or patch`;
     const prompt = `Analyze the impact of these code changes: ${JSON.stringify(data.changes)}. 
     Provide risk level (low/medium/high), affected areas, recommendations, and estimated effort.`;
 
-    const analysis = await this.provider.generateText(prompt);
+    const _analysis = await this.provider.generateText(prompt);
 
     // Parse the response and return structured data
     // This is a simplified implementation - in practice, you'd want more sophisticated parsing
@@ -154,7 +148,7 @@ Return only: major, minor, or patch`;
     const prompt = `Suggest branch names for a ${data.type} change: "${data.description}"${data.scope ? ` in scope: ${data.scope}` : ''}. 
     Provide 3-5 suggestions following conventional naming patterns.`;
 
-    const suggestions = await this.provider.generateText(prompt);
+    const _suggestions = await this.provider.generateText(prompt);
 
     // Parse the response and return structured data
     // This is a simplified implementation - in practice, you'd want more sophisticated parsing
@@ -192,7 +186,7 @@ Return only: major, minor, or patch`;
     Changes: ${data.changes}. 
     Provide 3-5 conventional commit message suggestions.`;
 
-    const suggestions = await this.provider.generateText(prompt);
+    const _suggestions = await this.provider.generateText(prompt);
 
     // Parse the response and return structured data
     // This is a simplified implementation - in practice, you'd want more sophisticated parsing

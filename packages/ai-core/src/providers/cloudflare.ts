@@ -151,13 +151,16 @@ export class CloudflareWorkersAI implements AIProvider {
     }
   }
 
-  private async makeRequest(endpoint: string, body: any): Promise<any> {
+  private async makeRequest(
+    endpoint: string,
+    body: Record<string, unknown>,
+  ): Promise<unknown> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
     if (this.config.apiToken) {
-      headers['Authorization'] = `Bearer ${this.config.apiToken}`;
+      headers.Authorization = `Bearer ${this.config.apiToken}`;
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -174,7 +177,7 @@ export class CloudflareWorkersAI implements AIProvider {
   }
 
   private parseCodeAnalysis(
-    analysisText: string,
+    _analysisText: string,
     originalCode: string,
   ): CodeAnalysisResult {
     const lines = originalCode.split('\n');

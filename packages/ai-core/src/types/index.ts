@@ -52,6 +52,7 @@ export interface CommitInfo {
   files: string[];
   additions: number;
   deletions: number;
+  body?: string;
 }
 
 export interface CodeAnalysisResult {
@@ -120,7 +121,7 @@ export interface CodeMetrics {
 }
 
 export interface AIConfig {
-  provider: 'cloudflare' | 'openai' | 'anthropic' | 'ollama';
+  provider: 'cloudflare' | 'openai' | 'anthropic' | 'ollama' | 'local';
   apiKey?: string;
   model?: string;
   baseUrl?: string;

@@ -9,7 +9,6 @@ import type {
   CloudflareConfig,
   OllamaConfig,
   OpenAIConfig,
-  ProviderConfig,
 } from '../types/index.js';
 
 export interface AIConfig {
@@ -53,6 +52,12 @@ export class AIConfigManager {
       AIConfigManager.instance = new AIConfigManager(config);
     }
     return AIConfigManager.instance;
+  }
+
+  // Method to reset the singleton instance for testing
+  static resetInstance(): void {
+    // @ts-expect-error - Intentionally setting to undefined for testing
+    AIConfigManager.instance = undefined;
   }
 
   /**
@@ -102,13 +107,31 @@ export class AIConfigManager {
     config: Partial<CloudflareConfig | OpenAIConfig | OllamaConfig>,
   ): void {
     if (!this.config.providers[provider]) {
-      this.config.providers[provider] = {} as any;
+      if (provider === 'cloudflare') {
+        this.config.providers[provider] = {} as CloudflareConfig;
+      } else if (provider === 'openai') {
+        this.config.providers[provider] = {} as OpenAIConfig;
+      } else if (provider === 'ollama') {
+        this.config.providers[provider] = {} as OllamaConfig;
+      }
     }
 
-    this.config.providers[provider] = {
-      ...this.config.providers[provider],
-      ...config,
-    } as any;
+    if (provider === 'cloudflare' && this.config.providers.cloudflare) {
+      this.config.providers.cloudflare = {
+        ...this.config.providers.cloudflare,
+        ...config,
+      } as CloudflareConfig;
+    } else if (provider === 'openai' && this.config.providers.openai) {
+      this.config.providers.openai = {
+        ...this.config.providers.openai,
+        ...config,
+      } as OpenAIConfig;
+    } else if (provider === 'ollama' && this.config.providers.ollama) {
+      this.config.providers.ollama = {
+        ...this.config.providers.ollama,
+        ...config,
+      } as OllamaConfig;
+    }
   }
 
   /**
@@ -116,13 +139,20 @@ export class AIConfigManager {
    */
   static fromEnvironment(): AIConfigManager {
     const config: Partial<AIConfig> = {
-      defaultProvider: (process.env.AI_DEFAULT_PROVIDER as any) || 'cloudflare',
+      defaultProvider:
+        (process.env.AI_DEFAULT_PROVIDER as
+          | 'cloudflare'
+          | 'openai'
+          | 'ollama') || 'cloudflare',
       providers: {},
     };
 
     // Cloudflare Workers AI configuration
     if (process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_ACCOUNT_ID) {
-      config.providers!.cloudflare = {
+      if (!config.providers) {
+        config.providers = {};
+      }
+      config.providers.cloudflare = {
         apiToken: process.env.CLOUDFLARE_API_TOKEN || '',
         accountId: process.env.CLOUDFLARE_ACCOUNT_ID || '',
         baseUrl: process.env.CLOUDFLARE_API_BASE_URL,
@@ -134,7 +164,10 @@ export class AIConfigManager {
 
     // OpenAI configuration
     if (process.env.OPENAI_API_KEY) {
-      config.providers!.openai = {
+      if (!config.providers) {
+        config.providers = {};
+      }
+      config.providers.openai = {
         apiKey: process.env.OPENAI_API_KEY,
         baseUrl: process.env.OPENAI_BASE_URL,
         model: process.env.OPENAI_DEFAULT_MODEL || 'gpt-4',
@@ -143,7 +176,10 @@ export class AIConfigManager {
 
     // Ollama configuration
     if (process.env.OLLAMA_BASE_URL) {
-      config.providers!.ollama = {
+      if (!config.providers) {
+        config.providers = {};
+      }
+      config.providers.ollama = {
         baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
         model: process.env.OLLAMA_DEFAULT_MODEL || 'llama3.1',
       };
@@ -157,7 +193,7 @@ export class AIConfigManager {
    */
   static async fromFile(filePath: string): Promise<AIConfigManager> {
     try {
-      const fs = await import('fs/promises');
+      const fs = await import('node:fs/promises');
       const configData = await fs.readFile(filePath, 'utf-8');
       const config = JSON.parse(configData) as Partial<AIConfig>;
       return new AIConfigManager(config);
@@ -171,7 +207,7 @@ export class AIConfigManager {
    */
   async saveToFile(filePath: string): Promise<void> {
     try {
-      const fs = await import('fs/promises');
+      const fs = await import('node:fs/promises');
       const configData = JSON.stringify(this.config, null, 2);
       await fs.writeFile(filePath, configData, 'utf-8');
     } catch (error) {

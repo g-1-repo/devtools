@@ -5,7 +5,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudflareWorkersAI } from '../providers/cloudflare.js';
 import { AIServiceV2 } from '../services/ai-service-v2.js';
-import type { AIConfig, ChangelogEntry, GitCommit } from '../types/index.js';
+import type {
+  AIConfig,
+  AIProvider,
+  ChangelogEntry,
+  GitCommit,
+} from '../types/index.js';
 
 // Mock the CloudflareWorkersAI provider
 vi.mock('../providers/cloudflare.js', () => ({
@@ -14,7 +19,7 @@ vi.mock('../providers/cloudflare.js', () => ({
 
 describe('AIServiceV2', () => {
   let aiService: AIServiceV2;
-  let mockProvider: vi.Mocked<CloudflareWorkersAI>;
+  let mockProvider: vi.Mocked<AIProvider>;
   let config: AIConfig;
 
   beforeEach(() => {
@@ -32,12 +37,13 @@ describe('AIServiceV2', () => {
       generateText: vi.fn(),
       generateChangelog: vi.fn(),
       analyzeCode: vi.fn(),
+      analyzeImpact: vi.fn(),
       suggestCommitMessage: vi.fn(),
       suggestBranchName: vi.fn(),
-    } as any;
+    };
 
     // Mock the CloudflareWorkersAI constructor
-    (CloudflareWorkersAI as any).mockImplementation(() => mockProvider);
+    vi.mocked(CloudflareWorkersAI).mockImplementation(() => mockProvider);
 
     aiService = new AIServiceV2(mockProvider, config);
   });
@@ -256,7 +262,7 @@ describe('AIServiceV2', () => {
   });
 
   describe('analyzeImpact', () => {
-    const mockCommits: CommitInfo[] = [
+    const _mockCommits: CommitInfo[] = [
       {
         hash: 'abc123',
         message: 'feat: add new API endpoint',
@@ -286,9 +292,19 @@ describe('AIServiceV2', () => {
 
       const mockChanges = {
         changes: [
-          { file: 'src/api.ts', type: 'modified' as const, linesAdded: 15, linesRemoved: 3 },
-          { file: 'src/auth.ts', type: 'modified' as const, linesAdded: 8, linesRemoved: 2 }
-        ]
+          {
+            file: 'src/api.ts',
+            type: 'modified' as const,
+            linesAdded: 15,
+            linesRemoved: 3,
+          },
+          {
+            file: 'src/auth.ts',
+            type: 'modified' as const,
+            linesAdded: 8,
+            linesRemoved: 2,
+          },
+        ],
       };
 
       const result = await aiService.analyzeImpact(mockChanges);
@@ -309,16 +325,29 @@ describe('AIServiceV2', () => {
 
       const mockChanges = {
         changes: [
-          { file: 'src/api.ts', type: 'modified' as const, linesAdded: 10, linesRemoved: 5 },
-          { file: 'src/auth.ts', type: 'modified' as const, linesAdded: 3, linesRemoved: 1 }
-        ]
+          {
+            file: 'src/api.ts',
+            type: 'modified' as const,
+            linesAdded: 10,
+            linesRemoved: 5,
+          },
+          {
+            file: 'src/auth.ts',
+            type: 'modified' as const,
+            linesAdded: 3,
+            linesRemoved: 1,
+          },
+        ],
       };
 
       const result = await aiService.analyzeImpact(mockChanges);
 
       expect(result.riskLevel).toBe('medium');
       expect(result.affectedAreas).toEqual(['src/api.ts', 'src/auth.ts']);
-      expect(result.recommendations).toEqual(['Review changes carefully', 'Test thoroughly']);
+      expect(result.recommendations).toEqual([
+        'Review changes carefully',
+        'Test thoroughly',
+      ]);
       expect(result.estimatedEffort).toBe('medium');
     });
 
@@ -328,8 +357,13 @@ describe('AIServiceV2', () => {
 
       const mockChanges = {
         changes: [
-          { file: 'src/api.ts', type: 'modified' as const, linesAdded: 10, linesRemoved: 5 }
-        ]
+          {
+            file: 'src/api.ts',
+            type: 'modified' as const,
+            linesAdded: 10,
+            linesRemoved: 5,
+          },
+        ],
       };
 
       await expect(aiService.analyzeImpact(mockChanges)).rejects.toThrow(
@@ -347,7 +381,7 @@ describe('AIServiceV2', () => {
 
       const result = await aiService.suggestBranchName({
         type: 'feature',
-        description: mockDescription
+        description: mockDescription,
       });
 
       expect(result.recommended).toBe('feature/add-user-authentication');
@@ -362,7 +396,7 @@ describe('AIServiceV2', () => {
 
       const result = await aiService.suggestBranchName({
         type: 'feature',
-        description: mockDescription
+        description: mockDescription,
       });
 
       expect(result.recommended).toBe('feature/add-user-authentication');
@@ -382,24 +416,28 @@ describe('AIServiceV2', () => {
 
       const result = await aiService.suggestCommitMessage({
         files: mockChanges,
-        changes: 'Add new feature and refactor existing code'
+        changes: 'Add new feature and refactor existing code',
       });
 
-      expect(result.recommended).toBe('feat: Add new feature and refactor existing code');
-      expect(result.suggestions).toContain('feat: Add new feature and refactor existing code');
+      expect(result.recommended).toBe(
+        'feat: Add new feature and refactor existing code',
+      );
+      expect(result.suggestions).toContain(
+        'feat: Add new feature and refactor existing code',
+      );
       expect(mockProvider.generateText).toHaveBeenCalledWith(
         expect.stringContaining('Suggest commit messages for changes to files'),
       );
     });
 
     it('should pass options to provider', async () => {
-      const options = { maxLength: 72, includeScope: true };
+      const _options = { maxLength: 72, includeScope: true };
       const mockSuggestion = 'feat(core): add new feature';
       mockProvider.generateText.mockResolvedValueOnce(mockSuggestion);
 
       await aiService.suggestCommitMessage({
         files: mockChanges,
-        changes: 'Add new feature'
+        changes: 'Add new feature',
       });
 
       expect(mockProvider.generateText).toHaveBeenCalledWith(
@@ -417,7 +455,10 @@ describe('AIServiceV2', () => {
 
       // This test should actually create a new provider instance, not use a mock
       expect(() => {
-        new CloudflareWorkersAI(config.cloudflare!);
+        if (!config.cloudflare) {
+          throw new Error('Cloudflare config is required');
+        }
+        new CloudflareWorkersAI(config.cloudflare);
       }).toThrow('Provider initialization failed');
     });
 

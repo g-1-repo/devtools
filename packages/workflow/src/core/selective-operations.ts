@@ -1,5 +1,4 @@
-import { execSync } from 'child_process'
-import { join } from 'path'
+import { execSync } from 'node:child_process'
 import type { PackageManagerAdapter } from './package-manager-adapters'
 import type { WorkspaceAnalyzer } from './workspace-analyzer'
 

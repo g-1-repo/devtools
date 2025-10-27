@@ -2,9 +2,9 @@
  * Integration tests for AI functionality in workflow package
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { ChangelogEntry, GitCommit } from '@g-1/ai-core'
 import { AIServiceV2 } from '@g-1/ai-core'
-import type { GitCommit, ChangelogEntry } from '@g-1/ai-core'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the AI service
 vi.mock('@g-1/ai-core')
@@ -359,9 +359,9 @@ describe('Workflow AI Integration', () => {
         },
       })
 
-      await expect(
-        aiService.suggestVersionBump([], '1.0.0')
-      ).rejects.toThrow('Invalid response format')
+      await expect(aiService.suggestVersionBump([], '1.0.0')).rejects.toThrow(
+        'Invalid response format'
+      )
     })
   })
 })

@@ -5,9 +5,9 @@
  * and improve performance for repeated requests
  */
 
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -31,7 +31,7 @@ export class AICache {
   /**
    * Generate cache key from input data
    */
-  private generateKey(data: any): string {
+  private generateKey(data: unknown): string {
     const serialized = typeof data === 'string' ? data : JSON.stringify(data);
     return createHash('sha256')
       .update(serialized)
@@ -68,13 +68,15 @@ export class AICache {
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
 
     const toRemove = entries.slice(0, this.cache.size - this.maxSize);
-    toRemove.forEach(([key]) => this.cache.delete(key));
+    for (const [key] of toRemove) {
+      this.cache.delete(key);
+    }
   }
 
   /**
    * Get cached data
    */
-  get<T>(key: string | any): T | undefined {
+  get<T>(key: string | unknown): T | undefined {
     const cacheKey = typeof key === 'string' ? key : this.generateKey(key);
     const entry = this.cache.get(cacheKey);
 
@@ -91,7 +93,7 @@ export class AICache {
   /**
    * Set cached data
    */
-  set<T>(key: string | any, data: T, ttl?: number): void {
+  set<T>(key: string | unknown, data: T, ttl?: number): void {
     const cacheKey = typeof key === 'string' ? key : this.generateKey(key);
     const entry: CacheEntry<T> = {
       data,
@@ -106,14 +108,14 @@ export class AICache {
   /**
    * Check if key exists and is not expired
    */
-  has(key: string | any): boolean {
+  has(key: string | unknown): boolean {
     return this.get(key) !== undefined;
   }
 
   /**
    * Delete cached entry
    */
-  delete(key: string | any): boolean {
+  delete(key: string | unknown): boolean {
     const cacheKey = typeof key === 'string' ? key : this.generateKey(key);
     return this.cache.delete(cacheKey);
   }
@@ -162,7 +164,7 @@ export class AICache {
    * Get or set with a factory function
    */
   async getOrSet<T>(
-    key: string | any,
+    key: string | unknown,
     factory: () => Promise<T>,
     ttl?: number,
   ): Promise<T> {
@@ -179,7 +181,7 @@ export class AICache {
   /**
    * Wrap a function with caching
    */
-  wrap<TArgs extends any[], TReturn>(
+  wrap<TArgs extends unknown[], TReturn>(
     fn: (...args: TArgs) => Promise<TReturn>,
     options: {
       keyGenerator?: (...args: TArgs) => string;
@@ -207,7 +209,7 @@ export const defaultCache = new AICache();
 export function createAIRequestKey(
   provider: string,
   method: string,
-  params: any,
+  params: unknown,
 ): string {
   return `${provider}:${method}:${createHash('sha256').update(JSON.stringify(params)).digest('hex').substring(0, 16)}`;
 }
@@ -216,11 +218,15 @@ export function createAIRequestKey(
  * Cache decorator for AI methods
  */
 export function cached(ttl?: number) {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return (
+    _target: unknown,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) => {
     const originalMethod = descriptor.value;
     const cache = new AICache({ ttl });
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (this: unknown, ...args: unknown[]) {
       const key = createAIRequestKey(this.constructor.name, propertyKey, args);
 
       return cache.getOrSet(key, () => originalMethod.apply(this, args), ttl);

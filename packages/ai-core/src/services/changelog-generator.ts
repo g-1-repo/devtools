@@ -103,7 +103,7 @@ export class ChangelogGenerator {
   async generateChangelog(
     commits: CommitInfo[],
     newVersion?: string,
-    previousVersion?: string,
+    _previousVersion?: string,
     options: ChangelogOptions = {},
   ): Promise<ChangelogResult> {
     const mergedOptions: ChangelogOptions = {
@@ -381,7 +381,9 @@ export class ChangelogGenerator {
 
   private extractContributors(commits: CommitInfo[]): string[] {
     const contributors = new Set<string>();
-    commits.forEach((commit) => contributors.add(commit.author));
+    commits.forEach((commit) => {
+      contributors.add(commit.author);
+    });
     return Array.from(contributors);
   }
 
@@ -403,8 +405,17 @@ export class ChangelogGenerator {
     entries: ChangelogEntry[],
     version: string,
     contributors: string[],
-    stats: any,
-    options: any,
+    stats: {
+      totalCommits: number;
+      totalFiles: number;
+      totalAdditions: number;
+      totalDeletions: number;
+    },
+    options: {
+      includeContributors?: boolean;
+      includeStats?: boolean;
+      customSections?: string[];
+    },
   ): string {
     const sections = [];
 

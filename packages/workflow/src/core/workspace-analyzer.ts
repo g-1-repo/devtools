@@ -1,7 +1,7 @@
-import { execSync } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
+import { execSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { glob } from 'glob'
-import { join, resolve } from 'path'
 import {
   type MonorepoInfo,
   MonorepoType,
@@ -75,7 +75,7 @@ export class WorkspaceAnalyzer {
           try {
             const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
             const packagePath = packageJsonPath.replace('/package.json', '')
-            const relativePath = packagePath.replace(this.rootPath + '/', '')
+            const relativePath = packagePath.replace(`${this.rootPath}/`, '')
 
             packages.push({
               name: packageJson.name,
@@ -302,7 +302,7 @@ export class WorkspaceAnalyzer {
         : file
 
       for (const pkg of this.monorepoInfo.packages) {
-        if (relativePath.startsWith(pkg.relativePath + '/') || relativePath === pkg.relativePath) {
+        if (relativePath.startsWith(`${pkg.relativePath}/`) || relativePath === pkg.relativePath) {
           changedPackages.add(pkg.name)
         }
       }
@@ -527,46 +527,5 @@ export class WorkspaceAnalyzer {
         circularDependencies: [],
       },
     }
-  }
-
-  /**
-   * Calculate maximum dependency depth
-   */
-  private calculateMaxDepth(): number {
-    if (!this.dependencyGraph) {
-      return 0
-    }
-
-    let maxDepth = 0
-    const visited = new Set<string>()
-
-    const calculateDepth = (packageName: string, currentDepth: number): number => {
-      if (visited.has(packageName)) {
-        return currentDepth
-      }
-
-      visited.add(packageName)
-      const node = this.dependencyGraph!.nodes.get(packageName)
-
-      if (!node || node.dependencies.length === 0) {
-        return currentDepth
-      }
-
-      let maxChildDepth = currentDepth
-      for (const dep of node.dependencies) {
-        const childDepth = calculateDepth(dep, currentDepth + 1)
-        maxChildDepth = Math.max(maxChildDepth, childDepth)
-      }
-
-      return maxChildDepth
-    }
-
-    for (const packageName of this.dependencyGraph.nodes.keys()) {
-      visited.clear()
-      const depth = calculateDepth(packageName, 0)
-      maxDepth = Math.max(maxDepth, depth)
-    }
-
-    return maxDepth
   }
 }

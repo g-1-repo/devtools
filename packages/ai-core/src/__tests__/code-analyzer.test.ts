@@ -3,11 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  CodeAnalyzerConfig,
-  FileAnalysisResult,
-  ProjectAnalysisResult,
-} from '../services/code-analyzer.js';
+import type { CodeAnalyzerConfig } from '../services/code-analyzer.js';
 import { CodeAnalyzer } from '../services/code-analyzer.js';
 
 // Mock provider for testing
@@ -23,7 +19,7 @@ describe('CodeAnalyzer', () => {
 
   beforeEach(() => {
     config = {
-      provider: mockProvider as any,
+      provider: mockProvider,
       defaultLanguage: 'javascript',
       enableCaching: true,
       customRules: [],

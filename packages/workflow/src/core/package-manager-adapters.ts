@@ -1,5 +1,5 @@
-import { execSync, spawn } from 'child_process'
-import { join } from 'path'
+import { spawn } from 'node:child_process'
+import { join } from 'node:path'
 import { type MonorepoType, PackageManager } from './monorepo-detector'
 
 export interface PackageManagerAdapter {

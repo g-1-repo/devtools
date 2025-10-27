@@ -145,12 +145,20 @@ const MonorepoConfigSchema = z.object({
  */
 const AIConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  provider: z.enum(['openai', 'anthropic', 'local']).default('local'),
+  provider: z.enum(['openai', 'anthropic', 'local', 'cloudflare']).default('local'),
   suggestBranchNames: z.boolean().default(true),
   suggestCommitMessages: z.boolean().default(true),
   generateReleaseNotes: z.boolean().default(true),
   apiKey: z.string().optional(),
   model: z.string().optional(),
+  cloudflare: z
+    .object({
+      accountId: z.string().optional(),
+      apiToken: z.string().optional(),
+      model: z.string().default('@cf/meta/llama-3.1-8b-instruct'),
+      baseUrl: z.string().optional(),
+    })
+    .optional(),
   features: z
     .object({
       changelog: z
@@ -516,7 +524,133 @@ const CONFIG_FILE_NAMES = [
 ]
 
 /**
- * Loads configuration from various sources
+ * Loads environment variables for AI configuration
+ */
+function loadAIConfigFromEnv(): Partial<AIConfig> {
+  const envConfig: Partial<AIConfig> = {}
+
+  // Basic AI settings
+  if (process.env.WORKFLOW_AI_ENABLED !== undefined) {
+    envConfig.enabled = process.env.WORKFLOW_AI_ENABLED === 'true'
+  }
+
+  if (process.env.WORKFLOW_AI_PROVIDER) {
+    const provider = process.env.WORKFLOW_AI_PROVIDER as
+      | 'openai'
+      | 'anthropic'
+      | 'local'
+      | 'cloudflare'
+    if (['openai', 'anthropic', 'local', 'cloudflare'].includes(provider)) {
+      envConfig.provider = provider
+    }
+  }
+
+  if (process.env.WORKFLOW_AI_API_KEY) {
+    envConfig.apiKey = process.env.WORKFLOW_AI_API_KEY
+  }
+
+  if (process.env.WORKFLOW_AI_MODEL) {
+    envConfig.model = process.env.WORKFLOW_AI_MODEL
+  }
+
+  // Cloudflare-specific settings
+  if (process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CLOUDFLARE_API_TOKEN) {
+    envConfig.cloudflare = {
+      accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+      apiToken: process.env.CLOUDFLARE_API_TOKEN,
+      model: process.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct',
+      baseUrl: process.env.CLOUDFLARE_AI_BASE_URL,
+    }
+  }
+
+  // Feature flags
+  if (process.env.WORKFLOW_AI_SUGGEST_BRANCH_NAMES !== undefined) {
+    envConfig.suggestBranchNames = process.env.WORKFLOW_AI_SUGGEST_BRANCH_NAMES === 'true'
+  }
+
+  if (process.env.WORKFLOW_AI_SUGGEST_COMMIT_MESSAGES !== undefined) {
+    envConfig.suggestCommitMessages = process.env.WORKFLOW_AI_SUGGEST_COMMIT_MESSAGES === 'true'
+  }
+
+  if (process.env.WORKFLOW_AI_GENERATE_RELEASE_NOTES !== undefined) {
+    envConfig.generateReleaseNotes = process.env.WORKFLOW_AI_GENERATE_RELEASE_NOTES === 'true'
+  }
+
+  // Feature-specific settings
+  const features: Partial<AIConfig['features']> = {}
+
+  // Changelog features
+  if (process.env.WORKFLOW_AI_CHANGELOG_ENABLED !== undefined) {
+    features.changelog = {
+      enabled: process.env.WORKFLOW_AI_CHANGELOG_ENABLED === 'true',
+      includeBreakingChanges: true,
+      categorizeCommits: true,
+      generateSummary: true,
+    }
+  }
+
+  if (process.env.WORKFLOW_AI_CHANGELOG_BREAKING_CHANGES !== undefined) {
+    features.changelog = {
+      enabled: true,
+      includeBreakingChanges: process.env.WORKFLOW_AI_CHANGELOG_BREAKING_CHANGES === 'true',
+      categorizeCommits: true,
+      generateSummary: true,
+      ...features.changelog,
+    }
+  }
+
+  if (process.env.WORKFLOW_AI_CHANGELOG_CATEGORIZE !== undefined) {
+    features.changelog = {
+      enabled: true,
+      includeBreakingChanges: true,
+      categorizeCommits: process.env.WORKFLOW_AI_CHANGELOG_CATEGORIZE === 'true',
+      generateSummary: true,
+      ...features.changelog,
+    }
+  }
+
+  // Version bump features
+  if (process.env.WORKFLOW_AI_VERSION_BUMP_ENABLED !== undefined) {
+    features.versionBump = {
+      enabled: process.env.WORKFLOW_AI_VERSION_BUMP_ENABLED === 'true',
+      analyzeImpact: true,
+      suggestBumpType: true,
+      confidenceThreshold: 0.8,
+    }
+  }
+
+  if (process.env.WORKFLOW_AI_VERSION_BUMP_CONFIDENCE !== undefined) {
+    const confidence = parseFloat(process.env.WORKFLOW_AI_VERSION_BUMP_CONFIDENCE)
+    if (!Number.isNaN(confidence) && confidence >= 0 && confidence <= 1) {
+      features.versionBump = {
+        enabled: true,
+        analyzeImpact: true,
+        suggestBumpType: true,
+        confidenceThreshold: confidence,
+        ...features.versionBump,
+      }
+    }
+  }
+
+  // Impact analysis features
+  if (process.env.WORKFLOW_AI_IMPACT_ANALYSIS_ENABLED !== undefined) {
+    features.impactAnalysis = {
+      enabled: process.env.WORKFLOW_AI_IMPACT_ANALYSIS_ENABLED === 'true',
+      crossPackageAnalysis: true,
+      riskAssessment: true,
+      testingRecommendations: true,
+    }
+  }
+
+  if (Object.keys(features).length > 0) {
+    envConfig.features = features as AIConfig['features']
+  }
+
+  return envConfig
+}
+
+/**
+ * Loads workflow configuration with environment variable support
  */
 export async function loadWorkflowConfig(
   searchFrom: string = process.cwd(),
@@ -553,6 +687,18 @@ export async function loadWorkflowConfig(
   if (config.extends) {
     const baseConfig = await loadWorkflowConfig(searchFrom, config.extends)
     config = mergeConfigs(baseConfig, config)
+  }
+
+  // Load environment variables for AI configuration
+  const envAIConfig = loadAIConfigFromEnv()
+  if (Object.keys(envAIConfig).length > 0) {
+    config = {
+      ...config,
+      ai: {
+        ...config.ai,
+        ...envAIConfig,
+      } as AIConfig,
+    }
   }
 
   // Merge with defaults and validate
@@ -610,10 +756,14 @@ function mergeConfigs(base: WorkflowConfig, override: Partial<WorkflowConfig>): 
     if (value !== undefined) {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         const baseValue = result[key as keyof WorkflowConfig] as Record<string, any>
-        result[key as keyof WorkflowConfig] = {
-          ...baseValue,
-          ...value,
-        } as any
+        if (baseValue && typeof baseValue === 'object') {
+          result[key as keyof WorkflowConfig] = {
+            ...baseValue,
+            ...value,
+          } as any
+        } else {
+          result[key as keyof WorkflowConfig] = value as any
+        }
       } else {
         result[key as keyof WorkflowConfig] = value as any
       }

@@ -120,13 +120,15 @@ export class CodeAnalyzer {
     // Check cache if enabled
     const cacheKey = this.getCacheKey(code, options);
     if (this.config.enableCaching && this.cache.has(cacheKey)) {
-      const cachedResult = this.cache.get(cacheKey)!;
-      return {
-        ...cachedResult,
-        filePath,
-        language,
-        analysisTime: Date.now() - startTime,
-      };
+      const cachedResult = this.cache.get(cacheKey);
+      if (cachedResult) {
+        return {
+          ...cachedResult,
+          filePath,
+          language,
+          analysisTime: Date.now() - startTime,
+        };
+      }
     }
 
     // Perform AI analysis

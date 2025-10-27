@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { glob } from 'glob'
-import { join, resolve } from 'path'
 
 export interface MonorepoInfo {
   type: MonorepoType

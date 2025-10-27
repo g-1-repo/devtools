@@ -4,10 +4,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
-  ChangelogEntry,
   ChangelogGeneratorConfig,
   GitCommit,
-  VersionSuggestion,
 } from '../services/changelog-generator.js';
 import { ChangelogGenerator } from '../services/changelog-generator.js';
 
@@ -106,7 +104,7 @@ describe('ChangelogGenerator', () => {
 
   beforeEach(() => {
     config = {
-      provider: mockProvider as any,
+      provider: mockProvider,
       defaultFormat: 'markdown',
       includeBreaking: true,
       groupByType: true,
@@ -174,7 +172,11 @@ describe('ChangelogGenerator', () => {
     ];
 
     it('should generate markdown changelog', async () => {
-      const result = await generator.generateChangelog(sampleCommits, '1.2.0', '1.1.0');
+      const result = await generator.generateChangelog(
+        sampleCommits,
+        '1.2.0',
+        '1.1.0',
+      );
 
       expect(result).toBeDefined();
       expect(result.version).toBe('1.2.0');
@@ -211,7 +213,10 @@ describe('ChangelogGenerator', () => {
         ...config,
         defaultFormat: 'json',
       });
-      const result = await jsonGenerator.generateChangelog(sampleCommits, '1.2.0');
+      const result = await jsonGenerator.generateChangelog(
+        sampleCommits,
+        '1.2.0',
+      );
 
       expect(result.format).toBe('json');
       expect(() => JSON.parse(result.content)).not.toThrow();
@@ -252,9 +257,14 @@ describe('ChangelogGenerator', () => {
         ...config,
         includeAuthor: true,
       });
-      const result = await authorGenerator.generateChangelog(sampleCommits, '1.2.0', undefined, {
-        includeAuthor: true,
-      });
+      const result = await authorGenerator.generateChangelog(
+        sampleCommits,
+        '1.2.0',
+        undefined,
+        {
+          includeAuthor: true,
+        },
+      );
 
       expect(result.content).toContain('John Doe');
       expect(result.content).toContain('Jane Smith');
@@ -265,9 +275,14 @@ describe('ChangelogGenerator', () => {
         ...config,
         includeDates: false,
       });
-      const result = await noDateGenerator.generateChangelog(sampleCommits, '1.2.0', undefined, {
-        includeDates: false,
-      });
+      const result = await noDateGenerator.generateChangelog(
+        sampleCommits,
+        '1.2.0',
+        undefined,
+        {
+          includeDates: false,
+        },
+      );
 
       expect(result.date).toBeUndefined();
     });
@@ -485,7 +500,10 @@ describe('ChangelogGenerator', () => {
         },
       ] as GitCommit[];
 
-      const result = await generator.generateChangelog(malformedCommits, '1.0.0');
+      const result = await generator.generateChangelog(
+        malformedCommits,
+        '1.0.0',
+      );
 
       expect(result).toBeDefined();
       expect(result.version).toBe('1.0.0');

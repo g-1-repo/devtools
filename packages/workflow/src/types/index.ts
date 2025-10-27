@@ -100,12 +100,13 @@ export interface CommitInfo {
   type?: string
   scope?: string
   breaking?: boolean
+  body?: string
 }
 
 // AI Service Types
 export interface AIConfig {
   enabled: boolean
-  provider?: 'openai' | 'anthropic' | 'local'
+  provider?: 'openai' | 'anthropic' | 'local' | 'cloudflare'
   suggestBranchNames: boolean
   suggestCommitMessages: boolean
   generateReleaseNotes: boolean
@@ -287,7 +288,7 @@ export interface WorkflowConfig {
   // AI features
   ai?: {
     enabled: boolean
-    provider?: 'openai' | 'anthropic' | 'local'
+    provider?: 'openai' | 'anthropic' | 'local' | 'cloudflare'
     suggestBranchNames: boolean
     suggestCommitMessages: boolean
     generateReleaseNotes: boolean

@@ -735,27 +735,54 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               try {
                 helpers.setOutput('Using AI to generate changelog...')
                 const aiService = new AIServiceV2(config.ai)
-                const aiChangelog = await aiService.generateChangelog(ctx.git!.commits)
 
-                if (aiChangelog && aiChangelog.length > 0) {
-                  // Format the AI-generated changelog entries
-                  const formattedEntries = aiChangelog
+                // Use the enhanced AI changelog generation with proper options
+                const options = {
+                  format: 'markdown' as const,
+                  includeAuthor: config.ai.features.changelog.includeBreakingChanges ?? true,
+                  includeDates: config.ai.features.changelog.categorizeCommits ?? true,
+                  groupByType: config.ai.features.changelog.categorizeCommits ?? true,
+                }
+
+                // Generate changelog using AI service
+                const changelogEntries = await aiService.generateChangelog(
+                  ctx.git!.commits,
+                  ctx.project?.name,
+                  ctx.project?.version
+                )
+
+                if (changelogEntries && changelogEntries.length > 0) {
+                  // Convert changelog entries to markdown format
+                  const changelogContent = changelogEntries
                     .map((entry) => {
-                      const typeEmoji =
-                        entry.type === 'feat' ? '✨' : entry.type === 'fix' ? '🐛' : '📝'
-                      const scopeText = entry.scope ? `(${entry.scope})` : ''
-                      return `- ${typeEmoji} ${entry.type}${scopeText}: ${entry.description}`
+                      const typeLabel =
+                        entry.type === 'feat'
+                          ? 'Features'
+                          : entry.type === 'fix'
+                            ? 'Bug Fixes'
+                            : entry.type === 'breaking'
+                              ? 'BREAKING CHANGES'
+                              : 'Other Changes'
+                      return `### ${typeLabel}\n- ${entry.description}`
                     })
-                    .join('\n')
+                    .join('\n\n')
 
-                  changelogEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${formattedEntries}\n`
+                  const versionEntry = `## [${ctx.version!.next}] - ${new Date().toISOString().split('T')[0]}\n\n${changelogContent}`
+
+                  // Use the generated changelog entry
+                  changelogEntry = `${versionEntry}\n`
+
                   helpers.setOutput('AI-generated changelog created successfully')
                 } else {
-                  helpers.setOutput('AI changelog generation failed, using fallback...')
+                  helpers.setOutput(
+                    'AI changelog generation returned empty result, using fallback...'
+                  )
                   changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
                 }
               } catch (error) {
-                helpers.setOutput('AI changelog generation failed, using fallback...')
+                helpers.setOutput(
+                  `AI changelog generation failed: ${error instanceof Error ? error.message : String(error)}, using fallback...`
+                )
                 changelogEntry = generateChangelogEntry(ctx.version!.next, ctx.git!.commits)
               }
             } else {

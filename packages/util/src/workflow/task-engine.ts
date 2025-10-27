@@ -2,7 +2,7 @@
  * Shared Task Engine - @clack/prompts integration
  */
 
-import { spinner, log, note } from '@clack/prompts'
+import { log, spinner } from '@clack/prompts'
 import chalk from 'chalk'
 import { ErrorFormatter } from '../debug/index.js'
 
@@ -61,7 +61,7 @@ export class TaskEngine {
       for (const step of steps) {
         await this.executeStep(step, context)
       }
-      
+
       return context
     }
     catch (error) {
@@ -109,7 +109,7 @@ export class TaskEngine {
     }
 
     // Check if step should be skipped
-    const skipResult = typeof step.skip === 'function' 
+    const skipResult = typeof step.skip === 'function'
       ? await step.skip(context)
       : step.skip
 
@@ -123,11 +123,12 @@ export class TaskEngine {
     // Execute subtasks if present
     if (step.subtasks && step.subtasks.length > 0) {
       log.step(`${chalk.blue('●')} ${step.title}`)
-      
+
       if (step.concurrent && !this.options.concurrent === false) {
         // Execute subtasks concurrently
         await Promise.all(step.subtasks.map(subtask => this.executeStep(subtask, context)))
-      } else {
+      }
+      else {
         // Execute subtasks sequentially
         for (const subtask of step.subtasks) {
           await this.executeStep(subtask, context)
@@ -142,11 +143,11 @@ export class TaskEngine {
       s.start(`${chalk.blue('●')} ${step.title}`)
 
       let currentTitle = step.title
-      let currentOutput = ''
+      let _currentOutput = ''
 
       const helpers: TaskHelpers = {
         setOutput: (output: string) => {
-          currentOutput = output
+          _currentOutput = output
           s.message(`${chalk.blue('●')} ${currentTitle} - ${chalk.gray(output)}`)
         },
         setTitle: (title: string) => {
@@ -164,17 +165,20 @@ export class TaskEngine {
       try {
         await step.task(context, helpers)
         s.stop(`${chalk.green('✓')} ${currentTitle}`)
-      } catch (error) {
+      }
+      catch (error) {
         s.stop(`${chalk.red('✗')} ${currentTitle}`)
-        
+
         if (step.retry && step.retry > 0) {
           log.warn(`${chalk.yellow('↻')} Retrying ${step.title} (${step.retry} attempts remaining)`)
           const retryStep = { ...step, retry: step.retry - 1 }
           await this.executeStep(retryStep, context)
-        } else {
+        }
+        else {
           if (this.options.exitOnError !== false) {
             throw error
-          } else {
+          }
+          else {
             log.error(`${chalk.red('✗')} ${step.title} failed: ${error instanceof Error ? error.message : String(error)}`)
           }
         }
@@ -186,7 +190,7 @@ export class TaskEngine {
     const width = 20
     const filled = Math.round((percentage / 100) * width)
     const empty = width - filled
-    
+
     return `[${chalk.green('█'.repeat(filled))}${chalk.gray('░'.repeat(empty))}]`
   }
 }

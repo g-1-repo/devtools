@@ -138,22 +138,22 @@ export function analyzeError(error: Error | string): WorkflowError {
 export function displayStructuredError(error: WorkflowError): void {
   console.log()
   console.log('\x1b[31m\x1b[1mWorkflow Error\x1b[0m')
-  console.log('\x1b[31m' + '─'.repeat(50) + '\x1b[0m')
+  console.log(`\x1b[31m${'─'.repeat(50)}\x1b[0m`)
   console.log()
 
   console.log('\x1b[31m\x1b[1mError:\x1b[0m', error.message)
 
   if (error.code) {
-    console.log('\x1b[90mCode:\x1b[0m', '\x1b[33m' + error.code + '\x1b[0m')
+    console.log('\x1b[90mCode:\x1b[0m', `\x1b[33m${error.code}\x1b[0m`)
   }
 
-  console.log('\x1b[90mCategory:\x1b[0m', '\x1b[34m' + error.category + '\x1b[0m')
+  console.log('\x1b[90mCategory:\x1b[0m', `\x1b[34m${error.category}\x1b[0m`)
 
   if (error.suggestions.length > 0) {
     console.log()
     console.log('\x1b[33m\x1b[1mSuggestions:\x1b[0m')
     error.suggestions.forEach((suggestion, index) => {
-      console.log('\x1b[33m' + `  ${index + 1}. ${suggestion}` + '\x1b[0m')
+      console.log(`\x1b[33m  ${index + 1}. ${suggestion}\x1b[0m`)
     })
   }
 
@@ -161,7 +161,7 @@ export function displayStructuredError(error: WorkflowError): void {
     console.log()
     console.log('\x1b[90m\x1b[1mContext:\x1b[0m')
     Object.entries(error.context).forEach(([key, value]) => {
-      console.log('\x1b[90m' + `  ${key}: ${value}` + '\x1b[0m')
+      console.log(`\x1b[90m  ${key}: ${value}\x1b[0m`)
     })
   }
 

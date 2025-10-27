@@ -47,7 +47,9 @@ child.on('close', (code) => {
     const versionLines = lines.filter(
       (line) => line.includes('version') || line.includes('Version') || line.includes('approval')
     )
-    versionLines.forEach((line) => console.log(`  ${line.trim()}`))
+    for (const line of versionLines) {
+      console.log(`  ${line.trim()}`)
+    }
   }
 })
 

@@ -12,6 +12,8 @@ export type { AIConfig } from './config/index.js';
 // Providers
 export { CloudflareWorkersAI } from './providers/cloudflare.js';
 export { AIServiceV2 } from './services/ai-service-v2.js';
+// Services
+export { CodeAnalyzer } from './services/code-analyzer.js';
 
 export type {
   AIProvider,

@@ -5,10 +5,9 @@
  * selective builds, tests, and deployments.
  */
 
-import { confirm, intro, log, multiselect, note, outro, select } from '@clack/prompts'
-import chalk from 'chalk'
+import { intro, note, outro } from '@clack/prompts'
 import { Command } from 'commander'
-import { loadWorkflowConfig, mergeConfigWithFlags } from '../config/workflow-config'
+import { loadWorkflowConfig } from '../config/workflow-config'
 import { G1_ICONS, g1Log } from '../core/error-formatter'
 import { MonorepoManager } from '../core/monorepo-manager'
 import type { SelectiveOperationOptions } from '../core/selective-operations'

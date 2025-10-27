@@ -4,7 +4,6 @@
 
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { createGitOperations } from '@g-1/util/node'
 import { execa } from 'execa'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,7 +12,6 @@ import {
   createDefaultGitignore,
   createInitialCommit,
   detectGitStatus,
-  type GitStatus,
   initializeGitRepo,
   type PreFlightCheck,
   runPreFlightChecks,
@@ -139,7 +137,7 @@ describe('Git Setup', () => {
 
     it('should handle git init failure', async () => {
       mockExeca.mockImplementation((cmd, args) => {
-        if (args && args.includes('init')) {
+        if (args?.includes('init')) {
           throw new Error('Git init failed')
         }
         return Promise.resolve({ stdout: '' })
@@ -186,7 +184,7 @@ describe('Git Setup', () => {
 
     it('should handle commit failure', async () => {
       mockExeca.mockImplementation((cmd, args) => {
-        if (args && args.includes('commit')) {
+        if (args?.includes('commit')) {
           throw new Error('Nothing to commit')
         }
         return Promise.resolve({ stdout: '' })

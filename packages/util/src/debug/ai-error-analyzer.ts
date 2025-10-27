@@ -1,18 +1,19 @@
 /**
  * AI-Powered Error Analysis and Code Suggestions
- * 
+ *
  * Provides intelligent error analysis and code suggestions using the AI-core package.
  * Integrates with the existing error formatting system to provide enhanced debugging.
  */
 
-import { CodeAnalyzer, CloudflareWorkersAI, AIConfigManager, defaultAIConfig } from '@g-1/ai-core'
-import type { CodeAnalysisResult, SecurityIssue, PerformanceIssue, QualityIssue } from '@g-1/ai-core'
-import { ErrorFormatter, type FormattedError } from './error-formatter.js'
+import type { CodeAnalysisResult } from '@g-1/ai-core'
+import type { FormattedError } from './error-formatter.js'
+import { AIConfigManager, CloudflareWorkersAI, CodeAnalyzer } from '@g-1/ai-core'
+import { ErrorFormatter } from './error-formatter.js'
 
 export interface AIErrorAnalysis {
   originalError: FormattedError
   suggestions: string[]
-  codeAnalysis?: CodeAnalysisResult
+  codeAnalysis?: CodeAnalysisResult | undefined
   confidence: number
   analysisTime: number
 }
@@ -23,6 +24,13 @@ export interface AIErrorAnalyzerConfig {
   maxAnalysisTime: number
   cacheResults: boolean
   includeCodeAnalysis: boolean
+}
+
+export interface ErrorContext {
+  filePath?: string | undefined
+  codeSnippet?: string | undefined
+  stackTrace?: string | undefined
+  environment?: string | undefined
 }
 
 export class AIErrorAnalyzer {
@@ -41,9 +49,15 @@ export class AIErrorAnalyzer {
     }
 
     // Initialize AI provider and code analyzer
-    const aiConfig = AIConfigManager.getProviderConfig('cloudflare', defaultAIConfig)
-    const provider = new CloudflareWorkersAI(aiConfig)
-    this.codeAnalyzer = new CodeAnalyzer(provider)
+    const aiConfigManager = AIConfigManager.getInstance()
+    const providerConfig = aiConfigManager.getProviderConfig('cloudflare')
+    const provider = new CloudflareWorkersAI(providerConfig)
+    this.codeAnalyzer = new CodeAnalyzer({
+      provider,
+      defaultLanguage: 'typescript',
+      enableCaching: true,
+      customRules: [],
+    })
   }
 
   /**
@@ -51,15 +65,10 @@ export class AIErrorAnalyzer {
    */
   async analyzeError(
     error: Error | string,
-    context?: {
-      filePath?: string
-      codeSnippet?: string
-      stackTrace?: string
-      environment?: string
-    }
+    context?: ErrorContext,
   ): Promise<AIErrorAnalysis> {
     const startTime = Date.now()
-    
+
     if (!this.config.enabled) {
       return this.createBasicAnalysis(error, startTime)
     }
@@ -75,7 +84,7 @@ export class AIErrorAnalyzer {
 
       const analysis = await Promise.race([
         this.performAIAnalysis(formattedError, context),
-        this.createTimeoutPromise(this.config.maxAnalysisTime)
+        this.createTimeoutPromise(this.config.maxAnalysisTime),
       ])
 
       const result: AIErrorAnalysis = {
@@ -92,7 +101,8 @@ export class AIErrorAnalyzer {
       }
 
       return result
-    } catch (analysisError) {
+    }
+    catch (analysisError) {
       console.warn('AI error analysis failed:', analysisError)
       return this.createBasicAnalysis(error, startTime)
     }
@@ -102,13 +112,15 @@ export class AIErrorAnalyzer {
    * Analyze code for potential issues and suggestions
    */
   async analyzeCode(filePath: string, content?: string): Promise<CodeAnalysisResult | null> {
-    if (!this.config.enabled || !this.config.includeCodeAnalysis) {
+    if (!this.config.enabled || !this.config.includeCodeAnalysis || !content) {
       return null
     }
 
     try {
-      return await this.codeAnalyzer.analyzeFile(filePath, content)
-    } catch (error) {
+      const result = await this.codeAnalyzer.analyzeFile(content, filePath)
+      return result
+    }
+    catch (error) {
       console.warn('Code analysis failed:', error)
       return null
     }
@@ -123,37 +135,20 @@ export class AIErrorAnalyzer {
       language?: string
       framework?: string
       purpose?: string
-    } = {}
+    } = {},
   ): Promise<string[]> {
     if (!this.config.enabled) {
       return []
     }
 
     try {
-      const analysis = await this.codeAnalyzer.analyzeCode(codeSnippet, {
+      const suggestions = await this.codeAnalyzer.getRefactoringSuggestions(codeSnippet, 'temp.ts', {
         language: context.language || 'typescript',
-        includeRefactoring: true,
-        includePerformance: true,
-        includeSecurity: true,
       })
 
-      const suggestions: string[] = []
-
-      // Extract suggestions from analysis
-      if (analysis.refactoringSuggestions) {
-        suggestions.push(...analysis.refactoringSuggestions.map(s => s.description))
-      }
-
-      if (analysis.securityIssues) {
-        suggestions.push(...analysis.securityIssues.map(s => `Security: ${s.description}`))
-      }
-
-      if (analysis.performanceIssues) {
-        suggestions.push(...analysis.performanceIssues.map(s => `Performance: ${s.description}`))
-      }
-
-      return suggestions.slice(0, 5) // Limit to top 5 suggestions
-    } catch (error) {
+      return suggestions.map((s: any) => s.description || s.suggestion || String(s))
+    }
+    catch (error) {
       console.warn('Failed to get AI suggestions:', error)
       return []
     }
@@ -174,14 +169,14 @@ export class AIErrorAnalyzer {
 
     if (analysis.codeAnalysis) {
       const issues = [
-        ...(analysis.codeAnalysis.securityIssues || []),
-        ...(analysis.codeAnalysis.performanceIssues || []),
-        ...(analysis.codeAnalysis.qualityIssues || []),
+        ...(analysis.codeAnalysis.security || []),
+        ...(analysis.codeAnalysis.performance || []),
+        ...(analysis.codeAnalysis.quality?.codeSmells || []),
       ]
 
       if (issues.length > 0) {
         output += '\n\n🔍 Code Analysis:'
-        issues.slice(0, 3).forEach((issue, index) => {
+        issues.slice(0, 3).forEach((issue: any, index: number) => {
           output += `\n  ${index + 1}. ${issue.description} (${issue.severity})`
         })
       }
@@ -194,8 +189,8 @@ export class AIErrorAnalyzer {
 
   private async performAIAnalysis(
     formattedError: FormattedError,
-    context?: any
-  ): Promise<{ suggestions: string[]; codeAnalysis?: CodeAnalysisResult; confidence: number }> {
+    context?: ErrorContext,
+  ): Promise<{ suggestions: string[], codeAnalysis?: CodeAnalysisResult, confidence: number }> {
     const errorMessage = formattedError.message
     const stackTrace = formattedError.context || context?.stackTrace || ''
 
@@ -225,15 +220,17 @@ Format as a JSON array of suggestion strings.
 
       let codeAnalysis: CodeAnalysisResult | undefined
       if (this.config.includeCodeAnalysis && context?.filePath) {
-        codeAnalysis = await this.analyzeCode(context.filePath, context.codeSnippet)
+        const analysisResult = await this.analyzeCode(context.filePath, context.codeSnippet)
+        codeAnalysis = analysisResult ?? undefined
       }
 
       return {
         suggestions: suggestions.length > 0 ? suggestions : this.getDefaultSuggestions(errorMessage),
-        codeAnalysis,
+        ...(codeAnalysis && { codeAnalysis }),
         confidence: suggestions.length > 0 ? 0.8 : 0.5,
       }
-    } catch (error) {
+    }
+    catch {
       return {
         suggestions: this.getDefaultSuggestions(errorMessage),
         confidence: 0.3,
@@ -285,7 +282,10 @@ Format as a JSON array of suggestion strings.
     return suggestions
   }
 
-  private createCacheKey(message: string, context?: any): string {
+  private createCacheKey(
+    message: string,
+    context?: ErrorContext,
+  ): string {
     const contextStr = context ? JSON.stringify(context) : ''
     return `${message}:${contextStr}`.slice(0, 100) // Limit key length
   }
@@ -319,12 +319,7 @@ export const defaultAIErrorAnalyzer = new AIErrorAnalyzer()
  */
 export async function analyzeErrorWithAI(
   error: Error | string,
-  context?: {
-    filePath?: string
-    codeSnippet?: string
-    stackTrace?: string
-    environment?: string
-  }
+  context?: ErrorContext,
 ): Promise<AIErrorAnalysis> {
   return defaultAIErrorAnalyzer.analyzeError(error, context)
 }
@@ -338,7 +333,7 @@ export async function getAICodeSuggestions(
     language?: string
     framework?: string
     purpose?: string
-  } = {}
+  } = {},
 ): Promise<string[]> {
   return defaultAIErrorAnalyzer.getSuggestions(codeSnippet, context)
 }

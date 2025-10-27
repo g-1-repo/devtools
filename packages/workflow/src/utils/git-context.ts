@@ -4,8 +4,6 @@
 
 import path from 'node:path'
 import process from 'node:process'
-import { execa } from 'execa'
-import type { GitStatus } from '../core/git-setup.js'
 import { detectGitStatus } from '../core/git-setup.js'
 
 export interface GitContextInfo {

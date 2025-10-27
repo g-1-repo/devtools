@@ -8,14 +8,13 @@ import chalk from 'chalk'
 import { program } from 'commander'
 import { createAICommand } from './cli/ai.js'
 import { createFrameworkCommand } from './cli/framework.js'
-import { runInitCommand, showInitHelp } from './cli/init.js'
+import { runInitCommand } from './cli/init.js'
 import { createMonorepoCommand } from './cli/monorepo.js'
 import { loadWorkflowConfig, mergeConfigWithFlags } from './config/workflow-config.js'
 import { G1_ICONS, g1Log } from './core/error-formatter.js'
 import { handleError } from './core/error-handler.js'
 import {
   autoFixAllIssues,
-  detectGitStatus,
   displayPreFlightResults,
   interactiveFixIssues,
   runPreFlightChecks,

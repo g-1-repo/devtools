@@ -2,7 +2,7 @@
  * Tests for AI Configuration Management
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   AIConfigManager,
   createAIConfigFromEnv,
@@ -10,7 +10,6 @@ import {
   getProviderConfig,
 } from '../config/ai-config.js';
 import type {
-  AIConfig,
   CloudflareConfig,
   OllamaConfig,
   OpenAIConfig,
@@ -31,7 +30,7 @@ describe('AIConfigManager', () => {
   afterEach(() => {
     process.env = originalEnv;
     // Reset singleton instance
-    (AIConfigManager as any).instance = undefined;
+    AIConfigManager.resetInstance();
   });
 
   describe('getInstance', () => {
@@ -276,7 +275,7 @@ describe('createAIConfigFromEnv', () => {
 describe('getProviderConfig', () => {
   beforeEach(() => {
     // Reset the singleton instance before each test
-    (AIConfigManager as any).instance = null;
+    AIConfigManager.resetInstance();
   });
 
   it('should return default provider config when no provider specified', () => {
@@ -290,7 +289,7 @@ describe('getProviderConfig', () => {
   });
 
   it('should return specific provider config when specified', () => {
-    const instance = AIConfigManager.getInstance({
+    const _instance = AIConfigManager.getInstance({
       defaultProvider: 'openai',
       providers: {
         openai: {

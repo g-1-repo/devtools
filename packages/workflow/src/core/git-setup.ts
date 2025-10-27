@@ -335,7 +335,9 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
 
       if (untrackedFiles.length > 0) {
         console.log(chalk.yellow(`Found ${untrackedFiles.length} untracked file(s):`))
-        untrackedFiles.forEach((file) => console.log(chalk.gray(`  ${file}`)))
+        for (const file of untrackedFiles) {
+          console.log(chalk.gray(`  ${file}`))
+        }
       }
 
       let finalCommitMessage = commitMessage
@@ -344,11 +346,11 @@ export async function stageAndCommitChanges(options: GitSetupOptions = {}): Prom
       if (!commitMessage) {
         try {
           const { loadWorkflowConfig } = await import('../config/workflow-config.js')
-          const { AIService } = await import('./ai-service.js')
+          const { AIServiceV2 } = await import('./ai-service-v2.js')
 
           const config = await loadWorkflowConfig()
           if (config.ai?.enabled && config.ai?.suggestCommitMessages) {
-            const aiService = new AIService(config.ai)
+            const aiService = new AIServiceV2(config.ai)
             finalCommitMessage = await aiService.suggestCommitMessage(changedFiles)
             console.log(chalk.cyan(`AI suggested commit message: ${finalCommitMessage}`))
           } else {

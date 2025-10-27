@@ -5,9 +5,9 @@
  * Supports: SvelteKit, Next.js, Nuxt.js, Vite, Create React App, and more
  */
 
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { glob } from 'glob'
-import { join } from 'path'
 
 export interface FrameworkInfo {
   name: string
@@ -236,7 +236,7 @@ export class FrameworkDetector {
   private detectNextJs(packagePath: string, packageJson: PackageJson): FrameworkInfo | null {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
 
-    if (!deps['next']) {
+    if (!deps.next) {
       return null
     }
 
@@ -248,7 +248,7 @@ export class FrameworkDetector {
 
     return {
       name: 'Next.js',
-      version: deps['next'],
+      version: deps.next,
       type: 'hybrid',
       buildCommand: packageJson.scripts?.build || 'next build',
       outputDir: '.next',
@@ -272,7 +272,7 @@ export class FrameworkDetector {
   private detectNuxt(packagePath: string, packageJson: PackageJson): FrameworkInfo | null {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
 
-    if (!deps['nuxt'] && !deps['@nuxt/kit']) {
+    if (!deps.nuxt && !deps['@nuxt/kit']) {
       return null
     }
 
@@ -280,7 +280,7 @@ export class FrameworkDetector {
 
     return {
       name: 'Nuxt.js',
-      version: deps['nuxt'] || deps['@nuxt/kit'],
+      version: deps.nuxt || deps['@nuxt/kit'],
       type: 'hybrid',
       buildCommand: packageJson.scripts?.build || 'nuxt build',
       outputDir: '.output',
@@ -304,7 +304,7 @@ export class FrameworkDetector {
   private detectVite(packagePath: string, packageJson: PackageJson): FrameworkInfo | null {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
 
-    if (!deps['vite']) {
+    if (!deps.vite) {
       return null
     }
 
@@ -312,13 +312,13 @@ export class FrameworkDetector {
 
     // Determine if it's React, Vue, or vanilla
     let frameworkName = 'Vite'
-    if (deps['react']) frameworkName = 'Vite + React'
-    else if (deps['vue']) frameworkName = 'Vite + Vue'
-    else if (deps['svelte']) frameworkName = 'Vite + Svelte'
+    if (deps.react) frameworkName = 'Vite + React'
+    else if (deps.vue) frameworkName = 'Vite + Vue'
+    else if (deps.svelte) frameworkName = 'Vite + Svelte'
 
     return {
       name: frameworkName,
-      version: deps['vite'],
+      version: deps.vite,
       type: 'spa',
       buildCommand: packageJson.scripts?.build || 'vite build',
       outputDir: 'dist',

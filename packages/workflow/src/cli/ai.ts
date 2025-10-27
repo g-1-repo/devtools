@@ -5,7 +5,7 @@
  * changelog generation, version suggestions, and impact analysis.
  */
 
-import { confirm, intro, log, note, outro, select } from '@clack/prompts'
+import { intro, outro } from '@clack/prompts'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
@@ -133,7 +133,7 @@ async function runChangelogCommand(options: AICommandOptions): Promise<void> {
         await fs.writeFile(options.output, formattedChangelog)
         g1Log.success(`Changelog saved to ${options.output}`)
       } else {
-        console.log('\n' + formattedChangelog)
+        console.log(`\n${formattedChangelog}`)
       }
     }
 
@@ -193,7 +193,7 @@ async function runVersionCommand(options: AICommandOptions): Promise<void> {
       console.log(JSON.stringify(suggestions, null, 2))
     } else {
       suggestions.forEach((suggestion) => {
-        console.log('\n' + formatVersionSuggestion(suggestion))
+        console.log(`\n${formatVersionSuggestion(suggestion)}`)
       })
     }
 
@@ -252,7 +252,7 @@ async function runImpactCommand(options: AICommandOptions): Promise<void> {
     if (options.format === 'json') {
       console.log(JSON.stringify(analysis, null, 2))
     } else {
-      console.log('\n' + formatImpactAnalysis(analysis))
+      console.log(`\n${formatImpactAnalysis(analysis)}`)
     }
 
     outro(`${G1_ICONS.success} Impact analysis complete`)

@@ -11,12 +11,10 @@ import { confirm, intro, isCancel, log } from '@clack/prompts'
 import chalk from 'chalk'
 import { createDefaultConfigFile, hasConfigFile } from '../config/workflow-config.js'
 import {
-  autoFixAllIssues,
   createInitialCommit,
   detectGitStatus,
   displayPreFlightResults,
   initializeGitRepo,
-  interactiveFixIssues,
   runPreFlightChecks,
 } from '../core/git-setup.js'
 import { G1_ICONS } from '../core/ui-components.js'
