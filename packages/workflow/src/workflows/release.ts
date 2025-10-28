@@ -469,7 +469,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                     // Detect test file being processed (Vitest format)
                     if (line.includes('.test.') || line.includes('.spec.')) {
                       const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/)
-                      if (fileMatch) {
+                      if (fileMatch && fileMatch[1]) {
                         currentFile = fileMatch[1]
                         helpers.setOutput(`Testing: ${currentFile}`)
                       }
@@ -577,7 +577,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   helpers.setOutput('• Verify test data and mock configurations')
 
                   // Interactive prompt for user decision
-                  if (!options.noInteractive) {
+                  if (!options.nonInteractive) {
                     const choice = await select({
                       message: 'Test failures detected. What would you like to do?',
                       options: [
