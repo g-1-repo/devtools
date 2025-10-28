@@ -10,6 +10,7 @@ import type {
   AIServiceError,
   ChangelogOptions,
   ChangelogResult,
+  CloudflareAPIResponse,
   CloudflareConfig,
   CodeAnalysisOptions,
   CodeAnalysisResult,
@@ -154,7 +155,7 @@ export class CloudflareWorkersAI implements AIProvider {
   private async makeRequest(
     endpoint: string,
     body: Record<string, unknown>,
-  ): Promise<unknown> {
+  ): Promise<CloudflareAPIResponse> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -173,7 +174,7 @@ export class CloudflareWorkersAI implements AIProvider {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<CloudflareAPIResponse>;
   }
 
   private parseCodeAnalysis(

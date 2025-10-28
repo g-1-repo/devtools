@@ -145,6 +145,19 @@ export interface CloudflareConfig {
   baseUrl?: string;
 }
 
+export interface CloudflareAPIResponse {
+  success: boolean;
+  result?: {
+    response?: string;
+    [key: string]: unknown;
+  };
+  errors?: Array<{
+    message: string;
+    code?: string;
+  }>;
+  messages?: string[];
+}
+
 export interface OpenAIConfig {
   apiKey: string;
   model?: string;
