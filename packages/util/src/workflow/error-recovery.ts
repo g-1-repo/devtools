@@ -284,23 +284,115 @@ export class ErrorRecoveryService {
     steps.push({
       title: 'Recovery Verification',
       task: async (_ctx, helpers) => {
-        helpers.setOutput('Checking if error has been resolved...')
+        helpers.setOutput('Starting recovery verification...')
 
         if (analysis.fixable) {
+          // Lint verification
+          helpers.setOutput('Verifying lint fixes...')
           try {
-            await execa('bun', ['run', 'lint'], { stdio: 'pipe' })
-            helpers.setOutput('Lint check passed')
-          } catch {
-            helpers.setOutput('Lint issues may still exist')
+            const lintProcess = execa('bun', ['run', 'lint'], { 
+              stdio: ['inherit', 'pipe', 'pipe'],
+              buffer: false
+            })
+
+            let lintFileCount = 0
+            lintProcess.stdout?.on('data', (data) => {
+              const output = data.toString()
+              const lines = output.split('\n')
+              
+              for (const line of lines) {
+                if (line.includes('.ts') || line.includes('.js')) {
+                  lintFileCount++
+                  helpers.setOutput(`Checking lint: ${line.trim()} (${lintFileCount} files)`)
+                }
+                if (line.includes('✓') || line.includes('All files pass')) {
+                  helpers.setOutput(`Lint verification: ${line.trim()}`)
+                }
+              }
+            })
+
+            await lintProcess
+            helpers.setOutput('✅ Lint check passed - no issues found')
+          } catch (error) {
+            const errorOutput = error instanceof Error ? error.message : String(error)
+            if (errorOutput.includes('issues found')) {
+              helpers.setOutput('⚠️ Lint issues may still exist - manual review needed')
+            } else {
+              helpers.setOutput('⚠️ Lint check failed - command may not be available')
+            }
           }
 
+          // Type-check verification
+          helpers.setOutput('Verifying TypeScript compilation...')
           try {
-            await execa('bun', ['run', 'typecheck'], { stdio: 'pipe' })
-            helpers.setOutput('Type-check passed')
-          } catch {
-            helpers.setOutput('Type-check issues may still exist')
+            const typecheckProcess = execa('bun', ['run', 'typecheck'], { 
+              stdio: ['inherit', 'pipe', 'pipe'],
+              buffer: false
+            })
+
+            let typeFileCount = 0
+            typecheckProcess.stdout?.on('data', (data) => {
+              const output = data.toString()
+              const lines = output.split('\n')
+              
+              for (const line of lines) {
+                if (line.includes('.ts') && !line.includes('error')) {
+                  typeFileCount++
+                  helpers.setOutput(`Type-checking: ${line.trim()} (${typeFileCount} files)`)
+                }
+                if (line.includes('Found 0 errors')) {
+                  helpers.setOutput(`Type-check: ${line.trim()}`)
+                }
+              }
+            })
+
+            await typecheckProcess
+            helpers.setOutput('✅ Type-check passed - no errors found')
+          } catch (error) {
+            const errorOutput = error instanceof Error ? error.message : String(error)
+            if (errorOutput.includes('error')) {
+              helpers.setOutput('⚠️ Type-check issues may still exist - manual review needed')
+            } else {
+              helpers.setOutput('⚠️ Type-check failed - command may not be available')
+            }
           }
+
+          // Test verification for test-related errors
+          if (analysis.type === 'test') {
+            helpers.setOutput('Verifying test execution...')
+            try {
+              const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], { 
+                stdio: ['inherit', 'pipe', 'pipe'],
+                buffer: false
+              })
+
+              let testFileCount = 0
+              testProcess.stdout?.on('data', (data) => {
+                const output = data.toString()
+                const lines = output.split('\n')
+                
+                for (const line of lines) {
+                  if (line.includes('.test.') || line.includes('.spec.')) {
+                    testFileCount++
+                    helpers.setOutput(`Running test: ${line.trim()} (${testFileCount} files)`)
+                  }
+                  if (line.includes('Test Files') && line.includes('passed')) {
+                    helpers.setOutput(`Test verification: ${line.trim()}`)
+                  }
+                }
+              })
+
+              await testProcess
+              helpers.setOutput('✅ Test verification passed - all tests running')
+            } catch {
+              helpers.setOutput('⚠️ Some tests may still be failing - manual review needed')
+            }
+          }
+        } else {
+          helpers.setOutput('⚠️ Error marked as non-fixable - manual intervention required')
         }
+
+        helpers.setTitle('Recovery Verification - ✅ Complete')
       },
     })
 
@@ -395,10 +487,60 @@ export class ErrorRecoveryService {
         task: async (_ctx, helpers) => {
           helpers.setOutput('Running tests to identify specific failures...')
           try {
-            await execa('bun', ['run', 'test', '--reporter=verbose'], { stdio: 'pipe' })
-            helpers.setTitle('Run individual tests - ✅ All tests passed')
+            const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], { 
+              stdio: ['inherit', 'pipe', 'pipe'],
+              buffer: false
+            })
+
+            let currentTestFile = ''
+            let testCount = 0
+            let passedTests = 0
+            let failedTests = 0
+
+            testProcess.stdout?.on('data', (data) => {
+              const output = data.toString()
+              const lines = output.split('\n')
+              
+              for (const line of lines) {
+                // Detect test file being processed
+                if (line.includes('.test.') || line.includes('.spec.')) {
+                  const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/);
+                  if (fileMatch) {
+                    currentTestFile = fileMatch[1]
+                    helpers.setOutput(`Testing: ${currentTestFile}`)
+                  }
+                }
+                
+                // Count test results
+                if (line.includes('✓') || line.includes('PASS')) {
+                  passedTests++
+                  testCount++
+                  helpers.setOutput(`Testing: ${currentTestFile} (${passedTests}✓/${failedTests}✗)`)
+                } else if (line.includes('✗') || line.includes('FAIL')) {
+                  failedTests++
+                  testCount++
+                  helpers.setOutput(`Testing: ${currentTestFile} (${passedTests}✓/${failedTests}✗)`)
+                }
+                
+                // Show test summary
+                if (line.includes('Test Files') && (line.includes('passed') || line.includes('failed'))) {
+                  helpers.setOutput(line.trim())
+                }
+              }
+            })
+
+            testProcess.stderr?.on('data', (data) => {
+              const output = data.toString()
+              if (output.includes('FAIL') || output.includes('Error')) {
+                helpers.setOutput(`⚠️ ${output.trim()}`)
+              }
+            })
+
+            await testProcess
+            helpers.setTitle(`Run individual tests - ✅ All tests passed (${testCount} tests)`)
           } catch (error) {
-            helpers.setOutput('Some tests are still failing - manual intervention needed')
+            const errorOutput = error instanceof Error ? error.message : String(error)
+            helpers.setOutput(`Some tests are still failing: ${errorOutput}`)
             helpers.setTitle('Run individual tests - ⚠️ Tests still failing')
           }
         },
@@ -409,16 +551,25 @@ export class ErrorRecoveryService {
           helpers.setOutput('Verifying test configuration files...')
           try {
             // Check for common test config files
-            const configFiles = ['vitest.config.ts', 'jest.config.js', 'test.config.js']
+            const configFiles = ['vitest.config.ts', 'vitest.config.js', 'jest.config.js', 'test.config.js']
+            let foundConfig = false
+            
             for (const file of configFiles) {
               try {
+                helpers.setOutput(`Checking for ${file}...`)
                 await execa('ls', [file], { stdio: 'pipe' })
-                helpers.setOutput(`Found test config: ${file}`)
+                helpers.setOutput(`✅ Found test config: ${file}`)
+                foundConfig = true
                 break
               } catch {
-                // File doesn't exist, continue
+                helpers.setOutput(`❌ ${file} not found`)
               }
             }
+            
+            if (!foundConfig) {
+              helpers.setOutput('⚠️ No test configuration file found - using defaults')
+            }
+            
             helpers.setTitle('Check test configuration - ✅ Complete')
           } catch {
             helpers.setTitle('Check test configuration - ⚠️ Issues found')
@@ -429,6 +580,27 @@ export class ErrorRecoveryService {
         title: 'Test environment check',
         task: async (_ctx, helpers) => {
           helpers.setOutput('Checking test environment and dependencies...')
+          
+          // Check for test dependencies
+          helpers.setOutput('Verifying test dependencies...')
+          try {
+            const packageJson = await import(process.cwd() + '/package.json')
+            const testDeps = ['vitest', 'jest', '@testing-library', 'mocha', 'chai']
+            const foundDeps = testDeps.filter(dep => 
+              packageJson.dependencies?.[dep] || 
+              packageJson.devDependencies?.[dep] ||
+              Object.keys(packageJson.devDependencies || {}).some(key => key.includes(dep))
+            )
+            
+            if (foundDeps.length > 0) {
+              helpers.setOutput(`✅ Found test dependencies: ${foundDeps.join(', ')}`)
+            } else {
+              helpers.setOutput('⚠️ No common test dependencies found')
+            }
+          } catch {
+            helpers.setOutput('⚠️ Could not read package.json')
+          }
+          
           console.error(chalk.yellow('⚠️  Test failures detected'))
           console.error(chalk.gray('Consider the following actions:'))
           console.error(chalk.gray('• Review failing test output for specific errors'))

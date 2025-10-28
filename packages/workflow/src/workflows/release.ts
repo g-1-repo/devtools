@@ -2,11 +2,11 @@
  * Complete Release Workflow - Git → Cloudflare → GitHub Release (triggers npm via Actions)
  */
 
-import process from 'node:process'
 import { isCancel, select, text } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
+import process from 'node:process'
 import * as semver from 'semver'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { AIServiceV2 } from '../core/ai-service-v2.js'
@@ -22,7 +22,7 @@ import { enhancedTypeScriptCheck } from '../utils/typescript-autofix.js'
 export {
   detectPublishablePackages,
   detectSmartPublishablePackages,
-  formatPackageDetectionSummary,
+  formatPackageDetectionSummary
 } from '../utils/smart-package-detection.js'
 
 // Import the functions for internal use
@@ -443,9 +443,71 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             for (const [command, args] of testCommands) {
               try {
                 helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
-                const _result = await execa(command, args, { stdio: 'pipe' })
+
+                // Use streaming output to provide real-time feedback and prevent memory issues
+                const subprocess = execa(command, args, {
+                  stdio: ['inherit', 'pipe', 'pipe'],
+                  buffer: false // Prevent memory buffering
+                })
+
+                let currentFile = ''
+                let testCount = 0
+                let passedTests = 0
+                let failedTests = 0
+
+                // Monitor stdout for file-level progress
+                subprocess.stdout?.on('data', (data) => {
+                  const output = data.toString()
+                  const lines = output.split('\n')
+
+                  for (const line of lines) {
+                    // Detect test file being processed (Vitest format)
+                    if (line.includes('.test.') || line.includes('.spec.')) {
+                      const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/);
+                      if (fileMatch) {
+                        currentFile = fileMatch[1]
+                        helpers.setOutput(`Testing: ${currentFile}`)
+                      }
+                    }
+
+                    // Count tests (Vitest format)
+                    if (line.includes('✓') || line.includes('PASS')) {
+                      passedTests++
+                      testCount++
+                      if (currentFile) {
+                        helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${testCount})`)
+                      }
+                    } else if (line.includes('✗') || line.includes('FAIL')) {
+                      failedTests++
+                      testCount++
+                      if (currentFile) {
+                        helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${failedTests}✗)`)
+                      }
+                    }
+
+                    // Show progress for long-running operations
+                    if (line.includes('Running') || line.includes('Collecting') || line.includes('Test Files')) {
+                      helpers.setOutput(line.trim())
+                    }
+
+                    // Show test suite completion
+                    if (line.includes('Test Files') && line.includes('passed')) {
+                      helpers.setOutput(line.trim())
+                    }
+                  }
+                })
+
+                // Monitor stderr for errors
+                subprocess.stderr?.on('data', (data) => {
+                  const output = data.toString()
+                  if (output.includes('FAIL') || output.includes('Error')) {
+                    helpers.setOutput(`⚠️ ${output.trim()}`)
+                  }
+                })
+
+                await subprocess
                 ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-                helpers.setTitle(`Running tests - All tests passed (${command})`)
+                helpers.setTitle(`Running tests - All tests passed (${testCount} tests, ${command})`)
                 return // Success! Exit early
               } catch (error) {
                 const errorOutput = error instanceof Error ? error.message : String(error)
@@ -1304,10 +1366,10 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setTitle('Find publishing workflow - ⚠️ No publishing workflows found')
                 helpers.setOutput(
                   `No GitHub Actions workflows found that publish to npm.\n` +
-                    `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
-                    `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
-                    `Example: .github/workflows/publish-npm.yml\n` +
-                    `Visit: https://github.com/${repositoryName}/actions/new`
+                  `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
+                  `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
+                  `Example: .github/workflows/publish-npm.yml\n` +
+                  `Visit: https://github.com/${repositoryName}/actions/new`
                 )
                 return
               }
@@ -1315,11 +1377,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
               helpers.setOutput(
                 `Failed to check GitHub Actions workflows.\n` +
-                  `This could be due to:\n` +
-                  `• GitHub CLI not configured: Run 'gh auth login'\n` +
-                  `• No repository access: Check permissions\n` +
-                  `• Network issues: Check internet connection\n` +
-                  `Error: ${error instanceof Error ? error.message : String(error)}`
+                `This could be due to:\n` +
+                `• GitHub CLI not configured: Run 'gh auth login'\n` +
+                `• No repository access: Check permissions\n` +
+                `• Network issues: Check internet connection\n` +
+                `Error: ${error instanceof Error ? error.message : String(error)}`
               )
               return
             }
@@ -1386,12 +1448,12 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
               helpers.setOutput(
                 `No workflow runs triggered by ${tagName} found after ${maxAttempts} attempts.\n` +
-                  `This could mean:\n` +
-                  `• The workflow hasn't started yet (GitHub can have delays)\n` +
-                  `• The workflow isn't triggered by release events\n` +
-                  `• The workflow name doesn't contain 'publish' or 'npm'\n` +
-                  `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
-                  `Or wait a few minutes and try monitoring again.`
+                `This could mean:\n` +
+                `• The workflow hasn't started yet (GitHub can have delays)\n` +
+                `• The workflow isn't triggered by release events\n` +
+                `• The workflow name doesn't contain 'publish' or 'npm'\n` +
+                `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
+                `Or wait a few minutes and try monitoring again.`
               )
             }
           },
