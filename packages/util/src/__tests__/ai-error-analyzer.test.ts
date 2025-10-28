@@ -28,29 +28,34 @@ vi.mock('@g-1/ai-core', () => ({
 
 describe('AIErrorAnalyzer', () => {
   let analyzer: AIErrorAnalyzer
-  let mockCloudflareAI: MockedFunction<any>
-  let mockCodeAnalyzer: {
-    analyzeCode: MockedFunction<any>
-    getSuggestions: MockedFunction<any>
-  }
+  let mockCloudflareAI: any
+  let mockCodeAnalyzer: any
 
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // Setup mocks directly from the vi.mock
     mockCloudflareAI = {
       generateText: vi.fn(),
       analyzeCode: vi.fn(),
-    } as any
+    }
 
     mockCodeAnalyzer = {
       analyzeCode: vi.fn(),
       getSuggestions: vi.fn(),
+      provider: mockCloudflareAI,
+      config: {},
+      cache: new Map(),
+      analyzeFile: vi.fn(),
+      analyzeProject: vi.fn(),
+      analyzeSecurityIssues: vi.fn(),
+      analyzePerformance: vi.fn(),
+      getRefactoringSuggestions: vi.fn(),
+      compareCodeQuality: vi.fn(),
     }
 
-    // Mock the constructor calls
-    vi.mocked(CloudflareWorkersAI).mockImplementation(() => mockCloudflareAI)
-    vi.mocked(CodeAnalyzer).mockImplementation(() => mockCodeAnalyzer)
+    // Mock the constructor calls - return the mock instances directly
+    ;(CloudflareWorkersAI as any).mockImplementation(() => mockCloudflareAI)
+    ;(CodeAnalyzer as any).mockImplementation(() => mockCodeAnalyzer)
 
     analyzer = new AIErrorAnalyzer({
       enabled: true,

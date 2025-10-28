@@ -183,7 +183,7 @@ program
           const config = await loadWorkflowConfig()
           if (config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
             try {
-              const aiService = new AIService(config.ai)
+              const aiService = new AIService(config.ai, process.cwd())
               // Map util CommitInfo to workflow CommitInfo by adding files property
               const workflowCommits = commits.map((commit) => ({
                 ...commit,

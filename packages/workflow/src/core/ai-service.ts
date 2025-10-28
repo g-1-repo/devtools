@@ -12,12 +12,38 @@ import type { CommitInfo } from '../types'
 
 export interface AIConfig {
   enabled: boolean
-  provider?: 'openai' | 'anthropic' | 'local'
+  provider?: 'openai' | 'anthropic' | 'local' | 'cloudflare'
   suggestBranchNames: boolean
   suggestCommitMessages: boolean
   generateReleaseNotes: boolean
   apiKey?: string
   model?: string
+  cloudflare?: {
+    accountId?: string
+    apiToken?: string
+    model?: string
+    baseUrl?: string
+  }
+  features?: {
+    changelog?: {
+      enabled?: boolean
+      includeBreakingChanges?: boolean
+      categorizeCommits?: boolean
+      generateSummary?: boolean
+    }
+    versionBump?: {
+      enabled?: boolean
+      analyzeImpact?: boolean
+      suggestBumpType?: boolean
+      confidenceThreshold?: number
+    }
+    impactAnalysis?: {
+      enabled?: boolean
+      crossPackageAnalysis?: boolean
+      riskAssessment?: boolean
+      testingRecommendations?: boolean
+    }
+  }
 }
 
 export interface ChangelogEntry {
@@ -50,6 +76,7 @@ export interface ImpactAnalysis {
 
 export class AIService {
   private config: AIConfig
+  private rootPath: string
 
   constructor(config: AIConfig, rootPath: string = process.cwd()) {
     this.config = config

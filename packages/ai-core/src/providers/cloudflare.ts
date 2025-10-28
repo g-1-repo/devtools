@@ -17,6 +17,16 @@ import type {
   GenerateTextOptions,
 } from '../types/index.js';
 
+interface CloudflareResponse {
+  success: boolean;
+  result?: {
+    response?: string;
+  };
+  errors?: Array<{
+    message: string;
+  }>;
+}
+
 export class CloudflareWorkersAI implements AIProvider {
   readonly name = 'cloudflare-workers-ai';
   readonly version = '1.0.0';
@@ -154,7 +164,7 @@ export class CloudflareWorkersAI implements AIProvider {
   private async makeRequest(
     endpoint: string,
     body: Record<string, unknown>,
-  ): Promise<unknown> {
+  ): Promise<CloudflareResponse> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -173,7 +183,7 @@ export class CloudflareWorkersAI implements AIProvider {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<CloudflareResponse>;
   }
 
   private parseCodeAnalysis(
