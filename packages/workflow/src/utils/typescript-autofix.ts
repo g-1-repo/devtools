@@ -3,9 +3,9 @@
  * Provides interactive TypeScript error handling with multiple resolution options
  */
 
-import { isCancel, select, confirm } from '@clack/prompts'
-import { execa } from 'execa'
+import { confirm, isCancel, select } from '@clack/prompts'
 import chalk from 'chalk'
+import { execa } from 'execa'
 import { G1_ICONS } from '../core/ui-components.js'
 
 export interface TypeScriptError {
@@ -53,7 +53,7 @@ export async function runTypeScriptCheck(): Promise<TypeScriptCheckResult> {
     } catch (error: any) {
       lastError = error
       output = error.stdout || error.stderr || error.message || ''
-      
+
       // If this is a TypeScript error (not command not found), parse it
       if (error.exitCode && error.exitCode > 0 && output.includes('error TS')) {
         break
@@ -63,7 +63,7 @@ export async function runTypeScriptCheck(): Promise<TypeScriptCheckResult> {
 
   // Parse TypeScript errors from output
   const errors = parseTypeScriptErrors(output)
-  
+
   return {
     hasErrors: true,
     errors,
@@ -77,7 +77,7 @@ export async function runTypeScriptCheck(): Promise<TypeScriptCheckResult> {
 function parseTypeScriptErrors(output: string): TypeScriptError[] {
   const errors: TypeScriptError[] = []
   const lines = output.split('\n')
-  
+
   for (const line of lines) {
     // Match TypeScript error format: file(line,column): error TSxxxx: message
     const match = line.match(/^(.+?)\((\d+),(\d+)\):\s*error\s+(TS\d+):\s*(.+)$/)
@@ -92,7 +92,7 @@ function parseTypeScriptErrors(output: string): TypeScriptError[] {
       })
     }
   }
-  
+
   return errors
 }
 
@@ -104,11 +104,11 @@ export async function runAutoFix(): Promise<{ success: boolean; output: string }
     // Biome auto-fix (linting, formatting, imports)
     ['bunx', ['@biomejs/biome', 'check', '--write', 'src/']],
     ['bunx', ['@biomejs/biome', 'format', '--write', 'src/']],
-    
+
     // Package-specific lint:fix
     ['bun', ['run', 'lint:fix']],
     ['npm', ['run', 'lint:fix']],
-    
+
     // ESLint fallback
     ['bunx', ['eslint', '.', '--fix']],
   ]
@@ -147,13 +147,13 @@ export async function promptTypeScriptFixOption(
   }
 
   console.log(chalk.red(`\n${G1_ICONS.error} TypeScript errors found:`))
-  
+
   // Show first few errors as preview
   const previewErrors = errors.slice(0, 3)
   for (const error of previewErrors) {
     console.log(chalk.gray(`  ${error.file}:${error.line}:${error.column} - ${error.message}`))
   }
-  
+
   if (errors.length > 3) {
     console.log(chalk.gray(`  ... and ${errors.length - 3} more errors`))
   }
@@ -204,38 +204,39 @@ export async function handleTypeScriptErrors(
     return { shouldContinue: true, wasFixed: false }
   }
 
-  const choice = autoFixMode || await promptTypeScriptFixOption(checkResult.errors, nonInteractive)
+  const choice =
+    autoFixMode || (await promptTypeScriptFixOption(checkResult.errors, nonInteractive))
 
   switch (choice) {
     case 'auto': {
       console.log(chalk.blue(`\n${G1_ICONS.gear} Running auto-fix tools...`))
-      
+
       const fixResult = await runAutoFix()
-      
+
       if (fixResult.success) {
         console.log(chalk.green(`${G1_ICONS.success} Auto-fix completed`))
-        
+
         // Re-check TypeScript after auto-fix
         console.log(chalk.blue(`${G1_ICONS.gear} Re-checking TypeScript...`))
         const recheckResult = await runTypeScriptCheck()
-        
+
         if (!recheckResult.hasErrors) {
           console.log(chalk.green(`${G1_ICONS.success} TypeScript errors resolved!`))
           return { shouldContinue: true, wasFixed: true }
         } else {
           console.log(chalk.yellow(`${G1_ICONS.warning} Some TypeScript errors remain`))
-          
+
           // Ask if they want to continue anyway or fix manually
           if (!nonInteractive) {
             const continueAnyway = await confirm({
               message: 'Continue with remaining TypeScript errors?',
               initialValue: false,
             })
-            
+
             if (isCancel(continueAnyway)) {
               return { shouldContinue: false, wasFixed: false }
             }
-            
+
             return { shouldContinue: continueAnyway, wasFixed: true }
           } else {
             return { shouldContinue: false, wasFixed: false }
@@ -250,7 +251,7 @@ export async function handleTypeScriptErrors(
     case 'manual': {
       console.log(chalk.blue(`\n${G1_ICONS.info} Manual fix mode selected`))
       console.log(chalk.gray('Fix the TypeScript errors and re-run the release command.'))
-      
+
       // Show the first error file for quick access
       if (checkResult.errors.length > 0) {
         const firstError = checkResult.errors[0]
@@ -258,12 +259,14 @@ export async function handleTypeScriptErrors(
           console.log(chalk.gray(`First error: ${firstError.file}:${firstError.line}`))
         }
       }
-      
+
       return { shouldContinue: false, wasFixed: false }
     }
 
     case 'continue': {
-      console.log(chalk.yellow(`\n${G1_ICONS.warning} Continuing with TypeScript errors (not recommended)`))
+      console.log(
+        chalk.yellow(`\n${G1_ICONS.warning} Continuing with TypeScript errors (not recommended)`)
+      )
       return { shouldContinue: true, wasFixed: false }
     }
 
@@ -286,22 +289,20 @@ export async function enhancedTypeScriptCheck(
   options: TypeScriptCheckOptions | boolean = {}
 ): Promise<{ success: boolean; wasFixed: boolean }> {
   // Handle backward compatibility with boolean parameter
-  const opts = typeof options === 'boolean' 
-    ? { nonInteractive: options } 
-    : options
+  const opts = typeof options === 'boolean' ? { nonInteractive: options } : options
 
   const checkResult = await runTypeScriptCheck()
-  
+
   if (!checkResult.hasErrors) {
     return { success: true, wasFixed: false }
   }
 
   const handleResult = await handleTypeScriptErrors(
-    checkResult, 
+    checkResult,
     opts.nonInteractive || false,
     opts.autoFixMode
   )
-  
+
   return {
     success: handleResult.shouldContinue,
     wasFixed: handleResult.wasFixed,

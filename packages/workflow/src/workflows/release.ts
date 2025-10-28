@@ -406,9 +406,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
 
             const result = await enhancedTypeScriptCheck({
               nonInteractive: options.nonInteractive,
-              autoFixMode: options.typescriptAutofix || 'auto'
+              autoFixMode: options.typescriptAutofix || 'auto',
             })
-            
+
             if (result.success) {
               if (result.wasFixed) {
                 helpers.setTitle('Type checking - Passed (auto-fixed)')
