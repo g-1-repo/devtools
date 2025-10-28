@@ -520,7 +520,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 subprocess.stderr?.on('data', stderrListener)
 
                 await subprocess
-                
+
                 // Clean up listeners
                 if (subprocess.stdout && stdoutListener) {
                   subprocess.stdout.removeListener('data', stdoutListener)
@@ -567,7 +567,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   const lines = errorOutput.split('\n')
                   const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
                   ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
-                  
+
                   // Show the suggestions
                   helpers.setOutput('\n⚠️ Test failures detected')
                   helpers.setOutput('Consider the following actions:')
@@ -575,7 +575,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   helpers.setOutput('• Check if recent code changes broke existing functionality')
                   helpers.setOutput('• Update test snapshots if UI/output has changed')
                   helpers.setOutput('• Verify test data and mock configurations')
-                  
+
                   // Interactive prompt for user decision
                   if (!options.noInteractive) {
                     const choice = await select({
@@ -584,28 +584,28 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                         {
                           value: 'exit',
                           label: 'Exit and review failing test output',
-                          hint: 'Stop the release process to investigate test failures'
+                          hint: 'Stop the release process to investigate test failures',
                         },
                         {
                           value: 'continue',
                           label: 'Continue with test failures',
-                          hint: 'Proceed with release despite test failures (not recommended)'
-                        }
-                      ]
+                          hint: 'Proceed with release despite test failures (not recommended)',
+                        },
+                      ],
                     })
 
                     if (isCancel(choice) || choice === 'exit') {
                       helpers.setOutput('Exiting to allow review of test failures...')
                       process.exit(1)
                     }
-                    
+
                     if (choice === 'continue') {
                       helpers.setOutput('⚠️ Continuing with test failures (not recommended)')
                       helpers.setTitle('Running tests - ⚠️ Continued with failures')
                       return // Continue despite failures
                     }
                   }
-                  
+
                   throw new Error(`Test failures detected: ${summary}`)
                 }
 
