@@ -99,12 +99,20 @@ export class OptimizedErrorRecoveryService {
       severity = 'critical'
       fixable = false
       suggestedFixes.push('Verify credentials', 'Refresh tokens')
-    } else if (/test.*fail|fail.*test|vitest|jest|spec.*fail|expect.*fail|assertion.*fail|test:ci/i.test(message) || 
-               /test.*error|error.*test|test.*timeout|timeout.*test/i.test(error.stack || '')) {
+    } else if (
+      /test.*fail|fail.*test|vitest|jest|spec.*fail|expect.*fail|assertion.*fail|test:ci/i.test(
+        message,
+      ) ||
+      /test.*error|error.*test|test.*timeout|timeout.*test/i.test(error.stack || '')
+    ) {
       type = 'test'
       severity = 'warning'
       fixable = true
-      suggestedFixes.push('Run individual tests to isolate failures', 'Check test configuration files', 'Review test environment setup')
+      suggestedFixes.push(
+        'Run individual tests to isolate failures',
+        'Check test configuration files',
+        'Review test environment setup',
+      )
     } else if (/dep|module not found|peer|version conflict|lockfile/i.test(message)) {
       type = 'dependency'
       severity = 'warning'
@@ -315,8 +323,13 @@ export class OptimizedErrorRecoveryService {
         title: 'Check test configuration',
         task: async (_ctx, helpers) => {
           const fs = await import('node:fs/promises')
-          const configFiles = ['vitest.config.ts', 'vitest.config.js', 'jest.config.js', 'jest.config.ts']
-          
+          const configFiles = [
+            'vitest.config.ts',
+            'vitest.config.js',
+            'jest.config.js',
+            'jest.config.ts',
+          ]
+
           for (const configFile of configFiles) {
             try {
               await fs.access(configFile)

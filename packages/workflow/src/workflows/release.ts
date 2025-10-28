@@ -2,11 +2,11 @@
  * Complete Release Workflow - Git → Cloudflare → GitHub Release (triggers npm via Actions)
  */
 
+import process from 'node:process'
 import { isCancel, select, text } from '@clack/prompts'
 import { createGitOperations } from '@g-1/util/node'
 import chalk from 'chalk'
 import { execa } from 'execa'
-import process from 'node:process'
 import * as semver from 'semver'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { AIServiceV2 } from '../core/ai-service-v2.js'
@@ -22,7 +22,7 @@ import { enhancedTypeScriptCheck } from '../utils/typescript-autofix.js'
 export {
   detectPublishablePackages,
   detectSmartPublishablePackages,
-  formatPackageDetectionSummary
+  formatPackageDetectionSummary,
 } from '../utils/smart-package-detection.js'
 
 // Import the functions for internal use
@@ -441,13 +441,18 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             let lastError: any = null
 
             for (const [command, args] of testCommands) {
+              let subprocess: any = null
+              let stdoutListener: any = null
+              let stderrListener: any = null
+
               try {
                 helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
 
                 // Use streaming output to provide real-time feedback and prevent memory issues
-                const subprocess = execa(command, args, {
+                subprocess = execa(command, args, {
                   stdio: ['inherit', 'pipe', 'pipe'],
-                  buffer: false // Prevent memory buffering
+                  buffer: false, // Prevent memory buffering
+                  cleanup: true, // Ensure proper cleanup
                 })
 
                 let currentFile = ''
@@ -455,15 +460,15 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 let passedTests = 0
                 let failedTests = 0
 
-                // Monitor stdout for file-level progress
-                subprocess.stdout?.on('data', (data) => {
+                // Create listeners with proper cleanup
+                stdoutListener = (data: Buffer) => {
                   const output = data.toString()
                   const lines = output.split('\n')
 
                   for (const line of lines) {
                     // Detect test file being processed (Vitest format)
                     if (line.includes('.test.') || line.includes('.spec.')) {
-                      const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/);
+                      const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/)
                       if (fileMatch) {
                         currentFile = fileMatch[1]
                         helpers.setOutput(`Testing: ${currentFile}`)
@@ -481,12 +486,18 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                       failedTests++
                       testCount++
                       if (currentFile) {
-                        helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${failedTests}✗)`)
+                        helpers.setOutput(
+                          `Testing: ${currentFile} (${passedTests}✓/${failedTests}✗)`
+                        )
                       }
                     }
 
                     // Show progress for long-running operations
-                    if (line.includes('Running') || line.includes('Collecting') || line.includes('Test Files')) {
+                    if (
+                      line.includes('Running') ||
+                      line.includes('Collecting') ||
+                      line.includes('Test Files')
+                    ) {
                       helpers.setOutput(line.trim())
                     }
 
@@ -495,21 +506,48 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                       helpers.setOutput(line.trim())
                     }
                   }
-                })
+                }
 
-                // Monitor stderr for errors
-                subprocess.stderr?.on('data', (data) => {
+                stderrListener = (data: Buffer) => {
                   const output = data.toString()
                   if (output.includes('FAIL') || output.includes('Error')) {
                     helpers.setOutput(`⚠️ ${output.trim()}`)
                   }
-                })
+                }
+
+                // Attach listeners
+                subprocess.stdout?.on('data', stdoutListener)
+                subprocess.stderr?.on('data', stderrListener)
 
                 await subprocess
+                
+                // Clean up listeners
+                if (subprocess.stdout && stdoutListener) {
+                  subprocess.stdout.removeListener('data', stdoutListener)
+                }
+                if (subprocess.stderr && stderrListener) {
+                  subprocess.stderr.removeListener('data', stderrListener)
+                }
+
                 ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-                helpers.setTitle(`Running tests - All tests passed (${testCount} tests, ${command})`)
+                helpers.setTitle(
+                  `Running tests - All tests passed (${testCount} tests, ${command})`
+                )
                 return // Success! Exit early
               } catch (error) {
+                // Clean up listeners on error
+                if (subprocess?.stdout && stdoutListener) {
+                  subprocess.stdout.removeListener('data', stdoutListener)
+                }
+                if (subprocess?.stderr && stderrListener) {
+                  subprocess.stderr.removeListener('data', stderrListener)
+                }
+
+                // Kill subprocess if still running
+                if (subprocess && !subprocess.killed) {
+                  subprocess.kill('SIGTERM')
+                }
+
                 const errorOutput = error instanceof Error ? error.message : String(error)
 
                 // Check if it's a "no tests found" or "script not found" error
@@ -524,11 +562,50 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   continue
                 }
 
-                // If it's a real test failure (not a missing script), stop trying
+                // If it's a real test failure (not a missing script), handle it with interactive prompt
                 if (errorOutput.includes('fail') || errorOutput.includes('Test')) {
                   const lines = errorOutput.split('\n')
                   const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
                   ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
+                  
+                  // Show the suggestions
+                  helpers.setOutput('\n⚠️ Test failures detected')
+                  helpers.setOutput('Consider the following actions:')
+                  helpers.setOutput('• Review failing test output for specific errors')
+                  helpers.setOutput('• Check if recent code changes broke existing functionality')
+                  helpers.setOutput('• Update test snapshots if UI/output has changed')
+                  helpers.setOutput('• Verify test data and mock configurations')
+                  
+                  // Interactive prompt for user decision
+                  if (!options.noInteractive) {
+                    const choice = await select({
+                      message: 'Test failures detected. What would you like to do?',
+                      options: [
+                        {
+                          value: 'exit',
+                          label: 'Exit and review failing test output',
+                          hint: 'Stop the release process to investigate test failures'
+                        },
+                        {
+                          value: 'continue',
+                          label: 'Continue with test failures',
+                          hint: 'Proceed with release despite test failures (not recommended)'
+                        }
+                      ]
+                    })
+
+                    if (isCancel(choice) || choice === 'exit') {
+                      helpers.setOutput('Exiting to allow review of test failures...')
+                      process.exit(1)
+                    }
+                    
+                    if (choice === 'continue') {
+                      helpers.setOutput('⚠️ Continuing with test failures (not recommended)')
+                      helpers.setTitle('Running tests - ⚠️ Continued with failures')
+                      return // Continue despite failures
+                    }
+                  }
+                  
                   throw new Error(`Test failures detected: ${summary}`)
                 }
 
@@ -1366,10 +1443,10 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
                 helpers.setTitle('Find publishing workflow - ⚠️ No publishing workflows found')
                 helpers.setOutput(
                   `No GitHub Actions workflows found that publish to npm.\n` +
-                  `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
-                  `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
-                  `Example: .github/workflows/publish-npm.yml\n` +
-                  `Visit: https://github.com/${repositoryName}/actions/new`
+                    `To enable workflow monitoring, create a workflow file in .github/workflows/\n` +
+                    `that includes 'publish' or 'npm' in its name and is triggered on release events.\n` +
+                    `Example: .github/workflows/publish-npm.yml\n` +
+                    `Visit: https://github.com/${repositoryName}/actions/new`
                 )
                 return
               }
@@ -1377,11 +1454,11 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ Cannot check workflows')
               helpers.setOutput(
                 `Failed to check GitHub Actions workflows.\n` +
-                `This could be due to:\n` +
-                `• GitHub CLI not configured: Run 'gh auth login'\n` +
-                `• No repository access: Check permissions\n` +
-                `• Network issues: Check internet connection\n` +
-                `Error: ${error instanceof Error ? error.message : String(error)}`
+                  `This could be due to:\n` +
+                  `• GitHub CLI not configured: Run 'gh auth login'\n` +
+                  `• No repository access: Check permissions\n` +
+                  `• Network issues: Check internet connection\n` +
+                  `Error: ${error instanceof Error ? error.message : String(error)}`
               )
               return
             }
@@ -1448,12 +1525,12 @@ export async function watchGitHubActions(repositoryName: string, tagName: string
               helpers.setTitle('Find publishing workflow - ⚠️ No workflow run found')
               helpers.setOutput(
                 `No workflow runs triggered by ${tagName} found after ${maxAttempts} attempts.\n` +
-                `This could mean:\n` +
-                `• The workflow hasn't started yet (GitHub can have delays)\n` +
-                `• The workflow isn't triggered by release events\n` +
-                `• The workflow name doesn't contain 'publish' or 'npm'\n` +
-                `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
-                `Or wait a few minutes and try monitoring again.`
+                  `This could mean:\n` +
+                  `• The workflow hasn't started yet (GitHub can have delays)\n` +
+                  `• The workflow isn't triggered by release events\n` +
+                  `• The workflow name doesn't contain 'publish' or 'npm'\n` +
+                  `\nCheck manually: https://github.com/${repositoryName}/actions\n` +
+                  `Or wait a few minutes and try monitoring again.`
               )
             }
           },

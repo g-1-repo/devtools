@@ -290,16 +290,16 @@ export class ErrorRecoveryService {
           // Lint verification
           helpers.setOutput('Verifying lint fixes...')
           try {
-            const lintProcess = execa('bun', ['run', 'lint'], { 
+            const lintProcess = execa('bun', ['run', 'lint'], {
               stdio: ['inherit', 'pipe', 'pipe'],
-              buffer: false
+              buffer: false,
             })
 
             let lintFileCount = 0
             lintProcess.stdout?.on('data', (data) => {
               const output = data.toString()
               const lines = output.split('\n')
-              
+
               for (const line of lines) {
                 if (line.includes('.ts') || line.includes('.js')) {
                   lintFileCount++
@@ -325,16 +325,16 @@ export class ErrorRecoveryService {
           // Type-check verification
           helpers.setOutput('Verifying TypeScript compilation...')
           try {
-            const typecheckProcess = execa('bun', ['run', 'typecheck'], { 
+            const typecheckProcess = execa('bun', ['run', 'typecheck'], {
               stdio: ['inherit', 'pipe', 'pipe'],
-              buffer: false
+              buffer: false,
             })
 
             let typeFileCount = 0
             typecheckProcess.stdout?.on('data', (data) => {
               const output = data.toString()
               const lines = output.split('\n')
-              
+
               for (const line of lines) {
                 if (line.includes('.ts') && !line.includes('error')) {
                   typeFileCount++
@@ -361,16 +361,16 @@ export class ErrorRecoveryService {
           if (analysis.type === 'test') {
             helpers.setOutput('Verifying test execution...')
             try {
-              const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], { 
+              const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], {
                 stdio: ['inherit', 'pipe', 'pipe'],
-                buffer: false
+                buffer: false,
               })
 
               let testFileCount = 0
               testProcess.stdout?.on('data', (data) => {
                 const output = data.toString()
                 const lines = output.split('\n')
-                
+
                 for (const line of lines) {
                   if (line.includes('.test.') || line.includes('.spec.')) {
                     testFileCount++
@@ -487,9 +487,9 @@ export class ErrorRecoveryService {
         task: async (_ctx, helpers) => {
           helpers.setOutput('Running tests to identify specific failures...')
           try {
-            const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], { 
+            const testProcess = execa('bun', ['run', 'test', '--reporter=verbose'], {
               stdio: ['inherit', 'pipe', 'pipe'],
-              buffer: false
+              buffer: false,
             })
 
             let currentTestFile = ''
@@ -500,17 +500,17 @@ export class ErrorRecoveryService {
             testProcess.stdout?.on('data', (data) => {
               const output = data.toString()
               const lines = output.split('\n')
-              
+
               for (const line of lines) {
                 // Detect test file being processed
                 if (line.includes('.test.') || line.includes('.spec.')) {
-                  const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/);
+                  const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/)
                   if (fileMatch) {
                     currentTestFile = fileMatch[1]
                     helpers.setOutput(`Testing: ${currentTestFile}`)
                   }
                 }
-                
+
                 // Count test results
                 if (line.includes('✓') || line.includes('PASS')) {
                   passedTests++
@@ -521,9 +521,12 @@ export class ErrorRecoveryService {
                   testCount++
                   helpers.setOutput(`Testing: ${currentTestFile} (${passedTests}✓/${failedTests}✗)`)
                 }
-                
+
                 // Show test summary
-                if (line.includes('Test Files') && (line.includes('passed') || line.includes('failed'))) {
+                if (
+                  line.includes('Test Files') &&
+                  (line.includes('passed') || line.includes('failed'))
+                ) {
                   helpers.setOutput(line.trim())
                 }
               }
@@ -551,9 +554,14 @@ export class ErrorRecoveryService {
           helpers.setOutput('Verifying test configuration files...')
           try {
             // Check for common test config files
-            const configFiles = ['vitest.config.ts', 'vitest.config.js', 'jest.config.js', 'test.config.js']
+            const configFiles = [
+              'vitest.config.ts',
+              'vitest.config.js',
+              'jest.config.js',
+              'test.config.js',
+            ]
             let foundConfig = false
-            
+
             for (const file of configFiles) {
               try {
                 helpers.setOutput(`Checking for ${file}...`)
@@ -565,11 +573,11 @@ export class ErrorRecoveryService {
                 helpers.setOutput(`❌ ${file} not found`)
               }
             }
-            
+
             if (!foundConfig) {
               helpers.setOutput('⚠️ No test configuration file found - using defaults')
             }
-            
+
             helpers.setTitle('Check test configuration - ✅ Complete')
           } catch {
             helpers.setTitle('Check test configuration - ⚠️ Issues found')
@@ -580,18 +588,19 @@ export class ErrorRecoveryService {
         title: 'Test environment check',
         task: async (_ctx, helpers) => {
           helpers.setOutput('Checking test environment and dependencies...')
-          
+
           // Check for test dependencies
           helpers.setOutput('Verifying test dependencies...')
           try {
             const packageJson = await import(process.cwd() + '/package.json')
             const testDeps = ['vitest', 'jest', '@testing-library', 'mocha', 'chai']
-            const foundDeps = testDeps.filter(dep => 
-              packageJson.dependencies?.[dep] || 
-              packageJson.devDependencies?.[dep] ||
-              Object.keys(packageJson.devDependencies || {}).some(key => key.includes(dep))
+            const foundDeps = testDeps.filter(
+              (dep) =>
+                packageJson.dependencies?.[dep] ||
+                packageJson.devDependencies?.[dep] ||
+                Object.keys(packageJson.devDependencies || {}).some((key) => key.includes(dep)),
             )
-            
+
             if (foundDeps.length > 0) {
               helpers.setOutput(`✅ Found test dependencies: ${foundDeps.join(', ')}`)
             } else {
@@ -600,7 +609,7 @@ export class ErrorRecoveryService {
           } catch {
             helpers.setOutput('⚠️ Could not read package.json')
           }
-          
+
           console.error(chalk.yellow('⚠️  Test failures detected'))
           console.error(chalk.gray('Consider the following actions:'))
           console.error(chalk.gray('• Review failing test output for specific errors'))
