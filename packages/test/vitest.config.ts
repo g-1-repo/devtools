@@ -11,15 +11,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'coverage/**',
-        'dist/**',
-        '**/*.d.ts',
-        '**/*.config.*',
-        'src/**/*.test.*'
-      ]
+      exclude: ['coverage/**', 'dist/**', '**/*.d.ts', '**/*.config.*', 'src/**/*.test.*'],
     },
     testTimeout: 10000,
-    setupFiles: []
-  }
+    setupFiles: [],
+  },
 })

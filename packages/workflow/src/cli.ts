@@ -68,6 +68,8 @@ program
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
   .option('--skip-lint', 'Skip linting')
+  .option('--skip-typecheck', 'Skip TypeScript type checking')
+  .option('--typescript-autofix <mode>', 'TypeScript error handling mode: auto, manual, continue, exit', 'auto')
   .option('--skip-build', 'Skip build step')
   .option('--skip-publish', 'Skip publishing to npm')
   .option('--skip-cloudflare', 'Skip Cloudflare deployment')

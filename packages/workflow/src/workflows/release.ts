@@ -14,6 +14,7 @@ import { createErrorBox } from '../core/error-formatter.js'
 import { G1_ICONS } from '../core/ui-components.js'
 import type { ReleaseOptions, WorkflowStep } from '../types/index.js'
 import { analyzeGitContext, createContextAwareGitOperations } from '../utils/git-context.js'
+import { enhancedTypeScriptCheck } from '../utils/typescript-autofix.js'
 
 // Detection functions (detectCloudflareSetup moved to exports below)
 
@@ -399,24 +400,25 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
         },
         {
           title: 'Type checking',
+          skip: () => options.skipTypecheck || false,
           task: async (ctx, helpers) => {
             helpers.setOutput('Running TypeScript type checking...')
 
-            try {
-              await execa('bun', ['run', 'typecheck'], { stdio: 'pipe' })
-              helpers.setTitle('Type checking - Passed')
-            } catch {
-              try {
-                await execa('npm', ['run', 'typecheck'], { stdio: 'pipe' })
-                helpers.setTitle('Type checking - Passed with npm')
-              } catch {
-                try {
-                  await execa('bunx', ['tsc', '--noEmit'], { stdio: 'pipe' })
-                  helpers.setTitle('Type checking - Passed with bunx')
-                } catch {
-                  throw new Error('TypeScript errors found. Please fix before releasing.')
-                }
+            const result = await enhancedTypeScriptCheck({
+              nonInteractive: options.nonInteractive,
+              autoFixMode: options.typescriptAutofix || 'auto'
+            })
+            
+            if (result.success) {
+              if (result.wasFixed) {
+                helpers.setTitle('Type checking - Passed (auto-fixed)')
+                helpers.setOutput('TypeScript errors were automatically resolved')
+              } else {
+                helpers.setTitle('Type checking - Passed')
+                helpers.setOutput('No TypeScript errors found')
               }
+            } else {
+              throw new Error('TypeScript errors found and could not be resolved.')
             }
           },
         },

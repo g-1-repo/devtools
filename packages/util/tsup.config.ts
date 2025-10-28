@@ -5,7 +5,7 @@ export default defineConfig(
   createLibraryConfig({
     entry: {
       // Main entry point
-      'index': 'src/index.ts',
+      index: 'src/index.ts',
       // Individual module entry points for tree-shaking
       'array/index': 'src/array/index.ts',
       'async/index': 'src/async/index.ts',

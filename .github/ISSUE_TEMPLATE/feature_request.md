@@ -1,0 +1,63 @@
+---
+name: Feature request
+about: Suggest an idea for this project
+title: ''
+labels: enhancement
+assignees: ''
+---
+
+## 🚀 Feature Description
+A clear and concise description of the feature you'd like to see added.
+
+## 📦 Package
+Which package should this feature be added to?
+- [ ] `@g-1/ai-core` - AI/LLM utilities and providers
+- [ ] `@g-1/test` - Testing utilities and helpers
+- [ ] `@g-1/util` - General utility functions
+- [ ] `@g-1/workflow` - CLI and workflow tools
+- [ ] New package: `@g-1/____`
+
+## 💡 Motivation
+Explain the problem this feature would solve or the use case it addresses.
+
+## 📋 Detailed Proposal
+Describe the solution you'd like in detail.
+
+### API Design
+```typescript
+// Example of how you'd like the API to work
+import { newUtility } from '@g-1/package'
+
+const result = newUtility(/* parameters */)
+```
+
+### Module Location (for @g-1/util)
+If this is for `@g-1/util`, which module should this utility belong to?
+- [ ] `@g-1/util/array`
+- [ ] `@g-1/util/async`
+- [ ] `@g-1/util/crypto`
+- [ ] `@g-1/util/database`
+- [ ] `@g-1/util/date`
+- [ ] `@g-1/util/debug`
+- [ ] `@g-1/util/http`
+- [ ] `@g-1/util/math`
+- [ ] `@g-1/util/node`
+- [ ] `@g-1/util/object`
+- [ ] `@g-1/util/string`
+- [ ] `@g-1/util/types`
+- [ ] `@g-1/util/validation`
+- [ ] `@g-1/util/web`
+- [ ] New module: `@g-1/util/____`
+
+## 🔄 Alternatives Considered
+Describe any alternative solutions or features you've considered.
+
+## 📊 Additional Context
+Add any other context, screenshots, or examples about the feature request here.
+
+## ✅ Acceptance Criteria
+- [ ] Function is implemented with TypeScript types
+- [ ] Unit tests are added
+- [ ] Documentation is updated
+- [ ] Bundle size impact is minimal
+- [ ] Follows existing code patterns
