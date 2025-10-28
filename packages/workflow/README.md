@@ -158,6 +158,12 @@ Execute the complete release workflow with interactive configuration:
 - `--type <patch|minor|major>` - Force specific version bump
 - `--skip-tests` - Skip test execution
 - `--skip-lint` - Skip linting step
+- `--skip-typecheck` - Skip TypeScript type checking
+- `--typescript-autofix <mode>` - TypeScript error handling mode:
+  - `auto` - Automatically run auto-fix tools and continue if successful (default)
+  - `manual` - Exit to fix manually, then re-run release
+  - `continue` - Continue release despite TypeScript errors
+  - `exit` - Cancel the release process
 - `--skip-cloudflare` - Skip Cloudflare deployment (or use interactive prompt)
 - `--skip-npm` - Skip npm publishing (or use interactive prompt)
 - `--non-interactive` - Run without prompts (for CI/CD environments)
@@ -462,6 +468,42 @@ Comprehensive error handling system with intelligent recovery:
 - **Structured Error Display**: Professional error formatting with categories and suggestions
 - **Auto-Fix Capabilities**: Automatically detects and fixes common issues (linting, dependencies, build errors)
 - **Interactive Recovery**: User-friendly prompts for error resolution
+
+### **🔧 TypeScript Auto-Fix Integration**
+Advanced TypeScript error handling with multiple resolution strategies:
+
+**Auto-Fix Modes:**
+- **`auto`** (default): Automatically runs fix tools (Biome, ESLint, lint:fix) and continues if successful
+- **`manual`**: Exits for manual fixes, then re-run the release
+- **`continue`**: Proceeds with release despite TypeScript errors
+- **`exit`**: Cancels the release process entirely
+
+**Supported Auto-Fix Tools:**
+- **Biome**: `bunx @biomejs/biome check --write src/`
+- **ESLint**: `bunx eslint --fix src/`
+- **Package lint:fix**: `bun run lint:fix`
+
+**Usage Examples:**
+```bash
+# Use automatic TypeScript error fixing (default)
+bun run release --typescript-autofix auto
+
+# Exit for manual fixes
+bun run release --typescript-autofix manual
+
+# Skip TypeScript checking entirely
+bun run release --skip-typecheck
+
+# Continue despite TypeScript errors
+bun run release --typescript-autofix continue
+```
+
+**Error Recovery Flow:**
+1. TypeScript errors detected during release
+2. Auto-fix tools run automatically (if mode is `auto`)
+3. Re-check TypeScript after fixes applied
+4. Continue release if errors resolved, otherwise prompt user
+5. Fallback to interactive mode for unresolved issues
 - **Error Categorization**: Git, NPM, build, network, auth, and unknown error types
 - **Context Preservation**: Detailed error context for debugging and support
 
