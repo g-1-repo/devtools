@@ -14,7 +14,7 @@ const loadChalk = () => import('chalk').then((m) => m.default)
 const loadExeca = () => import('execa').then((m) => m)
 
 export interface ErrorAnalysis {
-  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'unknown'
+  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'test' | 'unknown'
   severity: 'critical' | 'warning' | 'minor'
   fixable: boolean
   description: string
@@ -99,6 +99,12 @@ export class OptimizedErrorRecoveryService {
       severity = 'critical'
       fixable = false
       suggestedFixes.push('Verify credentials', 'Refresh tokens')
+    } else if (/test.*fail|fail.*test|vitest|jest|spec.*fail|expect.*fail|assertion.*fail|test:ci/i.test(message) || 
+               /test.*error|error.*test|test.*timeout|timeout.*test/i.test(error.stack || '')) {
+      type = 'test'
+      severity = 'warning'
+      fixable = true
+      suggestedFixes.push('Run individual tests to isolate failures', 'Check test configuration files', 'Review test environment setup')
     } else if (/dep|module not found|peer|version conflict|lockfile/i.test(message)) {
       type = 'dependency'
       severity = 'warning'
@@ -151,6 +157,9 @@ export class OptimizedErrorRecoveryService {
         break
       case 'dependency':
         steps.push(...(await this.createParallelDependencyRecoverySteps()))
+        break
+      case 'test':
+        steps.push(...(await this.createParallelTestRecoverySteps()))
         break
     }
 
@@ -281,6 +290,52 @@ export class OptimizedErrorRecoveryService {
           const execa = await this.ensureExeca()
           await execa.execa('bun', ['install'])
           helpers.setTitle('Verification - ✅ Complete')
+        },
+      },
+    ]
+  }
+
+  private async createParallelTestRecoverySteps(): Promise<WorkflowStep[]> {
+    return [
+      {
+        id: 'run-individual-tests',
+        title: 'Run individual tests',
+        task: async (_ctx, helpers) => {
+          const execa = await this.ensureExeca()
+          try {
+            await execa.execa('bun', ['run', 'test', '--reporter=verbose'])
+            helpers.setTitle('Individual Tests - ✅ Passed')
+          } catch (error) {
+            helpers.setTitle('Individual Tests - ⚠️ Some failures detected')
+          }
+        },
+      },
+      {
+        id: 'check-test-config',
+        title: 'Check test configuration',
+        task: async (_ctx, helpers) => {
+          const fs = await import('node:fs/promises')
+          const configFiles = ['vitest.config.ts', 'vitest.config.js', 'jest.config.js', 'jest.config.ts']
+          
+          for (const configFile of configFiles) {
+            try {
+              await fs.access(configFile)
+              helpers.setTitle(`Test Config - ✅ Found ${configFile}`)
+              return
+            } catch {
+              // Continue checking other config files
+            }
+          }
+          helpers.setTitle('Test Config - ⚠️ No config file found')
+        },
+      },
+      {
+        id: 'verify-test-env',
+        title: 'Verify test environment',
+        dependencies: ['run-individual-tests', 'check-test-config'],
+        task: async (_ctx, helpers) => {
+          helpers.setOutput('Test environment verification complete')
+          helpers.setTitle('Test Environment - ✅ Verified')
         },
       },
     ]

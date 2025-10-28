@@ -14,7 +14,7 @@ import { createTaskEngine } from './task-engine.js'
  */
 export interface ErrorAnalysis {
   /** The category of error detected */
-  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'unknown'
+  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'test' | 'unknown'
   /** The severity level of the error */
   severity: 'critical' | 'warning' | 'minor'
   /** Whether the error can be automatically fixed */
@@ -156,6 +156,32 @@ export class ErrorRecoveryService {
     }
 
     if (
+      errorMessage.includes('test') ||
+      errorMessage.includes('spec') ||
+      errorMessage.includes('jest') ||
+      errorMessage.includes('vitest') ||
+      errorMessage.includes('mocha') ||
+      errorMessage.includes('cypress') ||
+      errorMessage.includes('test:ci') ||
+      errorMessage.includes('test failures detected') ||
+      errorStack.includes('test')
+    ) {
+      return {
+        type: 'test',
+        severity: 'warning',
+        fixable: true,
+        description: 'Test execution failures detected',
+        suggestedFixes: [
+          'Run tests individually to identify failing tests',
+          'Check test setup and configuration',
+          'Review recent code changes that might affect tests',
+          'Update test snapshots if needed',
+          'Fix failing assertions and test logic',
+        ],
+      }
+    }
+
+    if (
       errorMessage.includes('module') ||
       errorMessage.includes('package') ||
       errorMessage.includes('dependency') ||
@@ -240,6 +266,9 @@ export class ErrorRecoveryService {
             helpers.setTitle('Authentication Error Advisory - ✅ Manual intervention required')
           },
         })
+        break
+      case 'test':
+        steps.push(...(await this.createTestRecoverySteps()))
         break
       default:
         steps.push({
@@ -354,6 +383,59 @@ export class ErrorRecoveryService {
         task: async (_ctx, helpers) => {
           await execa('bun', ['update'])
           helpers.setTitle('Update dependencies - ✅ Complete')
+        },
+      },
+    ]
+  }
+
+  private async createTestRecoverySteps(): Promise<WorkflowStep[]> {
+    return [
+      {
+        title: 'Run individual tests',
+        task: async (_ctx, helpers) => {
+          helpers.setOutput('Running tests to identify specific failures...')
+          try {
+            await execa('bun', ['run', 'test', '--reporter=verbose'], { stdio: 'pipe' })
+            helpers.setTitle('Run individual tests - ✅ All tests passed')
+          } catch (error) {
+            helpers.setOutput('Some tests are still failing - manual intervention needed')
+            helpers.setTitle('Run individual tests - ⚠️ Tests still failing')
+          }
+        },
+      },
+      {
+        title: 'Check test configuration',
+        task: async (_ctx, helpers) => {
+          helpers.setOutput('Verifying test configuration files...')
+          try {
+            // Check for common test config files
+            const configFiles = ['vitest.config.ts', 'jest.config.js', 'test.config.js']
+            for (const file of configFiles) {
+              try {
+                await execa('ls', [file], { stdio: 'pipe' })
+                helpers.setOutput(`Found test config: ${file}`)
+                break
+              } catch {
+                // File doesn't exist, continue
+              }
+            }
+            helpers.setTitle('Check test configuration - ✅ Complete')
+          } catch {
+            helpers.setTitle('Check test configuration - ⚠️ Issues found')
+          }
+        },
+      },
+      {
+        title: 'Test environment check',
+        task: async (_ctx, helpers) => {
+          helpers.setOutput('Checking test environment and dependencies...')
+          console.error(chalk.yellow('⚠️  Test failures detected'))
+          console.error(chalk.gray('Consider the following actions:'))
+          console.error(chalk.gray('• Review failing test output for specific errors'))
+          console.error(chalk.gray('• Check if recent code changes broke existing functionality'))
+          console.error(chalk.gray('• Update test snapshots if UI/output has changed'))
+          console.error(chalk.gray('• Verify test data and mock configurations'))
+          helpers.setTitle('Test environment check - ✅ Advisory provided')
         },
       },
     ]
