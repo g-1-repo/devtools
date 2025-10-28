@@ -399,7 +399,7 @@ export const DevUtils = {
 
     try {
       // Use dynamic import to avoid TypeScript checking for optional dependency
-      const dotenv = await import('dotenv')
+      const dotenv = await import('dotenv' as any)
       dotenv.config()
     } catch {
       // dotenv not available, continue silently
