@@ -162,7 +162,7 @@ export class LernaAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -192,7 +192,7 @@ export class LernaAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -204,7 +204,7 @@ export class LernaAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -220,7 +220,7 @@ export class LernaAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true
@@ -301,7 +301,7 @@ export class NxAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -331,7 +331,7 @@ export class NxAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -343,7 +343,7 @@ export class NxAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -359,7 +359,7 @@ export class NxAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true
@@ -441,7 +441,7 @@ export class YarnWorkspacesAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -471,7 +471,7 @@ export class YarnWorkspacesAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -483,7 +483,7 @@ export class YarnWorkspacesAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -499,7 +499,7 @@ export class YarnWorkspacesAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true
@@ -581,7 +581,7 @@ export class PnpmWorkspacesAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -611,7 +611,7 @@ export class PnpmWorkspacesAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -623,7 +623,7 @@ export class PnpmWorkspacesAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -639,7 +639,7 @@ export class PnpmWorkspacesAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true
@@ -716,7 +716,7 @@ export class RushAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -746,7 +746,7 @@ export class RushAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -758,7 +758,7 @@ export class RushAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -774,7 +774,7 @@ export class RushAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true
@@ -845,7 +845,7 @@ export class SinglePackageAdapter implements PackageManagerAdapter {
           try {
             // Try graceful termination first
             child.kill('SIGTERM')
-            
+
             // Force kill after timeout if still running
             setTimeout(() => {
               if (!child.killed && child.pid) {
@@ -875,7 +875,7 @@ export class SinglePackageAdapter implements PackageManagerAdapter {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
-        
+
         // Handle stderr for better error reporting
         child.stderr?.on('data', (data) => {
           output += data.toString()
@@ -887,7 +887,7 @@ export class SinglePackageAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         if (!isResolved) {
           isResolved = true
           if (code === 0) {
@@ -903,7 +903,7 @@ export class SinglePackageAdapter implements PackageManagerAdapter {
         process.removeListener('SIGINT', signalHandler)
         process.removeListener('SIGTERM', signalHandler)
         process.removeListener('exit', cleanup)
-        
+
         cleanup()
         if (!isResolved) {
           isResolved = true

@@ -439,89 +439,12 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             ]
 
             let lastError: any = null
+            let activeSubprocess: any = null
 
-            for (const [command, args] of testCommands) {
-              let subprocess: any = null
-              let stdoutListener: any = null
-              let stderrListener: any = null
-
-              try {
-                helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
-
-                // Use streaming output to provide real-time feedback and prevent memory issues
-                subprocess = execa(command, args, {
-                  stdio: ['inherit', 'pipe', 'pipe'],
-                  buffer: false, // Prevent memory buffering
-                  cleanup: true, // Ensure proper cleanup
-                })
-
-                let currentFile = ''
-                let testCount = 0
-                let passedTests = 0
-                let failedTests = 0
-
-                // Create listeners with proper cleanup
-                stdoutListener = (data: Buffer) => {
-                  const output = data.toString()
-                  const lines = output.split('\n')
-
-                  for (const line of lines) {
-                    // Detect test file being processed (Vitest format)
-                    if (line.includes('.test.') || line.includes('.spec.')) {
-                      const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/)
-                      if (fileMatch && fileMatch[1]) {
-                        currentFile = fileMatch[1]
-                        helpers.setOutput(`Testing: ${currentFile}`)
-                      }
-                    }
-
-                    // Count tests (Vitest format)
-                    if (line.includes('✓') || line.includes('PASS')) {
-                      passedTests++
-                      testCount++
-                      if (currentFile) {
-                        helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${testCount})`)
-                      }
-                    } else if (line.includes('✗') || line.includes('FAIL')) {
-                      failedTests++
-                      testCount++
-                      if (currentFile) {
-                        helpers.setOutput(
-                          `Testing: ${currentFile} (${passedTests}✓/${failedTests}✗)`
-                        )
-                      }
-                    }
-
-                    // Show progress for long-running operations
-                    if (
-                      line.includes('Running') ||
-                      line.includes('Collecting') ||
-                      line.includes('Test Files')
-                    ) {
-                      helpers.setOutput(line.trim())
-                    }
-
-                    // Show test suite completion
-                    if (line.includes('Test Files') && line.includes('passed')) {
-                      helpers.setOutput(line.trim())
-                    }
-                  }
-                }
-
-                stderrListener = (data: Buffer) => {
-                  const output = data.toString()
-                  if (output.includes('FAIL') || output.includes('Error')) {
-                    helpers.setOutput(`⚠️ ${output.trim()}`)
-                  }
-                }
-
-                // Attach listeners
-                subprocess.stdout?.on('data', stdoutListener)
-                subprocess.stderr?.on('data', stderrListener)
-
-                await subprocess
-
-                // Clean up listeners
+            // Cleanup function to ensure proper resource cleanup
+            const cleanupSubprocess = (subprocess: any, stdoutListener: any, stderrListener: any) => {
+              if (subprocess) {
+                // Remove listeners first
                 if (subprocess.stdout && stdoutListener) {
                   subprocess.stdout.removeListener('data', stdoutListener)
                 }
@@ -529,75 +452,190 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   subprocess.stderr.removeListener('data', stderrListener)
                 }
 
-                ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-                helpers.setTitle(
-                  `Running tests - All tests passed (${testCount} tests, ${command})`
-                )
-                return // Success! Exit early
-              } catch (error) {
-                // Clean up listeners on error
-                if (subprocess?.stdout && stdoutListener) {
-                  subprocess.stdout.removeListener('data', stdoutListener)
+                // Terminate process if still running
+                if (!subprocess.killed && subprocess.pid) {
+                  try {
+                    subprocess.kill('SIGTERM')
+                    // Force kill after timeout
+                    setTimeout(() => {
+                      if (!subprocess.killed && subprocess.pid) {
+                        subprocess.kill('SIGKILL')
+                      }
+                    }, 5000)
+                  } catch (killError) {
+                    // Process might already be dead
+                  }
                 }
-                if (subprocess?.stderr && stderrListener) {
-                  subprocess.stderr.removeListener('data', stderrListener)
-                }
+              }
+            }
 
-                // Kill subprocess if still running
-                if (subprocess && !subprocess.killed) {
-                  subprocess.kill('SIGTERM')
-                }
+            // Global cleanup handler for process interruption
+            const globalCleanup = () => {
+              if (activeSubprocess) {
+                cleanupSubprocess(activeSubprocess, null, null)
+                activeSubprocess = null
+              }
+            }
 
-                const errorOutput = error instanceof Error ? error.message : String(error)
+            // Register cleanup handlers
+            process.once('SIGINT', globalCleanup)
+            process.once('SIGTERM', globalCleanup)
 
-                // Check if it's a "no tests found" or "script not found" error
-                if (
-                  errorOutput.includes('No tests found') ||
-                  errorOutput.includes('no test files') ||
-                  errorOutput.includes('script not found') ||
-                  errorOutput.includes('Missing script')
-                ) {
-                  // Try next command
-                  lastError = error
-                  continue
-                }
+            try {
+              for (const [command, args] of testCommands) {
+                let subprocess: any = null
+                let stdoutListener: any = null
+                let stderrListener: any = null
+                let timeoutId: NodeJS.Timeout | null = null
 
-                // If it's a real test failure (not a missing script), handle it with interactive prompt
-                if (errorOutput.includes('fail') || errorOutput.includes('Test')) {
-                  const lines = errorOutput.split('\n')
-                  const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
-                  ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
+                try {
+                  helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
 
-                  // Show the suggestions
-                  helpers.setOutput('\n⚠️ Test failures detected')
-                  helpers.setOutput('Consider the following actions:')
-                  helpers.setOutput('• Review failing test output for specific errors')
-                  helpers.setOutput('• Check if recent code changes broke existing functionality')
-                  helpers.setOutput('• Update test snapshots if UI/output has changed')
-                  helpers.setOutput('• Verify test data and mock configurations')
+                  // Use streaming output to provide real-time feedback and prevent memory issues
+                  subprocess = execa(command, args, {
+                    stdio: ['inherit', 'pipe', 'pipe'],
+                    buffer: false, // Prevent memory buffering
+                    cleanup: true, // Ensure proper cleanup
+                    timeout: 300000, // 5 minute timeout to prevent hanging
+                  })
 
-                  // Interactive prompt for user decision
-                  if (!options.nonInteractive) {
-                    const choice = await select({
-                      message: 'Test failures detected. What would you like to do?',
-                      options: [
-                        {
-                          value: 'exit',
-                          label: 'Exit and review failing test output',
-                          hint: 'Stop the release process to investigate test failures',
-                        },
-                        {
-                          value: 'continue',
-                          label: 'Continue with test failures',
-                          hint: 'Proceed with release despite test failures (not recommended)',
-                        },
-                      ],
-                    })
+                  activeSubprocess = subprocess
 
-                    if (isCancel(choice) || choice === 'exit') {
-                      helpers.setOutput('Exiting to allow review of test failures...')
-                      process.exit(1)
+                  let currentFile = ''
+                  let testCount = 0
+                  let passedTests = 0
+                  let failedTests = 0
+
+                  // Create listeners with proper cleanup
+                  stdoutListener = (data: Buffer) => {
+                    const output = data.toString()
+                    const lines = output.split('\n')
+
+                    for (const line of lines) {
+                      // Detect test file being processed (Vitest format)
+                      if (line.includes('.test.') || line.includes('.spec.')) {
+                        const fileMatch = line.match(/([^/\s]+\.(?:test|spec)\.[jt]s)/)
+                        if (fileMatch && fileMatch[1]) {
+                          currentFile = fileMatch[1]
+                          helpers.setOutput(`Testing: ${currentFile}`)
+                        }
+                      }
+
+                      // Count tests (Vitest format)
+                      if (line.includes('✓') || line.includes('PASS')) {
+                        passedTests++
+                        testCount++
+                        if (currentFile) {
+                          helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${testCount})`)
+                        }
+                      } else if (line.includes('✗') || line.includes('FAIL')) {
+                        failedTests++
+                        testCount++
+                        if (currentFile) {
+                          helpers.setOutput(
+                            `Testing: ${currentFile} (${passedTests}✓/${failedTests}✗)`
+                          )
+                        }
+                      }
+
+                      // Show progress for long-running operations
+                      if (
+                        line.includes('Running') ||
+                        line.includes('Collecting') ||
+                        line.includes('Test Files')
+                      ) {
+                        helpers.setOutput(line.trim())
+                      }
+
+                      // Show test suite completion
+                      if (line.includes('Test Files') && line.includes('passed')) {
+                        helpers.setOutput(line.trim())
+                      }
                     }
+                  }
+
+                  stderrListener = (data: Buffer) => {
+                    const output = data.toString()
+                    if (output.includes('FAIL') || output.includes('Error')) {
+                      helpers.setOutput(`⚠️ ${output.trim()}`)
+                    }
+                  }
+
+                  // Attach listeners
+                  subprocess.stdout?.on('data', stdoutListener)
+                  subprocess.stderr?.on('data', stderrListener)
+
+                  await subprocess
+
+                  // Clean up successfully completed subprocess
+                  cleanupSubprocess(subprocess, stdoutListener, stderrListener)
+                  activeSubprocess = null
+
+                  ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
+                  helpers.setTitle(
+                    `Running tests - All tests passed (${testCount} tests, ${command})`
+                  )
+                  return // Success! Exit early
+                } catch (error) {
+                  // Clean up failed subprocess
+                  cleanupSubprocess(subprocess, stdoutListener, stderrListener)
+                  activeSubprocess = null
+
+                  if (timeoutId) {
+                    clearTimeout(timeoutId)
+                  }
+
+                  const errorOutput = error instanceof Error ? error.message : String(error)
+
+                  // Check if it's a "no tests found" or "script not found" error
+                  if (
+                    errorOutput.includes('No tests found') ||
+                    errorOutput.includes('no test files') ||
+                    errorOutput.includes('script not found') ||
+                    errorOutput.includes('Missing script') ||
+                    errorOutput.includes('timed out')
+                  ) {
+                    // Try next command
+                    lastError = error
+                    continue
+                  }
+
+                  // If it's a real test failure (not a missing script), handle it with interactive prompt
+                  if (errorOutput.includes('fail') || errorOutput.includes('Test')) {
+                    const lines = errorOutput.split('\n')
+                    const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
+                    ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
+
+                    // Show the suggestions
+                    helpers.setOutput('\n⚠️ Test failures detected')
+                    helpers.setOutput('Consider the following actions:')
+                    helpers.setOutput('• Review failing test output for specific errors')
+                    helpers.setOutput('• Check if recent code changes broke existing functionality')
+                    helpers.setOutput('• Update test snapshots if UI/output has changed')
+                    helpers.setOutput('• Verify test data and mock configurations')
+
+                    // Interactive prompt for user decision
+                    if (!options.nonInteractive) {
+                      const choice = await select({
+                        message: 'Test failures detected. What would you like to do?',
+                        options: [
+                          {
+                            value: 'exit',
+                            label: 'Exit and review failing test output',
+                            hint: 'Stop the release process to investigate test failures',
+                          },
+                          {
+                            value: 'continue',
+                            label: 'Continue with test failures',
+                            hint: 'Proceed with release despite test failures (not recommended)',
+                          },
+                        ],
+                      })
+
+                      if (isCancel(choice) || choice === 'exit') {
+                        helpers.setOutput('Exiting to allow review of test failures...')
+                        process.exit(1)
+                      }
 
                     if (choice === 'continue') {
                       helpers.setOutput('⚠️ Continuing with test failures (not recommended)')
@@ -609,28 +647,40 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   throw new Error(`Test failures detected: ${summary}`)
                 }
 
-                // Store error and try next command
-                lastError = error
+                  // Store error and try next command
+                  lastError = error
+                }
+              }
+
+              // If we get here, all commands failed - check if it's because no tests exist
+              const lastErrorOutput =
+                lastError instanceof Error ? lastError.message : String(lastError)
+              if (
+                lastErrorOutput.includes('No tests found') ||
+                lastErrorOutput.includes('no test files') ||
+                lastErrorOutput.includes('script not found') ||
+                lastErrorOutput.includes('Missing script') ||
+                lastErrorOutput.includes('timed out')
+              ) {
+                ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
+                helpers.setTitle('Running tests - No tests found (skipping)')
+                return
+              }
+
+              // Real test failure
+              ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
+              throw new Error(`Tests failed: ${lastErrorOutput}`)
+            } finally {
+              // Ensure cleanup handlers are removed
+              process.removeListener('SIGINT', globalCleanup)
+              process.removeListener('SIGTERM', globalCleanup)
+              
+              // Final cleanup of any remaining active subprocess
+              if (activeSubprocess) {
+                cleanupSubprocess(activeSubprocess, null, null)
+                activeSubprocess = null
               }
             }
-
-            // If we get here, all commands failed - check if it's because no tests exist
-            const lastErrorOutput =
-              lastError instanceof Error ? lastError.message : String(lastError)
-            if (
-              lastErrorOutput.includes('No tests found') ||
-              lastErrorOutput.includes('no test files') ||
-              lastErrorOutput.includes('script not found') ||
-              lastErrorOutput.includes('Missing script')
-            ) {
-              ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: true }
-              helpers.setTitle('Running tests - No tests found (skipping)')
-              return
-            }
-
-            // Real test failure
-            ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
-            throw new Error(`Tests failed: ${lastErrorOutput}`)
           },
         },
       ],
