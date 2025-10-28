@@ -1,5 +1,32 @@
 # Changelog
 
+## [4.2.0] - 2025-10-28
+
+### Features
+
+- add AI integration test files for workflow package
+
+### Other Changes
+
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore: stage changes for release
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore: update 13 files
+- chore: commit changes before release
+- chore(packages): update files
+- chore(packages): update files
+
+
 ## [4.1.0] - 2025-10-27
 
 ### Features
