@@ -12,7 +12,7 @@ import type { CommitInfo } from '../types'
 
 export interface AIConfig {
   enabled: boolean
-  provider?: 'openai' | 'anthropic' | 'local'
+  provider?: 'openai' | 'anthropic' | 'local' | 'cloudflare'
   suggestBranchNames: boolean
   suggestCommitMessages: boolean
   generateReleaseNotes: boolean
@@ -50,6 +50,7 @@ export interface ImpactAnalysis {
 
 export class AIService {
   private config: AIConfig
+  private rootPath: string
 
   constructor(config: AIConfig, rootPath: string = process.cwd()) {
     this.config = config

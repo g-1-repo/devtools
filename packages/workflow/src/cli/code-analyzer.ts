@@ -12,10 +12,12 @@ import {
   CloudflareWorkersAI,
   type CodeAnalysisResult,
   CodeAnalyzer,
+  type CodeSuggestion,
   createAIConfigFromEnv,
-  type FileAnalysisResult,
-  type ProjectAnalysisResult,
+  type PerformanceIssue,
+  type SecurityIssue,
 } from '@g-1/ai-core'
+import type { FileAnalysisResult, ProjectAnalysisResult } from '@g-1/ai-core/services'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { glob } from 'glob'
@@ -151,7 +153,9 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
 
     outro('Analysis complete!')
   } catch (error) {
-    g1Log.error('Interactive analysis failed:', error)
+    g1Log.error(
+      `Interactive analysis failed: ${error instanceof Error ? error.message : String(error)}`
+    )
     process.exit(1)
   }
 }
@@ -176,7 +180,7 @@ async function runFileAnalysisCommand(
     // Check file exists and size
     try {
       const stats = statSync(filePath)
-      const maxSize = parseInt(options.maxFileSize || '1048576', 10)
+      const maxSize = parseInt(String(options.maxFileSize || 1048576), 10)
 
       if (stats.size > maxSize && !options.force) {
         const shouldContinue = await confirm({
@@ -201,10 +205,20 @@ async function runFileAnalysisCommand(
 
     g1Log.info('Running AI analysis...')
 
-    const result = await analyzer.analyzeFile(filePath, {
-      includeSecurityAnalysis: !options.performanceOnly && !options.qualityOnly,
-      includePerformanceAnalysis: !options.securityOnly && !options.qualityOnly,
-      includeQualityAnalysis: !options.securityOnly && !options.performanceOnly,
+    // Read file content
+    const { readFile } = await import('node:fs/promises')
+    const fileContent = await readFile(filePath, 'utf-8')
+
+    const result = await analyzer.analyzeFile(fileContent, filePath, {
+      language: options.language,
+      analysisType: options.securityOnly
+        ? 'security'
+        : options.performanceOnly
+          ? 'performance'
+          : options.qualityOnly
+            ? 'quality'
+            : 'all',
+      includeMetrics: true,
     })
 
     await displayFileAnalysisResult(result, options)
@@ -216,7 +230,7 @@ async function runFileAnalysisCommand(
 
     outro('File analysis complete!')
   } catch (error) {
-    g1Log.error('File analysis failed:', error)
+    g1Log.error(`File analysis failed: ${error instanceof Error ? error.message : String(error)}`)
     process.exit(1)
   }
 }
@@ -277,13 +291,26 @@ async function runProjectAnalysisCommand(
       return
     }
 
-    const results = await analyzer.analyzeProject(directory, {
-      includeSecurityAnalysis: !options.performanceOnly && !options.qualityOnly,
-      includePerformanceAnalysis: !options.securityOnly && !options.qualityOnly,
-      includeQualityAnalysis: !options.securityOnly && !options.performanceOnly,
-      filePatterns: patterns,
-      excludePatterns,
-    })
+    const results = await analyzer.analyzeProject(
+      await Promise.all(
+        files.map(async (filePath) => {
+          const { readFile } = await import('node:fs/promises')
+          const content = await readFile(filePath, 'utf-8')
+          return { path: filePath, content }
+        })
+      ),
+      {
+        language: options.language,
+        analysisType: options.securityOnly
+          ? 'security'
+          : options.performanceOnly
+            ? 'performance'
+            : options.qualityOnly
+              ? 'quality'
+              : 'all',
+        includeMetrics: true,
+      }
+    )
 
     await displayProjectAnalysisResult(results, options)
 
@@ -294,7 +321,9 @@ async function runProjectAnalysisCommand(
 
     outro('Project analysis complete!')
   } catch (error) {
-    g1Log.error('Project analysis failed:', error)
+    g1Log.error(
+      `Project analysis failed: ${error instanceof Error ? error.message : String(error)}`
+    )
     process.exit(1)
   }
 }
@@ -308,16 +337,13 @@ async function runCompareCommand(
   options: CodeAnalyzerCommandOptions
 ): Promise<void> {
   try {
-    intro(`${G1_ICONS.ai} Comparing Files`)
+    intro(`${G1_ICONS.search} Code Comparison`)
 
     const analyzer = await createCodeAnalyzer(options)
-
     if (!analyzer) {
-      outro('Code analyzer not available - check AI configuration')
-      return
+      g1Log.error('Failed to create code analyzer')
+      process.exit(1)
     }
-
-    g1Log.info(`Comparing ${file1} vs ${file2}`)
 
     if (options.dryRun) {
       g1Log.info(`Would compare: ${file1} vs ${file2}`)
@@ -325,7 +351,12 @@ async function runCompareCommand(
       return
     }
 
-    const comparison = await analyzer.compareCodeQuality(file1, file2)
+    // Read file contents
+    const fs = await import('node:fs/promises')
+    const oldCode = await fs.readFile(file1, 'utf-8')
+    const newCode = await fs.readFile(file2, 'utf-8')
+
+    const comparison = await analyzer.compareCodeQuality(oldCode, newCode, file1)
 
     await displayComparisonResult(comparison, options)
 
@@ -336,7 +367,7 @@ async function runCompareCommand(
 
     outro('Comparison complete!')
   } catch (error) {
-    g1Log.error('Comparison failed:', error)
+    g1Log.error(`Comparison failed: ${error instanceof Error ? error.message : String(error)}`)
     process.exit(1)
   }
 }
@@ -368,24 +399,11 @@ async function createCodeAnalyzer(
 
     return new CodeAnalyzer({
       provider,
-      maxFileSize: parseInt(options.maxFileSize || '1048576', 10),
-      supportedExtensions: [
-        '.js',
-        '.ts',
-        '.jsx',
-        '.tsx',
-        '.vue',
-        '.svelte',
-        '.py',
-        '.rb',
-        '.go',
-        '.rs',
-        '.java',
-        '.kt',
-      ],
     })
   } catch (error) {
-    g1Log.error('Failed to create code analyzer:', error)
+    g1Log.error(
+      `Failed to create code analyzer: ${error instanceof Error ? error.message : String(error)}`
+    )
     return null
   }
 }
@@ -430,7 +448,7 @@ async function displayFileAnalysisResult(
   // Security issues
   if (result.security && result.security.length > 0) {
     console.log(chalk.bold('\n🔒 Security Issues:'))
-    result.security.forEach((issue) => {
+    result.security.forEach((issue: SecurityIssue) => {
       const severity = getSeverityColor(issue.severity)
       console.log(`  ${severity} ${issue.type}: ${issue.description}`)
       if (issue.line) console.log(`    Line ${issue.line}`)
@@ -441,7 +459,7 @@ async function displayFileAnalysisResult(
   // Performance issues
   if (result.performance && result.performance.length > 0) {
     console.log(chalk.bold('\n⚡ Performance Issues:'))
-    result.performance.forEach((issue) => {
+    result.performance.forEach((issue: PerformanceIssue) => {
       const severity = getSeverityColor(issue.severity)
       console.log(`  ${severity} ${issue.type}: ${issue.description}`)
       if (issue.line) console.log(`    Line ${issue.line}`)
@@ -452,10 +470,13 @@ async function displayFileAnalysisResult(
   // Suggestions
   if (result.suggestions && result.suggestions.length > 0) {
     console.log(chalk.bold('\n💡 Suggestions:'))
-    result.suggestions.forEach((suggestion) => {
+    result.suggestions.forEach((suggestion: CodeSuggestion) => {
       console.log(`  ${suggestion.type}: ${suggestion.description}`)
-      if (suggestion.line) console.log(`    Line ${suggestion.line}`)
-      if (suggestion.example) console.log(`    Example: ${suggestion.example}`)
+      if (suggestion.before && suggestion.after) {
+        console.log(`    Before: ${suggestion.before}`)
+        console.log(`    After: ${suggestion.after}`)
+      }
+      if (suggestion.reasoning) console.log(`    Reasoning: ${suggestion.reasoning}`)
     })
   }
 }
