@@ -84,11 +84,11 @@ function parseTypeScriptErrors(output: string): TypeScriptError[] {
     if (match) {
       const [, file, lineNum, column, code, message] = match
       errors.push({
-        file: file.trim(),
-        line: parseInt(lineNum, 10),
-        column: parseInt(column, 10),
-        message: message.trim(),
-        code: code.trim(),
+        file: file?.trim() || '',
+        line: parseInt(lineNum || '0', 10),
+        column: parseInt(column || '0', 10),
+        message: message?.trim() || '',
+        code: code?.trim() || '',
       })
     }
   }
@@ -100,7 +100,7 @@ function parseTypeScriptErrors(output: string): TypeScriptError[] {
  * Runs auto-fix commands to resolve TypeScript and linting issues
  */
 export async function runAutoFix(): Promise<{ success: boolean; output: string }> {
-  const fixCommands = [
+  const fixCommands: Array<[string, string[]]> = [
     // Biome auto-fix (linting, formatting, imports)
     ['bunx', ['@biomejs/biome', 'check', '--write', 'src/']],
     ['bunx', ['@biomejs/biome', 'format', '--write', 'src/']],
@@ -119,7 +119,7 @@ export async function runAutoFix(): Promise<{ success: boolean; output: string }
   for (const [cmd, args] of fixCommands) {
     try {
       const result = await execa(cmd, args, { stdio: 'pipe' })
-      allOutput += `✅ ${cmd} ${args.join(' ')}\n${result.stdout || result.stderr || ''}\n\n`
+      allOutput += `✅ ${cmd} ${Array.isArray(args) ? args.join(' ') : args || ''}\n${result.stdout || result.stderr || ''}\n\n`
       anySuccess = true
     } catch (error: any) {
       // Only log if it's not a "command not found" error
