@@ -717,7 +717,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             if (options.dryRun) {
               helpers.setOutput('[DRY RUN] Would generate changelog entry...')
               helpers.setTitle(
-                'Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated (dry run)'
+                `Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated (dry run)`
               )
               return
             }
@@ -800,7 +800,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               await fs.writeFile(changelogPath, newChangelog)
             }
 
-            helpers.setTitle('Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated')
+            helpers.setTitle(`Generate changelog - ${G1_ICONS.success} CHANGELOG.md updated`)
           },
         },
         {
@@ -870,7 +870,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
           task: async (ctx, helpers) => {
             if (options.dryRun) {
               helpers.setOutput('[DRY RUN] Would push commits and tags...')
-              helpers.setTitle('Push to remote - ${G1_ICONS.success} Complete (dry run)')
+              helpers.setTitle(`Push to remote - ${G1_ICONS.success} Complete (dry run)`)
               return
             }
 

@@ -138,7 +138,7 @@ export function clearCache(): void {
  *
  * @returns Object with cache size information
  */
-export function getCacheStats(): { size: number, keys: string[] } {
+export function getCacheStats(): { size: number; keys: string[] } {
   return {
     size: nanoIdCache.size,
     keys: Array.from(nanoIdCache.keys()),

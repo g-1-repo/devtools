@@ -26,15 +26,13 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
   // Try process.env first (Node.js)
   if (typeof process !== 'undefined' && process.env) {
     const value = process.env[key]
-    if (value !== undefined)
-      return value
+    if (value !== undefined) return value
   }
 
   // Fallback to globalThis for edge environments
   if (typeof globalThis !== 'undefined' && (globalThis as any).process?.env) {
     const value = (globalThis as any).process.env[key]
-    if (value !== undefined)
-      return value
+    if (value !== undefined) return value
   }
 
   return defaultValue
@@ -56,8 +54,7 @@ export function requireEnv(key: string): string {
  */
 export function getEnvNumber(key: string, defaultValue?: number): number | undefined {
   const value = getEnv(key)
-  if (!value)
-    return defaultValue
+  if (!value) return defaultValue
 
   const num = Number(value)
   if (Number.isNaN(num)) {
@@ -71,14 +68,11 @@ export function getEnvNumber(key: string, defaultValue?: number): number | undef
  */
 export function getEnvBoolean(key: string, defaultValue?: boolean): boolean | undefined {
   const value = getEnv(key)
-  if (!value)
-    return defaultValue
+  if (!value) return defaultValue
 
   const lower = value.toLowerCase()
-  if (['true', '1', 'yes', 'on'].includes(lower))
-    return true
-  if (['false', '0', 'no', 'off'].includes(lower))
-    return false
+  if (['true', '1', 'yes', 'on'].includes(lower)) return true
+  if (['false', '0', 'no', 'off'].includes(lower)) return false
 
   throw new Error(`Environment variable ${key} must be a boolean, got: ${value}`)
 }
@@ -88,13 +82,11 @@ export function getEnvBoolean(key: string, defaultValue?: boolean): boolean | un
  */
 export function getEnvJson<T = any>(key: string, defaultValue?: T): T | undefined {
   const value = getEnv(key)
-  if (!value)
-    return defaultValue
+  if (!value) return defaultValue
 
   try {
     return JSON.parse(value) as T
-  }
-  catch {
+  } catch {
     throw new Error(`Environment variable ${key} must be valid JSON, got: ${value}`)
   }
 }
@@ -152,12 +144,10 @@ export function loadEnvConfig<T extends Record<string, any>>(config: EnvConfig):
 
       if (options.required && (value === undefined || value === null || value === '')) {
         errors.push(`Required environment variable ${key} is missing`)
-      }
-      else {
+      } else {
         result[key] = value
       }
-    }
-    catch (error) {
+    } catch (error) {
       errors.push(`Invalid environment variable ${key}: ${(error as Error).message}`)
     }
   }
@@ -200,7 +190,7 @@ export const CommonEnvVars = {
   // CORS
   ALLOWED_ORIGINS: () => {
     const origins = getEnv('ALLOWED_ORIGINS')
-    return origins ? origins.split(',').map(s => s.trim()) : ['http://localhost:3000']
+    return origins ? origins.split(',').map((s) => s.trim()) : ['http://localhost:3000']
   },
 } as const
 
@@ -252,8 +242,7 @@ export function detectDatabaseProvider(): DatabaseProvider {
           require.resolve('better-sqlite3')
           return 'sqlite'
         }
-      }
-      catch {
+      } catch {
         return 'memory'
       }
       return 'memory'
@@ -382,20 +371,20 @@ export function setupTestEnvironment(): void {
  * Check if we're in a test environment
  */
 export function isTestEnvironment(): boolean {
-  return isTest()
-    || getEnv('VITEST') === 'true'
-    || getEnv('JEST_WORKER_ID') !== undefined
+  return isTest() || getEnv('VITEST') === 'true' || getEnv('JEST_WORKER_ID') !== undefined
 }
 
 /**
  * Check if we're in CI environment
  */
 export function isCIEnvironment(): boolean {
-  return getEnv('CI') === 'true'
-    || getEnv('GITHUB_ACTIONS') === 'true'
-    || getEnv('GITLAB_CI') === 'true'
-    || getEnv('TRAVIS') === 'true'
-    || getEnv('CIRCLECI') === 'true'
+  return (
+    getEnv('CI') === 'true' ||
+    getEnv('GITHUB_ACTIONS') === 'true' ||
+    getEnv('GITLAB_CI') === 'true' ||
+    getEnv('TRAVIS') === 'true' ||
+    getEnv('CIRCLECI') === 'true'
+  )
 }
 
 /**
@@ -406,16 +395,13 @@ export const DevUtils = {
    * Load .env file in development (Node.js only)
    */
   loadDotEnv: async () => {
-    if (!isDev() || typeof process === 'undefined')
-      return
+    if (!isDev() || typeof process === 'undefined') return
 
     try {
-      // Use eval to avoid TypeScript checking for optional dependency
-      // eslint-disable-next-line no-eval
-      const dotenv = await (0, eval)('import("dotenv")')
+      // Use dynamic import to avoid TypeScript checking for optional dependency
+      const dotenv = await import('dotenv')
       dotenv.config()
-    }
-    catch {
+    } catch {
       // dotenv not available, continue silently
     }
   },
@@ -424,8 +410,7 @@ export const DevUtils = {
    * Print environment info for debugging
    */
   printEnvInfo: () => {
-    if (!isDev())
-      return
+    if (!isDev()) return
 
     console.log('🌍 Environment Info:')
     console.log(`  NODE_ENV: ${getEnv('NODE_ENV')}`)

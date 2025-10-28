@@ -2,11 +2,10 @@
  * Shared Automated Error Recovery Service - Intelligent workflow error fixing
  */
 
-import type { WorkflowContext, WorkflowStep } from './task-engine.js'
 import chalk from 'chalk'
 import { execa } from 'execa'
-
 import { ErrorFormatter } from '../debug/index.js'
+import type { WorkflowContext, WorkflowStep } from './task-engine.js'
 import { createTaskEngine } from './task-engine.js'
 
 /**
@@ -85,8 +84,12 @@ export class ErrorRecoveryService {
     const errorMessage = error.message.toLowerCase()
     const errorStack = error.stack?.toLowerCase() || ''
 
-    if (errorMessage.includes('eslint') || errorMessage.includes('lint')
-      || errorStack.includes('eslint') || errorMessage.includes('style')) {
+    if (
+      errorMessage.includes('eslint') ||
+      errorMessage.includes('lint') ||
+      errorStack.includes('eslint') ||
+      errorMessage.includes('style')
+    ) {
       return {
         type: 'linting',
         severity: 'warning',
@@ -100,8 +103,12 @@ export class ErrorRecoveryService {
       }
     }
 
-    if (errorMessage.includes('typescript') || errorMessage.includes('tsc')
-      || errorMessage.includes('type') || errorStack.includes('typescript')) {
+    if (
+      errorMessage.includes('typescript') ||
+      errorMessage.includes('tsc') ||
+      errorMessage.includes('type') ||
+      errorStack.includes('typescript')
+    ) {
       return {
         type: 'typescript',
         severity: 'critical',
@@ -115,23 +122,26 @@ export class ErrorRecoveryService {
       }
     }
 
-    if (errorMessage.includes('build') || errorMessage.includes('compile')
-      || errorMessage.includes('bundl')) {
+    if (
+      errorMessage.includes('build') ||
+      errorMessage.includes('compile') ||
+      errorMessage.includes('bundl')
+    ) {
       return {
         type: 'build',
         severity: 'critical',
         fixable: true,
         description: 'Build or compilation errors',
-        suggestedFixes: [
-          'Clean and rebuild project',
-          'Update dependencies',
-          'Fix import paths',
-        ],
+        suggestedFixes: ['Clean and rebuild project', 'Update dependencies', 'Fix import paths'],
       }
     }
 
-    if (errorMessage.includes('401') || errorMessage.includes('authentication')
-      || errorMessage.includes('unauthorized') || errorMessage.includes('token')) {
+    if (
+      errorMessage.includes('401') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('token')
+    ) {
       return {
         type: 'authentication',
         severity: 'critical',
@@ -145,8 +155,12 @@ export class ErrorRecoveryService {
       }
     }
 
-    if (errorMessage.includes('module') || errorMessage.includes('package')
-      || errorMessage.includes('dependency') || errorMessage.includes('import')) {
+    if (
+      errorMessage.includes('module') ||
+      errorMessage.includes('package') ||
+      errorMessage.includes('dependency') ||
+      errorMessage.includes('import')
+    ) {
       return {
         type: 'dependency',
         severity: 'warning',
@@ -173,7 +187,10 @@ export class ErrorRecoveryService {
     }
   }
 
-  async createRecoveryWorkflow(analysis: ErrorAnalysis, _originalError: Error): Promise<WorkflowStep[]> {
+  async createRecoveryWorkflow(
+    analysis: ErrorAnalysis,
+    _originalError: Error,
+  ): Promise<WorkflowStep[]> {
     const steps: WorkflowStep[] = []
 
     steps.push({
@@ -194,13 +211,13 @@ export class ErrorRecoveryService {
 
     switch (analysis.type) {
       case 'linting':
-        steps.push(...await this.createLintingRecoverySteps())
+        steps.push(...(await this.createLintingRecoverySteps()))
         break
       case 'build':
-        steps.push(...await this.createBuildRecoverySteps())
+        steps.push(...(await this.createBuildRecoverySteps()))
         break
       case 'dependency':
-        steps.push(...await this.createDependencyRecoverySteps())
+        steps.push(...(await this.createDependencyRecoverySteps()))
         break
       case 'typescript':
         steps.push({
@@ -244,16 +261,14 @@ export class ErrorRecoveryService {
           try {
             await execa('bun', ['run', 'lint'], { stdio: 'pipe' })
             helpers.setOutput('Lint check passed')
-          }
-          catch {
+          } catch {
             helpers.setOutput('Lint issues may still exist')
           }
 
           try {
             await execa('bun', ['run', 'typecheck'], { stdio: 'pipe' })
             helpers.setOutput('Type-check passed')
-          }
-          catch {
+          } catch {
             helpers.setOutput('Type-check issues may still exist')
           }
         }
@@ -274,12 +289,13 @@ export class ErrorRecoveryService {
 
       const engine = createTaskEngine({ concurrent: false, exitOnError: true, showTimer: true })
       await engine.execute(recoverySteps, context)
-    }
-    catch (recoveryError) {
-      console.error(ErrorFormatter.formatError(
-        recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
-        'critical',
-      ).message)
+    } catch (recoveryError) {
+      console.error(
+        ErrorFormatter.formatError(
+          recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
+          'critical',
+        ).message,
+      )
       console.error(chalk.red('\nAutomated recovery failed. Manual intervention required.'))
     }
   }

@@ -78,7 +78,6 @@ export interface ImpactAnalysis {
 export class AIServiceV2 {
   private config: AIConfig
   private aiProvider?: AIProvider
-  private rootPath: string
 
   constructor(config: AIConfig, rootPath: string = process.cwd()) {
     this.config = config

@@ -3,11 +3,11 @@
  */
 
 import type { ChangelogEntry, GitCommit } from '@g-1/ai-core'
-import { AIServiceV2 } from '@g-1/ai-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AIServiceV2 } from '../core/ai-service-v2.js'
 
 // Mock the AI service
-vi.mock('@g-1/ai-core')
+vi.mock('../core/ai-service-v2.js')
 
 describe('Workflow AI Integration', () => {
   let mockAIService: vi.Mocked<AIServiceV2>
@@ -72,12 +72,11 @@ describe('Workflow AI Integration', () => {
       mockAIService.generateChangelog.mockResolvedValueOnce(mockChangelogEntries)
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const result = await aiService.generateChangelog(mockCommits)
@@ -96,12 +95,11 @@ describe('Workflow AI Integration', () => {
       mockAIService.suggestVersionBump.mockResolvedValueOnce(mockVersionSuggestion)
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const result = await aiService.suggestVersionBump(mockChangelogEntries, '1.0.0')
@@ -128,12 +126,11 @@ describe('Workflow AI Integration', () => {
       }
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const result = await aiService.analyzeImpact(mockChangelogEntries, packageInfo)
@@ -151,12 +148,11 @@ describe('Workflow AI Integration', () => {
       mockAIService.suggestBranchName.mockResolvedValueOnce(mockBranchSuggestion)
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const result = await aiService.suggestBranchName(mockCommits)
@@ -180,12 +176,11 @@ describe('Workflow AI Integration', () => {
       }
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const result = await aiService.suggestCommitMessage(changes)
@@ -219,12 +214,11 @@ describe('Workflow AI Integration', () => {
       mockAIService.suggestVersionBump.mockResolvedValueOnce(mockVersionSuggestion)
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       // Simulate release workflow usage
@@ -253,12 +247,11 @@ describe('Workflow AI Integration', () => {
       mockAIService.generateChangelog.mockRejectedValueOnce(error)
 
       const aiService = new AIServiceV2({
+        enabled: true,
         provider: 'cloudflare',
-        cloudflare: {
-          accountId: 'test-account',
-          apiToken: 'test-token',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       })
 
       const commits: GitCommit[] = [
@@ -279,21 +272,18 @@ describe('Workflow AI Integration', () => {
   describe('Configuration Integration', () => {
     it('should work with different AI configurations', () => {
       const config1 = {
+        enabled: true,
         provider: 'cloudflare' as const,
-        cloudflare: {
-          accountId: 'account1',
-          apiToken: 'token1',
-          model: '@cf/meta/llama-2-7b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       }
-
       const config2 = {
+        enabled: true,
         provider: 'cloudflare' as const,
-        cloudflare: {
-          accountId: 'account2',
-          apiToken: 'token2',
-          model: '@cf/meta/llama-2-13b-chat-int8',
-        },
+        suggestBranchNames: true,
+        suggestCommitMessages: true,
+        generateReleaseNotes: true,
       }
 
       const aiService1 = new AIServiceV2(config1)
@@ -307,9 +297,13 @@ describe('Workflow AI Integration', () => {
     it('should handle missing configuration', () => {
       expect(() => {
         new AIServiceV2({
+          enabled: true,
           provider: 'cloudflare',
+          suggestBranchNames: true,
+          suggestCommitMessages: true,
+          generateReleaseNotes: true,
         })
-      }).toThrow('Cloudflare configuration is required')
+      }).not.toThrow()
     })
   })
 

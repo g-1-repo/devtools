@@ -1,5 +1,14 @@
+import {
+  detectDatabaseProvider,
+  detectRuntime,
+  getEnv,
+  getEnvironmentInfo,
+  getRuntimeCapabilities,
+  isCIEnvironment as utilIsCIEnvironment,
+  isTestEnvironment as utilIsTestEnvironment,
+  setupTestEnvironment as utilSetupTestEnvironment,
+} from '@g-1/util/env'
 import type { TestEnvironmentConfig } from '../types.js'
-import { detectDatabaseProvider, detectRuntime, getEnv, getEnvironmentInfo, getRuntimeCapabilities, isCIEnvironment as utilIsCIEnvironment, isTestEnvironment as utilIsTestEnvironment, setupTestEnvironment as utilSetupTestEnvironment } from '@g-1/util/env'
 
 function setupTestEnvironment() {
   utilSetupTestEnvironment()
@@ -105,22 +114,26 @@ export function setupRuntimeSpecificTests(): void {
  * Check if we're in a test environment (test-suite specific override)
  */
 export function isTestEnvironment(): boolean {
-  return utilsIsTestEnvironment()
-    || getEnv('NODE_ENV') === 'test'
-    || getEnv('VITEST') === 'true'
-    || getEnv('JEST_WORKER_ID') !== undefined
+  return (
+    utilsIsTestEnvironment() ||
+    getEnv('NODE_ENV') === 'test' ||
+    getEnv('VITEST') === 'true' ||
+    getEnv('JEST_WORKER_ID') !== undefined
+  )
 }
 
 /**
  * Check if we're in CI environment (test-suite specific override)
  */
 export function isCIEnvironment(): boolean {
-  return utilsIsCIEnvironment()
-    || getEnv('CI') === 'true'
-    || getEnv('GITHUB_ACTIONS') === 'true'
-    || getEnv('GITLAB_CI') === 'true'
-    || getEnv('TRAVIS') === 'true'
-    || getEnv('CIRCLECI') === 'true'
+  return (
+    utilsIsCIEnvironment() ||
+    getEnv('CI') === 'true' ||
+    getEnv('GITHUB_ACTIONS') === 'true' ||
+    getEnv('GITLAB_CI') === 'true' ||
+    getEnv('TRAVIS') === 'true' ||
+    getEnv('CIRCLECI') === 'true'
+  )
 }
 
 /**
@@ -147,7 +160,7 @@ export function getTestConfig(): {
 /**
  * Memory usage monitoring (Node.js/Bun only)
  */
-export function getMemoryUsage(): { used: number, total: number, percentage: number } | null {
+export function getMemoryUsage(): { used: number; total: number; percentage: number } | null {
   if (typeof process !== 'undefined' && process.memoryUsage) {
     const usage = process.memoryUsage()
     const used = usage.heapUsed

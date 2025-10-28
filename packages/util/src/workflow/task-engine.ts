@@ -63,21 +63,16 @@ export class TaskEngine {
       }
 
       return context
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof Error) {
         const formattedError = ErrorFormatter.formatPublishingFailure(error.message)
         console.error(formattedError)
 
-        const errorBox = ErrorFormatter.createErrorBox(
-          'WORKFLOW EXECUTION FAILED',
-          error.message,
-          [
-            'Check the error details above',
-            'Run with --verbose for more information',
-            'Consider running automated error recovery',
-          ],
-        )
+        const errorBox = ErrorFormatter.createErrorBox('WORKFLOW EXECUTION FAILED', error.message, [
+          'Check the error details above',
+          'Run with --verbose for more information',
+          'Consider running automated error recovery',
+        ])
         console.error(errorBox)
 
         if (this.options.autoRecovery !== false) {
@@ -109,13 +104,13 @@ export class TaskEngine {
     }
 
     // Check if step should be skipped
-    const skipResult = typeof step.skip === 'function'
-      ? await step.skip(context)
-      : step.skip
+    const skipResult = typeof step.skip === 'function' ? await step.skip(context) : step.skip
 
     if (skipResult === true || typeof skipResult === 'string') {
       if (this.options.verbose) {
-        log.info(`${chalk.gray('○')} ${chalk.gray(step.title)} ${typeof skipResult === 'string' ? `- ${skipResult}` : '- skipped'}`)
+        log.info(
+          `${chalk.gray('○')} ${chalk.gray(step.title)} ${typeof skipResult === 'string' ? `- ${skipResult}` : '- skipped'}`,
+        )
       }
       return
     }
@@ -126,9 +121,8 @@ export class TaskEngine {
 
       if (step.concurrent && !this.options.concurrent === false) {
         // Execute subtasks concurrently
-        await Promise.all(step.subtasks.map(subtask => this.executeStep(subtask, context)))
-      }
-      else {
+        await Promise.all(step.subtasks.map((subtask) => this.executeStep(subtask, context)))
+      } else {
         // Execute subtasks sequentially
         for (const subtask of step.subtasks) {
           await this.executeStep(subtask, context)
@@ -158,28 +152,29 @@ export class TaskEngine {
           const progress = total ? `${current}/${total}` : `${current}%`
           const percentage = total ? Math.round((current / total) * 100) : current
           const progressBar = this.createProgressBar(percentage)
-          s.message(`${chalk.blue('●')} ${currentTitle} ${progressBar} ${chalk.gray(`${progress}`)}`)
+          s.message(
+            `${chalk.blue('●')} ${currentTitle} ${progressBar} ${chalk.gray(`${progress}`)}`,
+          )
         },
       }
 
       try {
         await step.task(context, helpers)
         s.stop(`${chalk.green('✓')} ${currentTitle}`)
-      }
-      catch (error) {
+      } catch (error) {
         s.stop(`${chalk.red('✗')} ${currentTitle}`)
 
         if (step.retry && step.retry > 0) {
           log.warn(`${chalk.yellow('↻')} Retrying ${step.title} (${step.retry} attempts remaining)`)
           const retryStep = { ...step, retry: step.retry - 1 }
           await this.executeStep(retryStep, context)
-        }
-        else {
+        } else {
           if (this.options.exitOnError !== false) {
             throw error
-          }
-          else {
-            log.error(`${chalk.red('✗')} ${step.title} failed: ${error instanceof Error ? error.message : String(error)}`)
+          } else {
+            log.error(
+              `${chalk.red('✗')} ${step.title} failed: ${error instanceof Error ? error.message : String(error)}`,
+            )
           }
         }
       }

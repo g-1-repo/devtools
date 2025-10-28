@@ -59,10 +59,8 @@ export function generateShortId(): string {
  * @returns A CUID2 string of specified length
  */
 export function generateIdWithLength(length: number): string {
-  if (length < 2)
-    length = 2
-  if (length > 24)
-    length = 24
+  if (length < 2) length = 2
+  if (length > 24) length = 24
 
   const fullId = createId()
   return fullId.slice(0, length)
@@ -77,8 +75,7 @@ export function generateIdWithLength(length: number): string {
  * @returns True if the string appears to be a valid CUID2
  */
 export function isValidCuid2(id: string): boolean {
-  if (typeof id !== 'string')
-    return false
+  if (typeof id !== 'string') return false
 
   // CUID2s are 2-24 characters, start with a letter, and contain only a-z, A-Z, 0-9
   const cuid2Pattern = /^[a-z][a-z0-9]{1,23}$/i
@@ -134,19 +131,16 @@ export function generateSortableId(): string {
  * @param sortableId - The sortable ID to parse
  * @returns Object with timestamp and id, or null if invalid
  */
-export function parseSortableId(sortableId: string): { timestamp: number, id: string } | null {
-  if (typeof sortableId !== 'string')
-    return null
+export function parseSortableId(sortableId: string): { timestamp: number; id: string } | null {
+  if (typeof sortableId !== 'string') return null
 
   const parts = sortableId.split('-')
-  if (parts.length !== 2)
-    return null
+  if (parts.length !== 2) return null
 
   const timestampStr = parts[0]
   const id = parts[1]
 
-  if (!timestampStr || !id)
-    return null
+  if (!timestampStr || !id) return null
 
   const timestamp = Number.parseInt(timestampStr, 36)
 
@@ -165,14 +159,18 @@ export function parseSortableId(sortableId: string): { timestamp: number, id: st
  * @param prefix - Optional prefix for all IDs
  * @returns Object with generated IDs and metadata
  */
-export function generateBatchIds(count: number, prefix?: string): {
+export function generateBatchIds(
+  count: number,
+  prefix?: string,
+): {
   ids: string[]
   count: number
   prefix: string | undefined
   generatedAt: string
 } {
   const ids = Array.from({ length: count }, () =>
-    prefix ? generatePrefixedId(prefix) : createId())
+    prefix ? generatePrefixedId(prefix) : createId(),
+  )
 
   return {
     ids,

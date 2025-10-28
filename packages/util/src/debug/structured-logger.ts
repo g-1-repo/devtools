@@ -146,8 +146,7 @@ export class StructuredLogger {
    * Track telemetry event
    */
   trackTelemetry(name: string, properties: Record<string, any> = {}): void {
-    if (!this.config.telemetry?.enabled)
-      return
+    if (!this.config.telemetry?.enabled) return
 
     const event: TelemetryEvent = {
       name,
@@ -184,7 +183,12 @@ export class StructuredLogger {
 
     // Override log method to include child metadata
     const originalLog = child.log.bind(child)
-    child.log = (level: LogLevel, message: string, childMetadata?: Record<string, any>, error?: Error) => {
+    child.log = (
+      level: LogLevel,
+      message: string,
+      childMetadata?: Record<string, any>,
+      error?: Error,
+    ) => {
       originalLog(level, message, { ...metadata, ...childMetadata }, error)
     }
 
@@ -210,7 +214,7 @@ export class StructuredLogger {
   async measureTime<T>(
     fn: () => T | Promise<T>,
     label: string = 'Function',
-  ): Promise<{ result: T, duration: number }> {
+  ): Promise<{ result: T; duration: number }> {
     const start = performance.now()
     const result = await fn()
     const end = performance.now()
@@ -234,8 +238,7 @@ export class StructuredLogger {
       try {
         await this.sendBatchTelemetry(this.telemetryEvents)
         this.telemetryEvents = []
-      }
-      catch (error) {
+      } catch (error) {
         this.debug('Failed to flush telemetry', {
           error: error instanceof Error ? error.message : 'Unknown error',
           eventCount: this.telemetryEvents.length,
@@ -261,9 +264,13 @@ export class StructuredLogger {
   /**
    * Core logging method
    */
-  private log(level: LogLevel, message: string, metadata?: Record<string, any>, error?: Error): void {
-    if (level > this.logLevel)
-      return
+  private log(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, any>,
+    error?: Error,
+  ): void {
+    if (level > this.logLevel) return
 
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
@@ -282,8 +289,7 @@ export class StructuredLogger {
       if (error && this.logLevel >= LogLevel.DEBUG) {
         console.error(COLORS.gray + (error.stack || error.message) + COLORS.reset)
       }
-    }
-    else {
+    } else {
       console.log(formatted)
     }
 
@@ -366,8 +372,7 @@ export class StructuredLogger {
    * Send single telemetry event
    */
   private async sendTelemetry(event: TelemetryEvent): Promise<void> {
-    if (!this.config.telemetry?.endpoint)
-      return
+    if (!this.config.telemetry?.endpoint) return
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -389,8 +394,7 @@ export class StructuredLogger {
    * Send batch telemetry events
    */
   private async sendBatchTelemetry(events: TelemetryEvent[]): Promise<void> {
-    if (!this.config.telemetry?.endpoint)
-      return
+    if (!this.config.telemetry?.endpoint) return
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -447,8 +451,7 @@ export function formatError(error: Error, exitCode: ExitCode = ExitCode.GENERAL_
  * Handle uncaught errors gracefully
  */
 export function setupErrorHandlers(logger: StructuredLogger): void {
-  if (typeof process === 'undefined')
-    return
+  if (typeof process === 'undefined') return
 
   process.on('uncaughtException', (error) => {
     logger.error('Uncaught exception', error)
@@ -520,6 +523,6 @@ export function prettyPrint(obj: any, indent: number = 2): void {
 export async function measureTime<T>(
   fn: () => T | Promise<T>,
   label: string = 'Function',
-): Promise<{ result: T, duration: number }> {
+): Promise<{ result: T; duration: number }> {
   return logger.measureTime(fn, label)
 }

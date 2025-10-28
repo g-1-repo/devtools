@@ -1,14 +1,14 @@
 // AI-powered error analysis
+
+export type {
+  AIErrorAnalysis,
+  AIErrorAnalyzerConfig,
+} from './ai-error-analyzer.js'
 export {
   AIErrorAnalyzer,
   analyzeErrorWithAI,
   defaultAIErrorAnalyzer,
   getAICodeSuggestions,
-} from './ai-error-analyzer.js'
-
-export type {
-  AIErrorAnalysis,
-  AIErrorAnalyzerConfig,
 } from './ai-error-analyzer.js'
 
 // Legacy debug utilities
@@ -18,10 +18,8 @@ export {
   measureTime as measureTimeLegacy,
   prettyPrint as prettyPrintLegacy,
 } from './debug-utils.js'
-
-export { ErrorFormatter } from './error-formatter.js'
-
 export type { FormattedError } from './error-formatter.js'
+export { ErrorFormatter } from './error-formatter.js'
 
 // Structured logger (new comprehensive API)
 export {
@@ -31,13 +29,13 @@ export {
   ExitCode,
   formatError,
   type LogEntry,
-  logger,
   type LoggerConfig,
   LogLevel,
+  logger,
   logWithTime,
   measureTime,
   prettyPrint,
-  setupErrorHandlers,
   StructuredLogger,
+  setupErrorHandlers,
   type TelemetryEvent,
 } from './structured-logger.js'

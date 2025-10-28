@@ -1,9 +1,11 @@
 /**
  * Code Analyzer CLI Command
- * 
+ *
  * Provides code analysis capabilities using AI-powered analysis
  */
 
+import fs, { statSync } from 'node:fs'
+import path from 'node:path'
 import { confirm, intro, outro, select, text } from '@clack/prompts'
 import {
   CloudflareWorkersAI,
@@ -14,8 +16,6 @@ import {
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { glob } from 'glob'
-import fs, { statSync } from 'node:fs'
-import path from 'node:path'
 import { loadWorkflowConfig } from '../config/workflow-config.js'
 import { G1_ICONS, g1Log } from '../core/error-formatter.js'
 
@@ -215,7 +215,8 @@ async function runProjectAnalysisCommand(
       return
     }
 
-    for (const file of files.slice(0, 5)) { // Limit to 5 files for demo
+    for (const file of files.slice(0, 5)) {
+      // Limit to 5 files for demo
       const filePath = path.join(directory, file)
       g1Log.info(`Analyzing ${file}...`)
 
@@ -227,7 +228,9 @@ async function runProjectAnalysisCommand(
           includeMetrics: true,
         })
 
-        g1Log.info(`${file}: Quality ${result.quality.complexity}/10, ${result.security.length} security issues`)
+        g1Log.info(
+          `${file}: Quality ${result.quality.complexity}/10, ${result.security.length} security issues`
+        )
       } catch (error: any) {
         g1Log.error(`Failed to analyze ${file}: ${error.message}`)
       }
@@ -416,10 +419,15 @@ function getScoreColor(score: number): (text: string) => string {
  */
 function getSeverityColor(severity: string): (text: string) => string {
   switch (severity.toLowerCase()) {
-    case 'critical': return chalk.red
-    case 'high': return chalk.red
-    case 'medium': return chalk.yellow
-    case 'low': return chalk.blue
-    default: return chalk.gray
+    case 'critical':
+      return chalk.red
+    case 'high':
+      return chalk.red
+    case 'medium':
+      return chalk.yellow
+    case 'low':
+      return chalk.blue
+    default:
+      return chalk.gray
   }
 }

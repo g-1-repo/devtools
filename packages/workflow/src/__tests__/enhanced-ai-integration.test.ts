@@ -55,7 +55,7 @@ describe('Enhanced AI Integration', () => {
       process.env.CLOUDFLARE_API_TOKEN = 'test-token-456'
       process.env.CLOUDFLARE_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct'
 
-      const config = await loadWorkflowConfig()
+      const config = await loadWorkflowConfig('/tmp')
 
       expect(config.ai.enabled).toBe(true)
       expect(config.ai.provider).toBe('cloudflare')
@@ -70,7 +70,7 @@ describe('Enhanced AI Integration', () => {
       process.env.WORKFLOW_AI_CHANGELOG_BREAKING_CHANGES = 'false'
       process.env.WORKFLOW_AI_VERSION_BUMP_CONFIDENCE = '0.9'
 
-      const config = await loadWorkflowConfig()
+      const config = await loadWorkflowConfig('/tmp')
 
       expect(config.ai.features.changelog.enabled).toBe(true)
       expect(config.ai.features.changelog.includeBreakingChanges).toBe(false)
@@ -82,7 +82,8 @@ describe('Enhanced AI Integration', () => {
       process.env.WORKFLOW_AI_PROVIDER = 'unsupported'
       process.env.WORKFLOW_AI_VERSION_BUMP_CONFIDENCE = 'not-a-number'
 
-      const config = await loadWorkflowConfig()
+      // Load config from a directory without a config file to test env vars only
+      const config = await loadWorkflowConfig('/tmp')
 
       // Should use defaults for invalid values
       expect(config.ai.enabled).toBe(false) // default
@@ -126,8 +127,8 @@ describe('Enhanced AI Integration', () => {
       const aiService = new AIServiceV2(aiConfig)
 
       expect(aiService).toBeDefined()
-      expect(aiService.changelogGenerator).toBeDefined()
-      expect(aiService.codeAnalyzer).toBeDefined()
+      expect(aiService.generateChangelog).toBeDefined()
+      expect(aiService.analyzeCode).toBeDefined()
     })
 
     it('should generate changelog using ai-core ChangelogGenerator', async () => {
@@ -168,26 +169,20 @@ describe('Enhanced AI Integration', () => {
         },
       ]
 
-      const result = await aiService.changelogGenerator?.generateChangelog(
+      const result = await aiService.generateChangelog(
         mockCommits.map((commit) => ({
           ...commit,
           additions: 10,
           deletions: 2,
         })),
-        '1.0.0',
-        '1.0.1',
-        {
-          format: 'markdown',
-          includeAuthor: true,
-          includeDates: true,
-          groupByType: true,
-        }
+        'test-package',
+        '1.0.0'
       )
 
       expect(result).toBeDefined()
-      expect(result?.content).toContain('## [1.0.1]')
-      expect(result?.content).toContain('### Features')
-      expect(result?.content).toContain('### Bug Fixes')
+      expect(result.length).toBeGreaterThan(0)
+      expect(result[0].type).toBe('feat')
+      expect(result[0].description).toContain('add new feature')
     })
 
     it('should handle AI service errors gracefully', async () => {
@@ -280,7 +275,8 @@ describe('Enhanced AI Integration', () => {
       delete process.env.CLOUDFLARE_ACCOUNT_ID
       delete process.env.CLOUDFLARE_API_TOKEN
 
-      const config = await loadWorkflowConfig()
+      // Load config from a directory without a config file to test defaults
+      const config = await loadWorkflowConfig('/tmp')
 
       // Should use defaults
       expect(config.ai.enabled).toBe(false)
@@ -293,7 +289,8 @@ describe('Enhanced AI Integration', () => {
       process.env.CLOUDFLARE_ACCOUNT_ID = 'test-account'
       // Missing CLOUDFLARE_API_TOKEN
 
-      const config = await loadWorkflowConfig()
+      // Load config from a directory without a config file to test env vars only
+      const config = await loadWorkflowConfig('/tmp')
 
       expect(config.ai.provider).toBe('cloudflare')
       expect(config.ai.cloudflare?.accountId).toBe('test-account')

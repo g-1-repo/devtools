@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    pool: 'forks',
+    isolate: true,
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['dist', 'build', 'coverage'],
     coverage: {
@@ -17,6 +19,7 @@ export default defineConfig({
         'src/**/*.test.*'
       ]
     },
-    testTimeout: 10000
+    testTimeout: 10000,
+    setupFiles: []
   }
 })

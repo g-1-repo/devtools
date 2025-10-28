@@ -109,8 +109,7 @@ describe('sqliteDatabaseAdapter', () => {
     try {
       await adapter.initialize()
       sqliteAvailable = true
-    }
-    catch {
+    } catch {
       sqliteAvailable = false
       console.log('SQLite not available in this environment, skipping SQLite tests')
     }

@@ -63,20 +63,18 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       this.db.pragma('journal_mode = WAL')
       this.db.pragma('synchronous = NORMAL')
       this.db.pragma('foreign_keys = ON')
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error(`Failed to initialize SQLite database: ${error}`)
     }
   }
 
   async cleanup(): Promise<void> {
-    if (!this.db)
-      return
+    if (!this.db) return
 
     try {
       // Get all table names
       const tables = this.db
-        .prepare('SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\'')
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
         .all()
 
       // Disable foreign keys temporarily
@@ -89,8 +87,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
 
       // Re-enable foreign keys
       this.db.pragma('foreign_keys = ON')
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('SQLite cleanup failed:', error)
     }
   }
@@ -102,8 +99,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
   async isReady(): Promise<boolean> {
     try {
       return !!this.db && this.db.open
-    }
-    catch {
+    } catch {
       return false
     }
   }
@@ -135,21 +131,21 @@ export class D1DatabaseAdapter implements DatabaseAdapter {
   }
 
   async cleanup(): Promise<void> {
-    if (!this.db)
-      return
+    if (!this.db) return
 
     try {
       // Get all table names (excluding system tables)
       const result = await this.db
-        .prepare('SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\' AND name NOT LIKE \'__d1_%\'')
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__d1_%'",
+        )
         .all()
 
       // Clear all tables
       for (const table of result.results || []) {
         await this.db.prepare(`DELETE FROM "${table.name}"`).run()
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('D1 cleanup failed:', error)
     }
   }
@@ -162,8 +158,7 @@ export class D1DatabaseAdapter implements DatabaseAdapter {
     try {
       await this.db.prepare('SELECT 1').first()
       return true
-    }
-    catch {
+    } catch {
       return false
     }
   }
@@ -275,7 +270,9 @@ export function createDatabaseAdapter(
 
     case 'drizzle-d1':
       if (!options?.drizzleDb || !options?.d1Database) {
-        throw new Error('Both Drizzle and D1 database instances are required for Drizzle D1 adapter')
+        throw new Error(
+          'Both Drizzle and D1 database instances are required for Drizzle D1 adapter',
+        )
       }
       return new DrizzleD1Adapter(options.drizzleDb, options.d1Database)
 
@@ -297,8 +294,7 @@ export function detectBestDatabaseProvider(): DatabaseProvider {
   try {
     require.resolve('better-sqlite3')
     return 'sqlite'
-  }
-  catch {
+  } catch {
     // Fall back to memory for environments without SQLite
     return 'memory'
   }

@@ -25,7 +25,7 @@ export function createHttpError(
   statusCode: number,
   message: string,
   details?: unknown,
-): { statusCode: number, message: string, details?: unknown } {
+): { statusCode: number; message: string; details?: unknown } {
   return { statusCode, message, details }
 }
 
@@ -81,11 +81,7 @@ export function createInternalError(message: string = 'Internal Error', details?
 /**
  * Factory function to create HTTP error from status code
  */
-export function createErrorFromStatus(
-  statusCode: number,
-  message?: string,
-  details?: unknown,
-) {
+export function createErrorFromStatus(statusCode: number, message?: string, details?: unknown) {
   const defaultMessages: Record<number, string> = {
     [BAD_REQUEST]: 'Bad Request',
     [UNAUTHORIZED]: 'Unauthorized',

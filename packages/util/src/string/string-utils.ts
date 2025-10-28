@@ -13,9 +13,7 @@
  * ```
  */
 export function toCamelCase(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[-_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
+  return str.toLowerCase().replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''))
 }
 
 // Shared regex pattern for word boundary detection
@@ -36,20 +34,24 @@ const WORD_BOUNDARY_REGEX = /[A-Z]{2,}(?=[A-Z][a-z]+\d|\b)|[A-Z]?[a-z]+\d*|[A-Z]
  * ```
  */
 export function toKebabCase(str: string): string {
-  return str
-    .match(WORD_BOUNDARY_REGEX)
-    ?.map(x => x.toLowerCase())
-    .join('-') || ''
+  return (
+    str
+      .match(WORD_BOUNDARY_REGEX)
+      ?.map((x) => x.toLowerCase())
+      .join('-') || ''
+  )
 }
 
 /**
  * Converts a string to snake_case
  */
 export function toSnakeCase(str: string): string {
-  return str
-    .match(WORD_BOUNDARY_REGEX)
-    ?.map(x => x.toLowerCase())
-    .join('_') || ''
+  return (
+    str
+      .match(WORD_BOUNDARY_REGEX)
+      ?.map((x) => x.toLowerCase())
+      .join('_') || ''
+  )
 }
 
 /**
@@ -57,8 +59,8 @@ export function toSnakeCase(str: string): string {
  */
 export function toPascalCase(str: string): string {
   return str
-    .replace(/[-_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
-    .replace(/^[a-z]/, char => char.toUpperCase())
+    .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''))
+    .replace(/^[a-z]/, (char) => char.toUpperCase())
 }
 
 /**
@@ -77,8 +79,7 @@ export function toPascalCase(str: string): string {
  * ```
  */
 export function truncate(str: string, length: number, suffix: string = '...'): string {
-  if (str.length <= length)
-    return str
+  if (str.length <= length) return str
   return str.slice(0, length - suffix.length) + suffix
 }
 
@@ -86,8 +87,7 @@ export function truncate(str: string, length: number, suffix: string = '...'): s
  * Capitalizes the first letter of a string
  */
 export function capitalize(str: string): string {
-  if (!str)
-    return str
+  if (!str) return str
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 

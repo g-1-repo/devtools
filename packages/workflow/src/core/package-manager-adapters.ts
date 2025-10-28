@@ -42,28 +42,26 @@ export interface RunOptions {
   cwd?: string
 }
 
-export class PackageManagerAdapterFactory {
-  static create(
-    monorepoType: MonorepoType,
-    packageManager: PackageManager,
-    rootPath: string
-  ): PackageManagerAdapter {
-    switch (monorepoType) {
-      case 'lerna':
-        return new LernaAdapter(rootPath, packageManager)
-      case 'nx':
-        return new NxAdapter(rootPath, packageManager)
-      case 'yarn-workspaces':
-        return new YarnWorkspacesAdapter(rootPath)
-      case 'pnpm-workspaces':
-        return new PnpmWorkspacesAdapter(rootPath)
-      case 'rush':
-        return new RushAdapter(rootPath)
-      case 'single-package':
-        return new SinglePackageAdapter(rootPath, packageManager)
-      default:
-        throw new Error(`Unsupported monorepo type: ${monorepoType}`)
-    }
+export function createPackageManagerAdapter(
+  monorepoType: MonorepoType,
+  packageManager: PackageManager,
+  rootPath: string
+): PackageManagerAdapter {
+  switch (monorepoType) {
+    case 'lerna':
+      return new LernaAdapter(rootPath, packageManager)
+    case 'nx':
+      return new NxAdapter(rootPath, packageManager)
+    case 'yarn-workspaces':
+      return new YarnWorkspacesAdapter(rootPath)
+    case 'pnpm-workspaces':
+      return new PnpmWorkspacesAdapter(rootPath)
+    case 'rush':
+      return new RushAdapter(rootPath)
+    case 'single-package':
+      return new SinglePackageAdapter(rootPath, packageManager)
+    default:
+      throw new Error(`Unsupported monorepo type: ${monorepoType}`)
   }
 }
 

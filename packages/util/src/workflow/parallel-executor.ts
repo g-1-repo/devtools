@@ -63,8 +63,7 @@ export class ParallelExecutor {
         if (this.running.size > 0) {
           try {
             await Promise.race(this.running)
-          }
-          catch (error) {
+          } catch (error) {
             if (!this.continueOnError) {
               throw error // Immediately throw if not continuing on error
             }
@@ -78,25 +77,27 @@ export class ParallelExecutor {
       }
 
       return results
-    }
-    finally {
+    } finally {
       this.running.clear()
     }
   }
 
   async executeSteps(steps: WorkflowStep[]): Promise<void> {
-    const independentSteps = steps.filter(step => !step.dependencies)
-    const dependentSteps = steps.filter(step => step.dependencies)
+    const independentSteps = steps.filter((step) => !step.dependencies)
+    const dependentSteps = steps.filter((step) => step.dependencies)
 
     // Execute independent steps in parallel
     await this.executeAll(
-      independentSteps.map(step => async () => {
+      independentSteps.map((step) => async () => {
         if (step.task) {
-          await step.task({}, {
-            setOutput: () => { },
-            setTitle: () => { },
-            setProgress: () => { },
-          })
+          await step.task(
+            {},
+            {
+              setOutput: () => {},
+              setTitle: () => {},
+              setProgress: () => {},
+            },
+          )
         }
       }),
     )
@@ -104,11 +105,14 @@ export class ParallelExecutor {
     // Execute dependent steps sequentially
     for (const step of dependentSteps) {
       if (step.task) {
-        await step.task({}, {
-          setOutput: () => { },
-          setTitle: () => { },
-          setProgress: () => { },
-        })
+        await step.task(
+          {},
+          {
+            setOutput: () => {},
+            setTitle: () => {},
+            setProgress: () => {},
+          },
+        )
       }
     }
   }

@@ -72,15 +72,10 @@ export class ValidationError extends AppError {
  */
 export class DatabaseError extends AppError {
   constructor(message: string, originalError?: Error, details?: Record<string, unknown>) {
-    super(
-      message,
-      'DATABASE_ERROR',
-      INTERNAL_SERVER_ERROR,
-      {
-        originalError: originalError?.message,
-        ...(details || {}),
-      },
-    )
+    super(message, 'DATABASE_ERROR', INTERNAL_SERVER_ERROR, {
+      originalError: originalError?.message,
+      ...(details || {}),
+    })
   }
 }
 

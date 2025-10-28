@@ -591,11 +591,11 @@ function loadAIConfigFromEnv(): Partial<AIConfig> {
 
   if (process.env.WORKFLOW_AI_CHANGELOG_BREAKING_CHANGES !== undefined) {
     features.changelog = {
+      ...features.changelog,
       enabled: true,
       includeBreakingChanges: process.env.WORKFLOW_AI_CHANGELOG_BREAKING_CHANGES === 'true',
       categorizeCommits: true,
       generateSummary: true,
-      ...features.changelog,
     }
   }
 

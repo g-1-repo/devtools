@@ -8,9 +8,7 @@ export {
   isValidUrl as isValidUrlLegacy,
   isValidUUID as isValidUUIDLegacy,
 } from './validation-utils.js'
-
-// Export enhanced web validation utilities
-export * from './web-validation.js'
-
 // Export web-specific validation utilities
 export * from './web.js'
+// Export enhanced web validation utilities
+export * from './web-validation.js'

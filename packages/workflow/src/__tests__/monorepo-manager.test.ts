@@ -6,7 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MonorepoConfig } from '../config/workflow-config.js'
 import { MonorepoDetector, MonorepoType, PackageManager } from '../core/monorepo-detector.js'
 import { MonorepoManager } from '../core/monorepo-manager.js'
-import { PackageManagerAdapterFactory } from '../core/package-manager-adapters.js'
+import {
+  createPackageManagerAdapter,
+  PackageManagerAdapterFactory,
+} from '../core/package-manager-adapters.js'
 import { SelectiveOperations } from '../core/selective-operations.js'
 import { WorkspaceAnalyzer } from '../core/workspace-analyzer.js'
 
@@ -33,6 +36,7 @@ vi.mock('../core/workspace-analyzer.js', () => ({
 }))
 vi.mock('../core/package-manager-adapters.js', () => ({
   PackageManagerAdapterFactory: vi.fn(),
+  createPackageManagerAdapter: vi.fn(),
 }))
 vi.mock('../core/selective-operations.js', () => ({
   SelectiveOperations: vi.fn(),
@@ -41,6 +45,7 @@ vi.mock('../core/selective-operations.js', () => ({
 const mockMonorepoDetector = MonorepoDetector as any
 const mockWorkspaceAnalyzer = WorkspaceAnalyzer as any
 const mockPackageManagerAdapterFactory = PackageManagerAdapterFactory as any
+const mockCreatePackageManagerAdapter = createPackageManagerAdapter as any
 const mockSelectiveOperations = SelectiveOperations as any
 
 describe('MonorepoManager', () => {
@@ -111,6 +116,7 @@ describe('MonorepoManager', () => {
       getPackageInfo: vi.fn(),
     }
     mockPackageManagerAdapterFactory.create = vi.fn().mockReturnValue(mockAdapterInstance)
+    mockCreatePackageManagerAdapter.mockReturnValue(mockAdapterInstance)
 
     // Mock selective operations instance
     mockSelectiveOpsInstance = {
@@ -142,11 +148,7 @@ describe('MonorepoManager', () => {
       await manager.initialize()
 
       expect(mockDetectorInstance.detect).toHaveBeenCalled()
-      expect(mockPackageManagerAdapterFactory.create).toHaveBeenCalledWith(
-        'auto',
-        'auto',
-        '/test/root'
-      )
+      expect(mockCreatePackageManagerAdapter).toHaveBeenCalledWith('auto', 'auto', '/test/root')
       expect(mockSelectiveOperations).toHaveBeenCalled()
     })
 
@@ -189,6 +191,13 @@ describe('MonorepoManager', () => {
       })
 
       mockAdapterInstance.getWorkspacePackages.mockResolvedValue(['package-a', 'package-b'])
+
+      // Always re-initialize manager to ensure clean state
+      manager = new MonorepoManager({
+        rootPath: '/test/root',
+        config: mockConfig,
+        verbose: false,
+      })
 
       await manager.initialize()
     })
@@ -262,6 +271,13 @@ describe('MonorepoManager', () => {
       mockAnalyzerInstance.buildDependencyGraph.mockReturnValue({
         nodes: ['package-a', 'package-b'],
         edges: [],
+      })
+
+      // Always re-initialize manager to ensure clean state
+      manager = new MonorepoManager({
+        rootPath: '/test/root',
+        config: mockConfig,
+        verbose: false,
       })
 
       await manager.initialize()
@@ -347,6 +363,13 @@ describe('MonorepoManager', () => {
 
       mockAnalyzerInstance.detectCircularDependencies.mockResolvedValue([])
 
+      // Always re-initialize manager to ensure clean state
+      manager = new MonorepoManager({
+        rootPath: '/test/root',
+        config: mockConfig,
+        verbose: false,
+      })
+
       await manager.initialize()
     })
 
@@ -411,7 +434,7 @@ describe('MonorepoManager', () => {
         confidence: 0.9,
       })
 
-      mockPackageManagerAdapterFactory.create.mockImplementation(() => {
+      mockCreatePackageManagerAdapter.mockImplementation(() => {
         throw new Error('Analyzer error')
       })
 
@@ -429,7 +452,7 @@ describe('MonorepoManager', () => {
       })
 
       mockAnalyzerInstance.findPackages.mockResolvedValue([])
-      mockPackageManagerAdapterFactory.create.mockImplementation(() => {
+      mockCreatePackageManagerAdapter.mockImplementation(() => {
         throw new Error('Adapter error')
       })
 

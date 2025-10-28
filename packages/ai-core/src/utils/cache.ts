@@ -218,15 +218,18 @@ export function createAIRequestKey(
  * Cache decorator for AI methods
  */
 export function cached(ttl?: number) {
-  return function (
-    target: unknown,
+  return (
+    _target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor,
-  ) {
+  ) => {
     const originalMethod = descriptor.value;
     const cache = new AICache({ ttl });
 
-    descriptor.value = async function (this: { constructor: { name: string } }, ...args: unknown[]) {
+    descriptor.value = async function (
+      this: { constructor: { name: string } },
+      ...args: unknown[]
+    ) {
       const key = createAIRequestKey(this.constructor.name, propertyKey, args);
 
       return cache.getOrSet(key, () => originalMethod.apply(this, args), ttl);

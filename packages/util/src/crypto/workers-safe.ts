@@ -41,7 +41,7 @@ function getSecureRandomBytes(length: number): Uint8Array {
  */
 function randomStringWithAlphabet(alphabet: string, length: number): string {
   const bytes = getSecureRandomBytes(length)
-  return Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('')
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('')
 }
 
 /**
@@ -160,8 +160,7 @@ export function generateWorkerSafeSortableId(): string {
  * @returns True if the string appears to be a valid CUID2
  */
 export function isValidWorkerSafeCuid2(id: string): boolean {
-  if (typeof id !== 'string')
-    return false
+  if (typeof id !== 'string') return false
 
   // CUID2s are 2-32 characters, start with a letter, and contain only a-z, A-Z, 0-9
   const cuid2Pattern = /^[a-z][a-z0-9]{1,31}$/i

@@ -13,8 +13,7 @@ export function isValidUrl(url: string): boolean {
     // Using new URL() for validation only
     void new URL(url)
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -48,8 +47,7 @@ export function isValidJSON(jsonString: string): boolean {
   try {
     JSON.parse(jsonString)
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -70,6 +68,7 @@ export function isValidBase64(base64String: string): boolean {
  * @returns true if valid semver, false otherwise
  */
 export function isValidSemver(version: string): boolean {
-  const semverRegex = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9a-z-]+(?:\.[0-9a-z-]+)*)?(?:\+[0-9a-z-]+(?:\.[0-9a-z-]+)*)?$/i
+  const semverRegex =
+    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9a-z-]+(?:\.[0-9a-z-]+)*)?(?:\+[0-9a-z-]+(?:\.[0-9a-z-]+)*)?$/i
   return semverRegex.test(version)
 }

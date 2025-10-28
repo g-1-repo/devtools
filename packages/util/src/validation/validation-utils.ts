@@ -14,8 +14,7 @@ export function isValidUrl(url: string): boolean {
     // Using new URL() for validation only
     void new URL(url)
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }

@@ -3,6 +3,26 @@
   "version": "3.5.15",
   "description": "G1 Test Suite. The unified, high-rigor test framework and suite for all G1 services. Guarantees code integrity and compliance across all products.",
   "type": "module",
+  "author": "G1 <dev@golive.me>",
+  "license": "MIT",
+  "homepage": "https://github.com/g-1-repo/devtools/tree/main/packages/test#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/g-1-repo/devtools.git",
+    "directory": "packages/test"
+  },
+  "bugs": {
+    "url": "https://github.com/g-1-repo/devtools/issues"
+  },
+  "keywords": [
+    "testing",
+    "test-framework",
+    "cloudflare-workers",
+    "hono",
+    "typescript",
+    "cookies",
+    "session-management"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -23,79 +43,21 @@
     "README.md",
     "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsup",
-    "build:watch": "tsup --watch",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "echo 'Skipping prepublish checks for initial release'",
+    "lint": "bunx @biomejs/biome@^2.3.0 check src/",
+    "lint:fix": "bunx @biomejs/biome@^2.3.0 check --write src/",
+    "format": "bunx @biomejs/biome@^2.3.0 format --write src/",
+    "test": "vitest --no-watch",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --no-watch --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "test-runner": "bun run src/cli/test-runner.ts",
-    "release": "bunx workflow release",
-    "workflow:release": "bunx workflow release",
-    "workflow:status": "bunx workflow status",
-    "test": "vitest run",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run",
-    "size-check": "bun run build && bundlesize",
-    "analyze": "bun run build && webpack-bundle-analyzer dist/index.js --no-open"
-  },
-  "bundlesize": [
-    {
-      "path": "./dist/index.js",
-      "maxSize": "40kb",
-      "compression": "gzip"
-    },
-    {
-      "path": "./dist/cli/test-runner.js",
-      "maxSize": "80kb",
-      "compression": "gzip"
-    },
-    {
-      "path": "./dist/chunks/*.js",
-      "maxSize": "15kb",
-      "compression": "gzip"
-    }
-  ],
-  "keywords": [
-    "testing",
-    "test-framework",
-    "cloudflare-workers",
-    "hono",
-    "typescript",
-    "cookies",
-    "session-management"
-  ],
-  "author": "G1",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/g-1-repo/studio.git",
-    "directory": "devtools/packages/test"
-  },
-  "bugs": {
-    "url": "https://github.com/g-1-repo/studio/issues"
-  },
-  "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/test#readme",
-  "peerDependencies": {
-    "drizzle-orm": "^0.44.6",
-    "hono": "^4.10.1",
-    "vitest": "^3.2.4"
-  },
-  "devDependencies": {
-    "@antfu/eslint-config": "^6.0.0",
-    "@g-1/workflow": "^3.5.2",
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^24.8.1",
-    "bundlesize2": "^0.0.35",
-    "eslint": "^9.38.0",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "test-runner": "bun run src/cli/test-runner.ts"
   },
   "publishConfig": {
     "access": "public"
@@ -111,5 +73,19 @@
     "glob": "^11.0.3",
     "listr2": "^9.0.4",
     "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.0",
+    "@g-1/workflow": "^3.5.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.8.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.44.6",
+    "hono": "^4.10.1",
+    "vitest": "^3.2.4"
   }
 }

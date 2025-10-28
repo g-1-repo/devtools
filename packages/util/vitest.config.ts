@@ -4,17 +4,17 @@ export default defineConfig({
   // Cache directory for Vitest
   cacheDir: 'node_modules/.vitest',
 
+  resolve: {
+    alias: {
+      '@g-1/ai-core': '../ai-core/dist/index.js',
+    },
+  },
+
   test: {
     globals: true,
     environment: 'node',
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        maxThreads: 4,
-        minThreads: 1,
-      },
-    },
+    pool: 'forks',
+    isolate: true,
     coverage: {
       reporter: ['text', 'json-summary', 'html'],
       thresholds: {
