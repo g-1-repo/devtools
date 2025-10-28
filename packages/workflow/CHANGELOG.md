@@ -1,5 +1,8 @@
 # Changelog
 
+## [3.13.1] - 2025-10-28
+
+
 ## [3.13.0] - 2025-10-26
 
 - ✨ feat: implement new functionality
