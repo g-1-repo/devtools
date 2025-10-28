@@ -442,7 +442,11 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
             let activeSubprocess: any = null
 
             // Cleanup function to ensure proper resource cleanup
-            const cleanupSubprocess = (subprocess: any, stdoutListener: any, stderrListener: any) => {
+            const cleanupSubprocess = (
+              subprocess: any,
+              stdoutListener: any,
+              stderrListener: any
+            ) => {
               if (subprocess) {
                 // Remove listeners first
                 if (subprocess.stdout && stdoutListener) {
@@ -486,7 +490,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                 let subprocess: any = null
                 let stdoutListener: any = null
                 let stderrListener: any = null
-                let timeoutId: NodeJS.Timeout | null = null
+                const timeoutId: NodeJS.Timeout | null = null
 
                 try {
                   helpers.setOutput(`Trying ${command} ${args.join(' ')}...`)
@@ -526,7 +530,9 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                         passedTests++
                         testCount++
                         if (currentFile) {
-                          helpers.setOutput(`Testing: ${currentFile} (${passedTests}✓/${testCount})`)
+                          helpers.setOutput(
+                            `Testing: ${currentFile} (${passedTests}✓/${testCount})`
+                          )
                         }
                       } else if (line.includes('✗') || line.includes('FAIL')) {
                         failedTests++
@@ -604,7 +610,10 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                   if (errorOutput.includes('fail') || errorOutput.includes('Test')) {
                     const lines = errorOutput.split('\n')
                     const summary = lines.find((line) => line.includes('fail')) || 'Tests failed'
-                    ctx.quality = { lintPassed: ctx.quality?.lintPassed ?? true, testsPassed: false }
+                    ctx.quality = {
+                      lintPassed: ctx.quality?.lintPassed ?? true,
+                      testsPassed: false,
+                    }
 
                     // Show the suggestions
                     helpers.setOutput('\n⚠️ Test failures detected')
@@ -637,15 +646,15 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
                         process.exit(1)
                       }
 
-                    if (choice === 'continue') {
-                      helpers.setOutput('⚠️ Continuing with test failures (not recommended)')
-                      helpers.setTitle('Running tests - ⚠️ Continued with failures')
-                      return // Continue despite failures
+                      if (choice === 'continue') {
+                        helpers.setOutput('⚠️ Continuing with test failures (not recommended)')
+                        helpers.setTitle('Running tests - ⚠️ Continued with failures')
+                        return // Continue despite failures
+                      }
                     }
-                  }
 
-                  throw new Error(`Test failures detected: ${summary}`)
-                }
+                    throw new Error(`Test failures detected: ${summary}`)
+                  }
 
                   // Store error and try next command
                   lastError = error
@@ -674,7 +683,7 @@ export async function createReleaseWorkflow(options: ReleaseOptions = {}): Promi
               // Ensure cleanup handlers are removed
               process.removeListener('SIGINT', globalCleanup)
               process.removeListener('SIGTERM', globalCleanup)
-              
+
               // Final cleanup of any remaining active subprocess
               if (activeSubprocess) {
                 cleanupSubprocess(activeSubprocess, null, null)
