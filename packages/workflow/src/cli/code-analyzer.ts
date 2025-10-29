@@ -635,10 +635,10 @@ function formatComparisonAsMarkdown(result: {
 - **Improvements**: ${result.improvements.length}
 
 ## Regressions
-${result.regressions.map(r => `- ${r}`).join('\n')}
+${result.regressions.map((r) => `- ${r}`).join('\n')}
 
 ## Improvements
-${result.improvements.map(i => `- ${i}`).join('\n')}
+${result.improvements.map((i) => `- ${i}`).join('\n')}
 
 ## Detailed Metrics
 ### Old Metrics
@@ -671,10 +671,10 @@ Summary:
 - Improvements: ${result.improvements.length}
 
 Regressions:
-${result.regressions.map(r => `- ${r}`).join('\n')}
+${result.regressions.map((r) => `- ${r}`).join('\n')}
 
 Improvements:
-${result.improvements.map(i => `- ${i}`).join('\n')}
+${result.improvements.map((i) => `- ${i}`).join('\n')}
 
 Old Metrics:
 ${JSON.stringify(result.oldMetrics, null, 2)}
