@@ -4,7 +4,7 @@
 
 import chalk from 'chalk'
 import { execa } from 'execa'
-import { ErrorFormatter } from '../debug/index.js'
+import { createErrorBox, formatError } from '../debug/index.js'
 import type { WorkflowContext, WorkflowStep } from './task-engine.js'
 import { createTaskEngine } from './task-engine.js'
 
@@ -224,7 +224,7 @@ export class ErrorRecoveryService {
       task: async (_ctx, helpers) => {
         helpers.setOutput('Analyzing error for automated recovery...')
 
-        const errorBox = ErrorFormatter.createErrorBox(
+        const errorBox = createErrorBox(
           'AUTOMATED ERROR RECOVERY',
           `Error Type: ${analysis.type} | Severity: ${analysis.severity} | Fixable: ${analysis.fixable ? 'Yes' : 'No'}`,
           analysis.suggestedFixes,
@@ -412,7 +412,7 @@ export class ErrorRecoveryService {
       await engine.execute(recoverySteps, context)
     } catch (recoveryError) {
       console.error(
-        ErrorFormatter.formatError(
+        formatError(
           recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
           'critical',
         ).message,
@@ -592,7 +592,7 @@ export class ErrorRecoveryService {
           // Check for test dependencies
           helpers.setOutput('Verifying test dependencies...')
           try {
-            const packageJson = await import(process.cwd() + '/package.json')
+            const packageJson = await import(`${process.cwd()}/package.json`)
             const testDeps = ['vitest', 'jest', '@testing-library', 'mocha', 'chai']
             const foundDeps = testDeps.filter(
               (dep) =>

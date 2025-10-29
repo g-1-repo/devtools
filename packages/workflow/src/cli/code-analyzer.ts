@@ -16,7 +16,7 @@ import {
   type PerformanceIssue,
   type SecurityIssue,
 } from '@g-1/ai-core'
-import type { FileAnalysisResult, ProjectAnalysisResult } from '@g-1/ai-core/services'
+import type { ProjectAnalysisResult } from '@g-1/ai-core/services'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { glob } from 'glob'
@@ -128,14 +128,6 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
       placeholder: process.cwd(),
     })
 
-<<<<<<< HEAD
-    outro('Analysis complete!')
-  } catch (error) {
-    g1Log.error(
-      `Interactive analysis failed: ${error instanceof Error ? error.message : String(error)}`
-    )
-    process.exit(1)
-=======
     const dir = typeof directory === 'string' ? directory : process.cwd()
     await runProjectAnalysisCommand(dir, options)
   } else if (analysisType === 'compare') {
@@ -152,7 +144,6 @@ async function runInteractiveAnalysis(options: CodeAnalyzerCommandOptions): Prom
     if (typeof file1 === 'string' && typeof file2 === 'string') {
       await runCompareCommand(file1, file2, options)
     }
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
   }
 
   outro(chalk.green('Analysis complete!'))
@@ -183,49 +174,24 @@ async function runFileAnalysisCommand(
 
     const analyzer = await createCodeAnalyzer(options)
     if (!analyzer) {
-<<<<<<< HEAD
-      outro('Code analyzer not available - check AI configuration')
-      return
-    }
-
-    // Check file exists and size
-    try {
-      const stats = statSync(filePath)
-      const maxSize = parseInt(String(options.maxFileSize || 1048576), 10)
-
-      if (stats.size > maxSize && !options.force) {
-        const shouldContinue = await confirm({
-          message: `File is ${Math.round(stats.size / 1024)}KB (max: ${Math.round(maxSize / 1024)}KB). Continue anyway?`,
-        })
-
-        if (!shouldContinue) {
-          outro('Analysis cancelled')
-          return
-        }
-      }
-    } catch (error) {
-      g1Log.error(`File not found: ${filePath}`)
+      g1Log.error('Failed to create code analyzer')
       return
     }
 
     if (options.dryRun) {
       g1Log.info(`Would analyze: ${filePath}`)
       outro('Dry run complete')
-=======
-      g1Log.error('Failed to create code analyzer')
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
       return
     }
 
     g1Log.info('Running AI analysis...')
 
-<<<<<<< HEAD
     // Read file content
     const { readFile } = await import('node:fs/promises')
     const fileContent = await readFile(filePath, 'utf-8')
 
     const result = await analyzer.analyzeFile(fileContent, filePath, {
-      language: options.language,
+      language: options.language || path.extname(filePath).slice(1),
       analysisType: options.securityOnly
         ? 'security'
         : options.performanceOnly
@@ -233,12 +199,6 @@ async function runFileAnalysisCommand(
           : options.qualityOnly
             ? 'quality'
             : 'all',
-=======
-    const code = fs.readFileSync(filePath, 'utf-8')
-    const result = await analyzer.analyzeFile(code, filePath, {
-      language: path.extname(filePath).slice(1),
-      analysisType: 'all',
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
       includeMetrics: true,
     })
 
@@ -247,16 +207,11 @@ async function runFileAnalysisCommand(
     if (options.output) {
       await saveAnalysisResult(result, options.output, options.format || 'text')
     }
-<<<<<<< HEAD
 
     outro('File analysis complete!')
   } catch (error) {
     g1Log.error(`File analysis failed: ${error instanceof Error ? error.message : String(error)}`)
     process.exit(1)
-=======
-  } catch (error: any) {
-    g1Log.error(`Analysis failed: ${error.message}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
   }
 }
 
@@ -304,7 +259,6 @@ async function runProjectAnalysisCommand(
       }
     }
 
-<<<<<<< HEAD
     const results = await analyzer.analyzeProject(
       await Promise.all(
         files.map(async (filePath) => {
@@ -339,11 +293,6 @@ async function runProjectAnalysisCommand(
       `Project analysis failed: ${error instanceof Error ? error.message : String(error)}`
     )
     process.exit(1)
-=======
-    g1Log.info('Project analysis complete')
-  } catch (error: any) {
-    g1Log.error(`Project analysis failed: ${error.message}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
   }
 }
 
@@ -356,8 +305,7 @@ async function runCompareCommand(
   options: CodeAnalyzerCommandOptions
 ): Promise<void> {
   try {
-<<<<<<< HEAD
-    intro(`${G1_ICONS.search} Code Comparison`)
+    intro(`$G1_ICONS.searchCodeComparison`)
 
     const analyzer = await createCodeAnalyzer(options)
     if (!analyzer) {
@@ -366,7 +314,7 @@ async function runCompareCommand(
     }
 
     if (options.dryRun) {
-      g1Log.info(`Would compare: ${file1} vs ${file2}`)
+      g1Log.info(`Would compare: $file1vs $file2`)
       outro('Dry run complete')
       return
     }
@@ -378,36 +326,20 @@ async function runCompareCommand(
 
     const comparison = await analyzer.compareCodeQuality(oldCode, newCode, file1)
 
-    await displayComparisonResult(comparison, options)
+    g1Log.info(`Comparison complete:`)
+    g1Log.info(`Improvement: $comparison.improvement%`)
+    g1Log.info(`Improvements: $comparison.improvements.join(', ')`)
+    g1Log.info(`Regressions: $comparison.regressions.join(', ')`)
 
     if (options.output) {
       await saveComparisonResult(comparison, options.output, options.format || 'text')
-      g1Log.success(`Results saved to ${options.output}`)
+      g1Log.success(`Results saved to $options.output`)
     }
 
     outro('Comparison complete!')
   } catch (error) {
-    g1Log.error(`Comparison failed: ${error instanceof Error ? error.message : String(error)}`)
+    g1Log.error(`Comparison failed: $error instanceof Error ? error.message : String(error)`)
     process.exit(1)
-=======
-    const analyzer = await createCodeAnalyzer(options)
-    if (!analyzer) {
-      g1Log.error('Failed to create code analyzer')
-      return
-    }
-
-    const code1 = fs.readFileSync(file1, 'utf-8')
-    const code2 = fs.readFileSync(file2, 'utf-8')
-
-    const result = await analyzer.compareCodeQuality(code1, code2, file1)
-
-    g1Log.info(`Comparison complete:`)
-    g1Log.info(`Improvement: ${result.improvement}%`)
-    g1Log.info(`Improvements: ${result.improvements.join(', ')}`)
-    g1Log.info(`Regressions: ${result.regressions.join(', ')}`)
-  } catch (error: any) {
-    g1Log.error(`Comparison failed: ${error.message}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
   }
 }
 
@@ -436,21 +368,15 @@ async function createCodeAnalyzer(
 
     const analyzer = new CodeAnalyzer({
       provider,
-<<<<<<< HEAD
-    })
-  } catch (error) {
-    g1Log.error(
-      `Failed to create code analyzer: ${error instanceof Error ? error.message : String(error)}`
-    )
-=======
       defaultLanguage: 'typescript',
       enableCaching: true,
     })
 
     return analyzer
-  } catch (error: any) {
-    g1Log.error(`Failed to create analyzer: ${error.message}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
+  } catch (error) {
+    g1Log.error(
+      `Failed to create code analyzer: $error instanceof Error ? error.message : String(error)`
+    )
     return null
   }
 }
@@ -471,69 +397,95 @@ async function displayAnalysisResult(
   g1Log.info(`  Code smells: ${result.quality.codeSmells.length}`)
 
   // Security issues
-<<<<<<< HEAD
   if (result.security && result.security.length > 0) {
-    console.log(chalk.bold('\n🔒 Security Issues:'))
+    g1Log.info(`\n${G1_ICONS.security} Security Issues:`)
     result.security.forEach((issue: SecurityIssue) => {
       const severity = getSeverityColor(issue.severity)
-      console.log(`  ${severity} ${issue.type}: ${issue.description}`)
-      if (issue.line) console.log(`    Line ${issue.line}`)
-      if (issue.fix) console.log(`    💡 ${issue.fix}`)
-=======
-  if (result.security.length > 0) {
-    g1Log.info(`\n${G1_ICONS.security} Security Issues:`)
-    result.security.forEach((issue: any) => {
-      const color = getSeverityColor(issue.severity)
-      g1Log.info(`  ${color}${issue.severity.toUpperCase()}: ${issue.description}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
+      g1Log.info(`  ${severity(issue.severity.toUpperCase())}: ${issue.description}`)
+      if (issue.line) g1Log.info(`    Line ${issue.line}`)
+      if (issue.fix) g1Log.info(`    💡 ${issue.fix}`)
     })
   }
 
   // Performance issues
-<<<<<<< HEAD
   if (result.performance && result.performance.length > 0) {
-    console.log(chalk.bold('\n⚡ Performance Issues:'))
+    g1Log.info(`\n${G1_ICONS.performance} Performance Issues:`)
     result.performance.forEach((issue: PerformanceIssue) => {
       const severity = getSeverityColor(issue.severity)
-      console.log(`  ${severity} ${issue.type}: ${issue.description}`)
-      if (issue.line) console.log(`    Line ${issue.line}`)
-      if (issue.suggestion) console.log(`    💡 ${issue.suggestion}`)
-=======
-  if (result.performance.length > 0) {
-    g1Log.info(`\n${G1_ICONS.performance} Performance Issues:`)
-    result.performance.forEach((issue: any) => {
-      const color = getSeverityColor(issue.severity)
-      g1Log.info(`  ${color}${issue.severity.toUpperCase()}: ${issue.description}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
+      g1Log.info(`  ${severity(issue.severity.toUpperCase())}: ${issue.description}`)
+      if (issue.line) g1Log.info(`    Line ${issue.line}`)
+      if (issue.suggestion) g1Log.info(`    💡 ${issue.suggestion}`)
     })
   }
 
   // Suggestions
-<<<<<<< HEAD
   if (result.suggestions && result.suggestions.length > 0) {
-    console.log(chalk.bold('\n💡 Suggestions:'))
-    result.suggestions.forEach((suggestion: CodeSuggestion) => {
-      console.log(`  ${suggestion.type}: ${suggestion.description}`)
-      if (suggestion.before && suggestion.after) {
-        console.log(`    Before: ${suggestion.before}`)
-        console.log(`    After: ${suggestion.after}`)
-      }
-      if (suggestion.reasoning) console.log(`    Reasoning: ${suggestion.reasoning}`)
-=======
-  if (result.suggestions.length > 0) {
     g1Log.info(`\n${G1_ICONS.info} Suggestions:`)
-    result.suggestions.forEach((suggestion: any) => {
+    result.suggestions.forEach((suggestion: CodeSuggestion) => {
       g1Log.info(`  ${suggestion.type?.toUpperCase() || 'SUGGESTION'}: ${suggestion.description}`)
->>>>>>> dc11a2d2edfcf5bb404bfe14a89208a7a522ac49
+      if (suggestion.before && suggestion.after) {
+        g1Log.info(`    Before: ${suggestion.before}`)
+        g1Log.info(`    After: ${suggestion.after}`)
+      }
+      if (suggestion.reasoning) g1Log.info(`    Reasoning: ${suggestion.reasoning}`)
     })
   }
+}
+
+/**
+ * Display project analysis result
+ */
+async function displayProjectAnalysisResult(
+  result: ProjectAnalysisResult,
+  options: CodeAnalyzerCommandOptions
+): Promise<void> {
+  g1Log.info('\n📊 Project Analysis Results:')
+
+  // Project summary
+  g1Log.info(`\n${G1_ICONS.info} Project Summary:`)
+  g1Log.info(`  Total files: ${result.summary.totalFiles}`)
+  g1Log.info(`  Total lines: ${result.summary.totalLines}`)
+  g1Log.info(`  Average complexity: ${result.summary.averageComplexity.toFixed(2)}`)
+  g1Log.info(
+    `  Overall quality: ${getScoreColor(result.summary.overallQuality === 'excellent' ? 90 : result.summary.overallQuality === 'good' ? 75 : result.summary.overallQuality === 'fair' ? 50 : 25)(result.summary.overallQuality.toUpperCase())}`
+  )
+  g1Log.info(`  Critical issues: ${result.summary.criticalIssues}`)
+  g1Log.info(`  Security issues: ${result.summary.securityIssues}`)
+  g1Log.info(`  Performance issues: ${result.summary.performanceIssues}`)
+
+  // File results summary
+  if (result.files.length > 0) {
+    g1Log.info(`\n${G1_ICONS.quality} File Analysis Summary:`)
+    result.files.forEach((file) => {
+      const score = getScoreColor(file.overallScore)
+      g1Log.info(`  ${file.filePath}: ${score(file.overallScore.toFixed(1))}/10`)
+    })
+  }
+
+  // Recommendations
+  if (result.recommendations && result.recommendations.length > 0) {
+    g1Log.info(`\n${G1_ICONS.info} Recommendations:`)
+    result.recommendations.forEach((rec) => {
+      const priority = getSeverityColor(rec.priority)
+      g1Log.info(`  ${priority(rec.priority.toUpperCase())}: ${rec.title}`)
+      g1Log.info(`    ${rec.description}`)
+      g1Log.info(`    Estimated effort: ${rec.estimatedEffort}`)
+      if (rec.affectedFiles.length > 0) {
+        g1Log.info(
+          `    Affected files: ${rec.affectedFiles.slice(0, 3).join(', ')}${rec.affectedFiles.length > 3 ? ` and ${rec.affectedFiles.length - 3} more` : ''}`
+        )
+      }
+    })
+  }
+
+  g1Log.info(`\n⏱️  Analysis completed in ${result.totalAnalysisTime}ms`)
 }
 
 /**
  * Save analysis result to file
  */
 async function saveAnalysisResult(
-  result: CodeAnalysisResult,
+  result: CodeAnalysisResult | ProjectAnalysisResult,
   outputPath: string,
   format: string
 ): Promise<void> {
@@ -544,10 +496,12 @@ async function saveAnalysisResult(
       content = JSON.stringify(result, null, 2)
       break
     case 'markdown':
-      content = formatAsMarkdown(result)
+      content = isProjectAnalysisResult(result)
+        ? formatProjectAsMarkdown(result)
+        : formatAsMarkdown(result)
       break
     default:
-      content = formatAsText(result)
+      content = isProjectAnalysisResult(result) ? formatProjectAsText(result) : formatAsText(result)
   }
 
   fs.writeFileSync(outputPath, content)
@@ -581,6 +535,15 @@ async function saveComparisonResult(
 }
 
 /**
+ * Type guard to check if result is ProjectAnalysisResult
+ */
+function isProjectAnalysisResult(
+  result: CodeAnalysisResult | ProjectAnalysisResult
+): result is ProjectAnalysisResult {
+  return 'files' in result && 'summary' in result && 'recommendations' in result
+}
+
+/**
  * Format result as markdown
  */
 function formatAsMarkdown(result: CodeAnalysisResult): string {
@@ -598,6 +561,38 @@ function formatAsMarkdown(result: CodeAnalysisResult): string {
 }
 
 /**
+ * Format project result as markdown
+ */
+function formatProjectAsMarkdown(result: ProjectAnalysisResult): string {
+  return `# Project Analysis Report
+
+## Project Summary
+- Total files: ${result.summary.totalFiles}
+- Total lines: ${result.summary.totalLines}
+- Average complexity: ${result.summary.averageComplexity.toFixed(2)}
+- Overall quality: ${result.summary.overallQuality}
+- Critical issues: ${result.summary.criticalIssues}
+- Security issues: ${result.summary.securityIssues}
+- Performance issues: ${result.summary.performanceIssues}
+
+## File Analysis
+${result.files.map((file) => `- ${file.filePath}: ${file.overallScore.toFixed(1)}/10`).join('\n')}
+
+## Recommendations
+${result.recommendations
+  .map(
+    (rec) => `### ${rec.title} (${rec.priority})
+${rec.description}
+- Estimated effort: ${rec.estimatedEffort}
+- Affected files: ${rec.affectedFiles.length}`
+  )
+  .join('\n\n')}
+
+Analysis completed in ${result.totalAnalysisTime}ms
+`
+}
+
+/**
  * Format result as text
  */
 function formatAsText(result: CodeAnalysisResult): string {
@@ -608,6 +603,25 @@ Quality: ${result.quality.complexity}/10
 Security Issues: ${result.security.length}
 Performance Issues: ${result.performance.length}
 Suggestions: ${result.suggestions.length}
+`
+}
+
+/**
+ * Format project result as text
+ */
+function formatProjectAsText(result: ProjectAnalysisResult): string {
+  return `Project Analysis Report
+======================
+
+Total files: ${result.summary.totalFiles}
+Total lines: ${result.summary.totalLines}
+Average complexity: ${result.summary.averageComplexity.toFixed(2)}
+Overall quality: ${result.summary.overallQuality}
+Critical issues: ${result.summary.criticalIssues}
+Security issues: ${result.summary.securityIssues}
+Performance issues: ${result.summary.performanceIssues}
+
+Analysis completed in ${result.totalAnalysisTime}ms
 `
 }
 

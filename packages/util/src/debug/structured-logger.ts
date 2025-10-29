@@ -435,9 +435,9 @@ export enum ExitCode {
 }
 
 /**
- * Format error with proper exit code
+ * Handle error with proper exit code
  */
-export function formatError(error: Error, exitCode: ExitCode = ExitCode.GENERAL_ERROR): never {
+export function handleError(error: Error, exitCode: ExitCode = ExitCode.GENERAL_ERROR): never {
   const logger = createLogger({ source: 'error-handler' })
   logger.error(error.message, error)
 

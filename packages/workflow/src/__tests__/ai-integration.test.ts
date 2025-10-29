@@ -299,12 +299,9 @@ describe('Workflow AI Integration', () => {
       expect(AIServiceV2).toHaveBeenCalledTimes(2)
     })
 
-    it('should handle missing configuration', () => {
-      // Temporarily override the mock to throw an error
-      vi.mocked(AIServiceV2).mockImplementationOnce(() => {
-        throw new Error('Cloudflare configuration is required')
-      })
-
+    it('should handle missing configuration gracefully', () => {
+      // Test that AIServiceV2 handles missing configuration gracefully
+      // The actual implementation logs a warning but doesn't throw
       expect(() => {
         new AIServiceV2({
           enabled: true,

@@ -4,7 +4,7 @@
 
 import { log, spinner } from '@clack/prompts'
 import chalk from 'chalk'
-import { ErrorFormatter } from '../debug/index.js'
+import { createErrorBox, formatPublishingFailure } from '../debug/index.js'
 
 // Minimal shared workflow types for util module
 export interface WorkflowContext {
@@ -65,10 +65,10 @@ export class TaskEngine {
       return context
     } catch (error) {
       if (error instanceof Error) {
-        const formattedError = ErrorFormatter.formatPublishingFailure(error.message)
+        const formattedError = formatPublishingFailure(error.message)
         console.error(formattedError)
 
-        const errorBox = ErrorFormatter.createErrorBox('WORKFLOW EXECUTION FAILED', error.message, [
+        const errorBox = createErrorBox('WORKFLOW EXECUTION FAILED', error.message, [
           'Check the error details above',
           'Run with --verbose for more information',
           'Consider running automated error recovery',

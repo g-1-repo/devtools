@@ -5,7 +5,13 @@
  */
 
 export type { FormattedError } from '@g-1/util/debug'
-export { ErrorFormatter } from '@g-1/util/debug'
+export {
+  createErrorBox,
+  formatError,
+  formatErrorLogs,
+  formatPublishingFailure,
+  formatWorkflowFailure,
+} from '@g-1/util/debug'
 // Re-export consolidated Git operations from @g-1/util
 export { createGitOperations as createGitStore, GitOperations as GitStore } from '@g-1/util/node'
 export { AIService } from './core/ai-service.js'

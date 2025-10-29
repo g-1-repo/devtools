@@ -18,16 +18,6 @@ import type {
   GenerateTextOptions,
 } from '../types/index.js';
 
-interface CloudflareResponse {
-  success: boolean;
-  result?: {
-    response?: string;
-  };
-  errors?: Array<{
-    message: string;
-  }>;
-}
-
 export class CloudflareWorkersAI implements AIProvider {
   readonly name = 'cloudflare-workers-ai';
   readonly version = '1.0.0';

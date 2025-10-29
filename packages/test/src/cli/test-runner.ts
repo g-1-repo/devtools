@@ -8,7 +8,7 @@ import type { DatabaseProvider, Runtime } from '../types.js'
 import { detectRuntime, getEnvironmentInfo } from '../utils/environment.js'
 import type { TestRunnerConfig } from './config.js'
 import { ConfigValidationError, configLoader, getDefaultConfig, mergeConfig } from './config.js'
-import { ExitCode, formatError, Logger, setupErrorHandlers } from './logger.js'
+import { ExitCode, handleError, Logger, setupErrorHandlers } from './logger.js'
 
 // @ts-expect-error - enquirer doesn't export types properly
 const { MultiSelect, Select } = enquirer
@@ -331,36 +331,6 @@ export class TestRunner {
       category.files.push(testFile)
       category.count = category.files.length
     }
-  }
-
-  /**
-   * Show environment information
-   */
-  private showEnvironmentInfo(): void {
-    const envInfo = getEnvironmentInfo()
-
-    console.log('\n📊 Environment Information:')
-    console.log(`   Runtime: ${envInfo.runtime}`)
-    console.log(`   Database Provider: ${envInfo.databaseProvider}`)
-
-    if (envInfo.nodeVersion) {
-      console.log(`   Node.js: ${envInfo.nodeVersion}`)
-    }
-
-    if (envInfo.bunVersion) {
-      console.log(`   Bun: ${envInfo.bunVersion}`)
-    }
-
-    if (envInfo.platform) {
-      console.log(`   Platform: ${envInfo.platform} (${envInfo.arch})`)
-    }
-
-    console.log(`   Capabilities:`)
-    console.log(`     File System: ${envInfo.capabilities.hasFileSystem ? '✅' : '❌'}`)
-    console.log(`     Networking: ${envInfo.capabilities.hasNetworking ? '✅' : '❌'}`)
-    console.log(`     Database: ${envInfo.capabilities.hasDatabase ? '✅' : '❌'}`)
-    console.log(`     SQLite: ${envInfo.capabilities.hasSQLite ? '✅' : '❌'}`)
-    console.log(`     D1: ${envInfo.capabilities.hasD1 ? '✅' : '❌'}`)
   }
 
   /**
@@ -790,7 +760,7 @@ export class TestRunner {
           stack: err.stack,
         })
         await this.logger.flush()
-        formatError(err, ExitCode.GENERAL_ERROR)
+        handleError(err, ExitCode.GENERAL_ERROR)
       }
     }
   }
@@ -803,7 +773,7 @@ export class TestRunner {
 
     // Check Node.js version
     const nodeVersion = process.version
-    const majorVersion = Number.parseInt(nodeVersion.slice(1).split('.')[0])
+    const majorVersion = Number.parseInt(nodeVersion.slice(1).split('.')[0], 10)
 
     if (majorVersion < 18) {
       throw new Error(`Node.js 18 or higher required, found ${nodeVersion}`)

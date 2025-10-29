@@ -5,7 +5,7 @@ import type { WorkflowContext, WorkflowStep } from './task-engine.js'
  */
 
 import { Buffer } from 'node:buffer'
-import { ErrorFormatter } from '../debug/index.js'
+import { createErrorBox, formatError } from '../debug/index.js'
 import { CacheManager } from './cache-manager.js'
 import { ParallelExecutor } from './parallel-executor.js'
 
@@ -146,7 +146,7 @@ export class OptimizedErrorRecoveryService {
       title: 'Error Analysis',
       task: async (_ctx, helpers) => {
         helpers.setOutput('Analyzing error for automated recovery...')
-        const errorBox = ErrorFormatter.createErrorBox(
+        const errorBox = createErrorBox(
           'AUTOMATED ERROR RECOVERY',
           `Error Type: ${analysis.type} | Severity: ${analysis.severity} | Fixable: ${analysis.fixable ? 'Yes' : 'No'}`,
           analysis.suggestedFixes,
@@ -202,7 +202,7 @@ export class OptimizedErrorRecoveryService {
       await this.parallelExecutor.executeSteps(recoverySteps)
     } catch (recoveryError) {
       console.error(
-        ErrorFormatter.formatError(
+        formatError(
           recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
           'critical',
         ).message,

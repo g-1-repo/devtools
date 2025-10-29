@@ -8,7 +8,7 @@
 import type { CodeAnalysisResult } from '@g-1/ai-core'
 import { AIConfigManager, CloudflareWorkersAI, CodeAnalyzer } from '@g-1/ai-core'
 import type { FormattedError } from './error-formatter.js'
-import { ErrorFormatter } from './error-formatter.js'
+import { formatError } from './error-formatter.js'
 
 export interface AIErrorAnalysis {
   originalError: FormattedError
@@ -71,7 +71,7 @@ export class AIErrorAnalyzer {
     }
 
     try {
-      const formattedError = ErrorFormatter.formatError(error, 'critical')
+      const formattedError = formatError(error, 'critical')
       const cacheKey = this.createCacheKey(formattedError.message, context)
 
       // Check cache first
@@ -237,7 +237,7 @@ Format as a JSON array of suggestion strings.
   }
 
   private createBasicAnalysis(error: Error | string, startTime: number): AIErrorAnalysis {
-    const formattedError = ErrorFormatter.formatError(error, 'critical')
+    const formattedError = formatError(error, 'critical')
     return {
       originalError: formattedError,
       suggestions: this.getDefaultSuggestions(formattedError.message),

@@ -351,11 +351,6 @@ export function concurrentTest(name: string, fns: Array<() => void | Promise<voi
  */
 export class TestBuilder<T> {
   private data: Partial<T> = {}
-  private factory?: TestDataFactory
-
-  constructor(factory?: TestDataFactory) {
-    this.factory = factory
-  }
 
   /**
    * Set field value
@@ -392,7 +387,7 @@ export class TestBuilder<T> {
  * Create test builder
  */
 export function createTestBuilder<T>(factory?: TestDataFactory): TestBuilder<T> {
-  return new TestBuilder<T>(factory)
+  return new TestBuilder<T>()
 }
 
 // Export test helpers as default

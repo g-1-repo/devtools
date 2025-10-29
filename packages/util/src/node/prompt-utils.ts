@@ -125,7 +125,7 @@ export async function select<T>(options: SelectOptions<T>): Promise<T> {
   return new Promise((resolve) => {
     const askForChoice = () => {
       rl.question('\nSelect an option (number): ', (answer) => {
-        const choice = Number.parseInt(answer.trim())
+        const choice = Number.parseInt(answer.trim(), 10)
 
         if (Number.isNaN(choice) || choice < 1 || choice > options.options.length) {
           console.log('❌ Invalid choice. Please select a valid number.')
@@ -191,7 +191,7 @@ export async function multiselect<T>(options: MultiSelectOptions<T>): Promise<T[
 
         const choices = trimmed
           .split(',')
-          .map((c) => Number.parseInt(c.trim()))
+          .map((c) => Number.parseInt(c.trim(), 10))
           .filter((c) => !Number.isNaN(c) && c >= 1 && c <= options.options.length)
 
         if (choices.length === 0) {

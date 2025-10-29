@@ -35,4 +35,4 @@ export class Logger extends StructuredLogger {
 }
 
 // Re-export functions from go-utils for convenience
-export { formatError, setupErrorHandlers } from '@g-1/util/debug'
+export { handleError, setupErrorHandlers } from '@g-1/util/debug'

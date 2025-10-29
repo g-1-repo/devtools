@@ -166,7 +166,9 @@ export async function cleanupAllTestStores(): Promise<void> {
   const cleanupPromises = Array.from(stores.values()).map((store) => store.runCleanup())
   await Promise.allSettled(cleanupPromises)
 
-  stores.forEach((store) => store.clear())
+  for (const store of stores.values()) {
+    store.clear()
+  }
 }
 
 /**
@@ -216,7 +218,9 @@ export class ScopedTestData {
   clear(): void {
     const prefix = `${this.scope}:`
     const keysToDelete = this.store.keys().filter((key) => key.startsWith(prefix))
-    keysToDelete.forEach((key) => this.store.delete(key))
+    for (const key of keysToDelete) {
+      this.store.delete(key)
+    }
   }
 
   /**

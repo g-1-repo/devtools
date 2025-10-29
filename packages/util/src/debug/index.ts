@@ -19,7 +19,13 @@ export {
   prettyPrint as prettyPrintLegacy,
 } from './debug-utils.js'
 export type { FormattedError } from './error-formatter.js'
-export { ErrorFormatter } from './error-formatter.js'
+export {
+  createErrorBox,
+  formatError,
+  formatErrorLogs,
+  formatPublishingFailure,
+  formatWorkflowFailure,
+} from './error-formatter.js'
 
 // Structured logger (new comprehensive API)
 export {
@@ -27,7 +33,7 @@ export {
   // Primary exports (override legacy)
   createTimer,
   ExitCode,
-  formatError,
+  handleError,
   type LogEntry,
   type LoggerConfig,
   LogLevel,

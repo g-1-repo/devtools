@@ -114,7 +114,6 @@ export function incrementVersion(version: string, type: VersionBumpType): string
       return `${major + 1}.0.0`
     case 'minor':
       return `${major}.${minor + 1}.0`
-    case 'patch':
     default:
       return `${major}.${minor}.${patch + 1}`
   }

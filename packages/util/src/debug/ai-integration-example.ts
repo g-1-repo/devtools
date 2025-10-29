@@ -10,7 +10,7 @@ import {
   defaultAIErrorAnalyzer,
   getAICodeSuggestions,
 } from './ai-error-analyzer.js'
-import { ErrorFormatter } from './error-formatter.js'
+import { formatError } from './error-formatter.js'
 
 /**
  * Example: Enhanced error handling with AI analysis
@@ -24,7 +24,7 @@ export async function enhancedErrorHandler(
   },
 ) {
   // Format the error using existing utilities
-  const formattedError = ErrorFormatter.formatError(error, 'critical')
+  const formattedError = formatError(error, 'critical')
   console.error(formattedError.message)
 
   try {

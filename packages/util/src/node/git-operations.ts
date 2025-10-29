@@ -147,13 +147,6 @@ export class GitOperations {
     }
   }
 
-  private async getRelativePathFromGitRoot(filePath: string): Promise<string> {
-    const gitRoot = await this.getGitRoot()
-    const path = await import('node:path')
-    const absolutePath = path.resolve(this.workingDir, filePath)
-    return path.relative(gitRoot, absolutePath)
-  }
-
   private async initializeSimpleGit(): Promise<void> {
     try {
       // @ts-expect-error - Dynamic import of optional dependency
@@ -558,7 +551,6 @@ export class GitOperations {
         return `${major + 1}.0.0`
       case 'minor':
         return `${major}.${minor + 1}.0`
-      case 'patch':
       default:
         return `${major}.${minor}.${patch + 1}`
     }
