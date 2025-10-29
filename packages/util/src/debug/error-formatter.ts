@@ -4,7 +4,10 @@
 
 import chalk, { Chalk } from 'chalk'
 
-const noColor = typeof process !== 'undefined' && typeof process.env !== 'undefined' && (process.env.NO_COLOR !== undefined || process.env.FORCE_COLOR === '0')
+const noColor =
+  typeof process !== 'undefined' &&
+  typeof process.env !== 'undefined' &&
+  (process.env.NO_COLOR !== undefined || process.env.FORCE_COLOR === '0')
 const ch = new Chalk({ level: noColor ? 0 : chalk.level })
 
 export interface FormattedError {
@@ -17,7 +20,10 @@ export class ErrorFormatter {
   /**
    * Format error messages with red styling and red X
    */
-  static formatError(error: Error | string, type: 'critical' | 'warning' | 'info' = 'critical'): FormattedError {
+  static formatError(
+    error: Error | string,
+    type: 'critical' | 'warning' | 'info' = 'critical',
+  ): FormattedError {
     const message = error instanceof Error ? error.message : error
 
     let formattedMessage: string
@@ -49,7 +55,7 @@ export class ErrorFormatter {
    * Format step failures with enhanced visibility
    */
   static formatWorkflowFailure(stepTitle: string, error: Error | string): string {
-    const formattedError = this.formatError(error, 'critical')
+    const formattedError = ErrorFormatter.formatError(error, 'critical')
     return `${ch.red('✗')} ${ch.red.bold(stepTitle)} - ${formattedError.message.replace(/^✗\s/, '')}`
   }
 
@@ -57,7 +63,7 @@ export class ErrorFormatter {
    * Format publishing workflow failures specifically
    */
   static formatPublishingFailure(error: Error | string): string {
-    const formattedError = this.formatError(error, 'critical')
+    const formattedError = ErrorFormatter.formatError(error, 'critical')
     return `${ch.red('✗')} ${ch.red.bold('Publishing workflow failed')} - ${formattedError.message.replace(/^✗\s/, '')}`
   }
 

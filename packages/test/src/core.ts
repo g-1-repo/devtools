@@ -6,12 +6,12 @@ import type { Hono } from 'hono'
  */
 async function makeAppRequest<T extends Hono<any>>(
   app: T,
-  path: string, 
-  init: RequestInit
+  path: string,
+  init: RequestInit,
 ): Promise<Response> {
   try {
     // Try to use Cloudflare Workers test environment
-    // @ts-ignore - Dynamic import may not be available
+    // @ts-expect-error - Dynamic import may not be available
     const { env } = await import('cloudflare:test')
     return await app.request(path, init, env)
   } catch {
@@ -96,10 +96,10 @@ export async function requestWithCookies<T extends Hono<any>>(
   app: T,
   path: string,
   init: TestRequestOptions = {},
-  jarKey = 'default'
+  jarKey = 'default',
 ): Promise<TestResponse> {
   const headers = new Headers(init.headers as any)
-  
+
   // Add stored cookies if they exist and no cookie header is set
   const storedCookie = cookieJar.get(jarKey)
   if (storedCookie && !headers.has('cookie')) {
@@ -109,7 +109,7 @@ export async function requestWithCookies<T extends Hono<any>>(
   // Make the request with environment-specific handling
   const response = await makeAppRequest(app, path, {
     ...init,
-    headers: Object.fromEntries(headers.entries())
+    headers: Object.fromEntries(headers.entries()),
   })
 
   // Capture Set-Cookie headers for future requests
@@ -129,22 +129,24 @@ export async function requestJSON<T extends Hono<any>, R = any>(
   app: T,
   path: string,
   init: TestRequestOptions,
-  options: RequestJSONOptions = {}
+  options: RequestJSONOptions = {},
 ): Promise<{ res: TestResponse; json: R }> {
   const { expected = 200, jarKey = 'default' } = options
-  
+
   const res = await requestWithCookies(app, path, init, jarKey)
-  
+
   // Check if status matches expected value(s)
-  const isExpectedStatus = Array.isArray(expected) 
-    ? expected.includes(res.status) 
+  const isExpectedStatus = Array.isArray(expected)
+    ? expected.includes(res.status)
     : res.status === expected
-    
+
   if (!isExpectedStatus) {
     const text = await res.text()
-    throw new Error(`Request failed with status ${res.status}, expected ${Array.isArray(expected) ? expected.join(' or ') : expected}: ${text}`)
+    throw new Error(
+      `Request failed with status ${res.status}, expected ${Array.isArray(expected) ? expected.join(' or ') : expected}: ${text}`,
+    )
   }
-  
+
   const json = await res.json<R>()
   return { res, json }
 }
@@ -155,15 +157,20 @@ export async function requestJSON<T extends Hono<any>, R = any>(
 export async function postJSON<T extends Hono<any>, R = any>(
   app: T,
   path: string,
-  options: PostJSONOptions = {}
+  options: PostJSONOptions = {},
 ): Promise<{ res: TestResponse; json: R }> {
   const { body, expected = 200, jarKey = 'default' } = options
-  
-  return requestJSON<T, R>(app, path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body ?? {})
-  }, { expected, jarKey })
+
+  return requestJSON<T, R>(
+    app,
+    path,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+    },
+    { expected, jarKey },
+  )
 }
 
 /**
@@ -206,7 +213,7 @@ export function uniqueUsername(prefix = 'user'): string {
  * Wait for a specified amount of time (useful for testing time-sensitive features)
  */
 export function wait(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -214,15 +221,19 @@ export function wait(ms: number): Promise<void> {
  */
 export function createTestContext(jarKey?: string) {
   const contextJarKey = jarKey || `test-context-${Date.now()}-${Math.random()}`
-  
+
   return {
     jarKey: contextJarKey,
     request: (app: Hono<any>, path: string, init?: TestRequestOptions) =>
       requestWithCookies(app, path, init, contextJarKey),
-    requestJSON: <R = any>(app: Hono<any>, path: string, init: TestRequestOptions, options?: Omit<RequestJSONOptions, 'jarKey'>) =>
-      requestJSON<typeof app, R>(app, path, init, { ...options, jarKey: contextJarKey }),
+    requestJSON: <R = any>(
+      app: Hono<any>,
+      path: string,
+      init: TestRequestOptions,
+      options?: Omit<RequestJSONOptions, 'jarKey'>,
+    ) => requestJSON<typeof app, R>(app, path, init, { ...options, jarKey: contextJarKey }),
     postJSON: <R = any>(app: Hono<any>, path: string, options?: Omit<PostJSONOptions, 'jarKey'>) =>
       postJSON<typeof app, R>(app, path, { ...options, jarKey: contextJarKey }),
-    reset: () => resetCookies(contextJarKey)
+    reset: () => resetCookies(contextJarKey),
   }
 }

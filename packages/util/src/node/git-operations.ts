@@ -110,8 +110,7 @@ export function exec(command: string, options: ExecOptions = {}): string {
     })
     // Only trim trailing whitespace to preserve git status format
     return result ? result.toString().replace(/\s+$/, '') : ''
-  }
-  catch (error: any) {
+  } catch (error: any) {
     if (!options.ignoreErrors) {
       log(`❌ Command failed: ${command}`, COLORS.red)
       log(error.message || 'Unknown error', COLORS.red)
@@ -142,8 +141,7 @@ export class GitOperations {
     try {
       this.gitRoot = exec('git rev-parse --show-toplevel', { silent: true, cwd: this.workingDir })
       return this.gitRoot
-    }
-    catch {
+    } catch {
       this.gitRoot = this.workingDir
       return this.gitRoot
     }
@@ -161,8 +159,7 @@ export class GitOperations {
       // @ts-expect-error - Dynamic import of optional dependency
       const simpleGitModule = await import('simple-git')
       this.git = simpleGitModule.simpleGit(this.workingDir)
-    }
-    catch {
+    } catch {
       // SimpleGit not available, fallback to exec methods only
       // Only show warning in verbose mode to avoid noise
       if (process.env.WORKFLOW_VERBOSE === 'true') {
@@ -183,8 +180,7 @@ export class GitOperations {
       }
       exec('git status', { silent: true })
       return true
-    }
-    catch {
+    } catch {
       return false
     }
   }
@@ -196,8 +192,7 @@ export class GitOperations {
         return status.current || 'main'
       }
       return exec('git branch --show-current', { silent: true })
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get current branch', error)
     }
   }
@@ -210,8 +205,7 @@ export class GitOperations {
         return origin?.refs?.push || ''
       }
       return exec('git config --get remote.origin.url', { silent: true })
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get remote URL', error)
     }
   }
@@ -234,8 +228,7 @@ export class GitOperations {
       }
       const status = exec('git status --porcelain', { silent: true })
       return status.length > 0
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to check uncommitted changes', error)
     }
   }
@@ -254,15 +247,15 @@ export class GitOperations {
       }
       // Use git status --porcelain which consistently returns git-root-relative paths
       const status = exec('git status --porcelain', { silent: true })
-      return status.split('\n')
+      return status
+        .split('\n')
         .filter(Boolean)
         .map((line) => {
           // Handle different status formats: "M  ", " M ", "??", "MM", etc.
           // Status codes are in first 2 chars, filename starts at position 3
           return line.slice(3).trim()
         })
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get changed files', error)
     }
   }
@@ -274,8 +267,7 @@ export class GitOperations {
         return status.staged
       }
       return exec('git diff --cached --name-only', { silent: true }).split('\n').filter(Boolean)
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get staged files', error)
     }
   }
@@ -298,13 +290,17 @@ export class GitOperations {
 
       // Fallback to exec
       const sinceFlag = since ? `${since}..HEAD` : `-${limit}`
-      const commitData = exec(`git log ${sinceFlag} --pretty=format:"%H|%s|%an|%ad" --date=iso`, { silent: true })
-      return commitData.split('\n').filter(Boolean).map((line) => {
-        const [hash, message, author, dateStr] = line.split('|')
-        return this.parseCommit({ hash, message, author_name: author, date: dateStr })
+      const commitData = exec(`git log ${sinceFlag} --pretty=format:"%H|%s|%an|%ad" --date=iso`, {
+        silent: true,
       })
-    }
-    catch (error) {
+      return commitData
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+          const [hash, message, author, dateStr] = line.split('|')
+          return this.parseCommit({ hash, message, author_name: author, date: dateStr })
+        })
+    } catch (error) {
       throw this.createGitError('Failed to get commits', error)
     }
   }
@@ -323,8 +319,7 @@ export class GitOperations {
       }
 
       return this.getCommits(latestTag)
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get commits since tag', error)
     }
   }
@@ -377,14 +372,12 @@ export class GitOperations {
 
       if (this.git) {
         await this.git.checkoutBranch(formattedName, options.baseBranch || 'main')
-      }
-      else {
+      } else {
         exec(`git checkout -b ${formattedName} ${options.baseBranch || 'main'}`)
       }
 
       return formattedName
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to create ${options.type} branch`, error)
     }
   }
@@ -393,12 +386,10 @@ export class GitOperations {
     try {
       if (this.git) {
         await this.git.checkout(branchName)
-      }
-      else {
+      } else {
         exec(`git checkout ${branchName}`)
       }
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to switch to branch: ${branchName}`, error)
     }
   }
@@ -407,8 +398,7 @@ export class GitOperations {
     try {
       const flag = force ? '-D' : '-d'
       exec(`git branch ${flag} ${branchName}`)
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to delete branch: ${branchName}`, error)
     }
   }
@@ -419,15 +409,17 @@ export class GitOperations {
         const branches = await this.git.branchLocal()
         return branches.all
       }
-      return exec('git branch --format="%(refname:short)"', { silent: true }).split('\n').filter(Boolean)
-    }
-    catch (error) {
+      return exec('git branch --format="%(refname:short)"', { silent: true })
+        .split('\n')
+        .filter(Boolean)
+    } catch (error) {
       throw this.createGitError('Failed to get branches', error)
     }
   }
 
   private formatBranchName(type: string, name: string): string {
-    const cleanName = name.toLowerCase()
+    const cleanName = name
+      .toLowerCase()
       .replace(/[^a-z0-9-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '')
@@ -444,8 +436,7 @@ export class GitOperations {
       const recentCommits = await this.getCommits(undefined, 5)
       const changedFiles = await this.getChangedFiles()
       return this.generateBranchSuggestion(type, changedFiles, recentCommits)
-    }
-    catch {
+    } catch {
       return `${type}-${Date.now()}`
     }
   }
@@ -454,29 +445,22 @@ export class GitOperations {
     try {
       const changedFiles = await this.getChangedFiles()
       return this.generateCommitSuggestion(changedFiles)
-    }
-    catch {
+    } catch {
       return 'chore: update files'
     }
   }
 
   private generateBranchSuggestion(type: string, files: string[], _commits: CommitInfo[]): string {
-    if (files.some(f => f.includes('test')))
-      return 'improve-testing'
-    if (files.some(f => f.includes('config')))
-      return 'update-configuration'
-    if (files.some(f => f.includes('README')))
-      return 'update-documentation'
+    if (files.some((f) => f.includes('test'))) return 'improve-testing'
+    if (files.some((f) => f.includes('config'))) return 'update-configuration'
+    if (files.some((f) => f.includes('README'))) return 'update-documentation'
     return 'feature-enhancement'
   }
 
   private generateCommitSuggestion(files: string[]): string {
-    if (files.some(f => f.includes('test')))
-      return 'test: improve test coverage'
-    if (files.some(f => f.includes('.md')))
-      return 'docs: update documentation'
-    if (files.length === 1)
-      return `feat: update ${files[0]}`
+    if (files.some((f) => f.includes('test'))) return 'test: improve test coverage'
+    if (files.some((f) => f.includes('.md'))) return 'docs: update documentation'
+    if (files.length === 1) return `feat: update ${files[0]}`
     return `feat: update ${files.length} files`
   }
 
@@ -496,22 +480,18 @@ export class GitOperations {
             return path.relative(this.workingDir, absolutePath)
           })
           await this.git.add(workingDirRelativePaths)
-        }
-        else {
+        } else {
           const gitRoot = await this.getGitRoot()
-          exec(`git -C "${gitRoot}" add ${files.map(f => `"${f}"`).join(' ')}`)
+          exec(`git -C "${gitRoot}" add ${files.map((f) => `"${f}"`).join(' ')}`)
         }
-      }
-      else {
+      } else {
         if (this.git) {
           await this.git.add('.')
-        }
-        else {
+        } else {
           exec('git add .')
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to stage files', error)
     }
   }
@@ -525,23 +505,20 @@ export class GitOperations {
       const gitRoot = await this.getGitRoot()
       exec(`git -C "${gitRoot}" commit -m "${message}"`)
       return exec('git rev-parse HEAD', { silent: true })
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to commit changes', error)
     }
   }
 
   async push(branch?: string, remote = 'origin'): Promise<void> {
     try {
-      const currentBranch = branch || await this.getCurrentBranch()
+      const currentBranch = branch || (await this.getCurrentBranch())
       if (this.git) {
         await this.git.push(remote, currentBranch)
-      }
-      else {
+      } else {
         exec(`git push ${remote} ${currentBranch}`)
       }
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to push changes', error)
     }
   }
@@ -588,8 +565,12 @@ export class GitOperations {
   }
 
   analyzeChangesForVersionBump(): VersionAnalysis {
-    const changedFiles = exec('git diff --name-only HEAD', { silent: true }).split('\n').filter(Boolean)
-    const stagedFiles = exec('git diff --cached --name-only', { silent: true }).split('\n').filter(Boolean)
+    const changedFiles = exec('git diff --name-only HEAD', { silent: true })
+      .split('\n')
+      .filter(Boolean)
+    const stagedFiles = exec('git diff --cached --name-only', { silent: true })
+      .split('\n')
+      .filter(Boolean)
     const allChangedFiles = [...new Set([...changedFiles, ...stagedFiles])]
     const commits = this.getRecentCommits()
 
@@ -598,34 +579,24 @@ export class GitOperations {
     const changesList: string[] = []
 
     // Check for breaking changes (major)
-    const breakingIndicators = [
-      /BREAKING[\s\-_]*CHANGE/i,
-      /^feat!:/i,
-      /^fix!:/i,
-      /!:/,
-      /breaking/i,
-    ]
+    const breakingIndicators = [/BREAKING[\s\-_]*CHANGE/i, /^feat!:/i, /^fix!:/i, /!:/, /breaking/i]
 
-    const majorChanges = commits.some(commit =>
-      breakingIndicators.some(pattern => pattern.test(commit)),
+    const majorChanges = commits.some((commit) =>
+      breakingIndicators.some((pattern) => pattern.test(commit)),
     )
 
     // Check for new features (minor)
-    const featureIndicators = [
-      /^feat[(:]|^feature[(:]|^add[(:]|new feature/i,
-      /^enhancement/i,
-    ]
+    const featureIndicators = [/^feat[(:]|^feature[(:]|^add[(:]|new feature/i, /^enhancement/i]
 
-    const minorChanges = commits.some(commit =>
-      featureIndicators.some(pattern => pattern.test(commit)),
+    const minorChanges = commits.some((commit) =>
+      featureIndicators.some((pattern) => pattern.test(commit)),
     )
 
     if (majorChanges) {
       versionBump = 'major'
       changeType = 'Major Changes'
       changesList.push('**BREAKING CHANGES**: Major updates that may require code changes')
-    }
-    else if (minorChanges) {
+    } else if (minorChanges) {
       versionBump = 'minor'
       changeType = 'Minor Changes'
     }
@@ -666,7 +637,7 @@ export class GitOperations {
     ]
 
     for (const pattern of patterns) {
-      if (files.some(file => pattern.pattern.test(file))) {
+      if (files.some((file) => pattern.pattern.test(file))) {
         changes.push(pattern.desc)
       }
     }
@@ -680,9 +651,18 @@ export class GitOperations {
     const patterns = [
       { pattern: /^fix[(:]|bug|error|issue/i, desc: 'Fix bugs and resolve issues' },
       { pattern: /^feat[(:]|feature|add/i, desc: 'Add new features and functionality' },
-      { pattern: /^style[(:]|css|design|ui|ux/i, desc: 'Improve visual design and user experience' },
-      { pattern: /^perf[(:]|performance|optimization|speed/i, desc: 'Enhance performance and optimization' },
-      { pattern: /^refactor[(:]|cleanup|reorganize/i, desc: 'Refactor code for better maintainability' },
+      {
+        pattern: /^style[(:]|css|design|ui|ux/i,
+        desc: 'Improve visual design and user experience',
+      },
+      {
+        pattern: /^perf[(:]|performance|optimization|speed/i,
+        desc: 'Enhance performance and optimization',
+      },
+      {
+        pattern: /^refactor[(:]|cleanup|reorganize/i,
+        desc: 'Refactor code for better maintainability',
+      },
       { pattern: /^docs[(:]|documentation|readme/i, desc: 'Update documentation' },
       { pattern: /^test[(:]|testing|spec/i, desc: 'Improve testing coverage' },
       { pattern: /^chore[(:]|maintenance|update/i, desc: 'General maintenance and updates' },
@@ -704,21 +684,25 @@ export class GitOperations {
     return changes
   }
 
-  updateChangelog(version: string, changeType: string, changesList: string[], changelogPath: string = 'CHANGELOG.md'): void {
+  updateChangelog(
+    version: string,
+    changeType: string,
+    changesList: string[],
+    changelogPath: string = 'CHANGELOG.md',
+  ): void {
     let changelog: string
 
     if (existsSync(changelogPath)) {
       changelog = readFileSync(changelogPath, 'utf8')
-    }
-    else {
+    } else {
       changelog = '# Changelog\n\n'
     }
 
-    const newEntry = `## ${version}\n\n### ${changeType}\n\n${changesList.map(change => `- ${change}`).join('\n')}\n\n`
+    const newEntry = `## ${version}\n\n### ${changeType}\n\n${changesList.map((change) => `- ${change}`).join('\n')}\n\n`
 
     // Insert new entry after the first heading
     const lines = changelog.split('\n')
-    const firstHeadingIndex = lines.findIndex(line => line.startsWith('# '))
+    const firstHeadingIndex = lines.findIndex((line) => line.startsWith('# '))
 
     if (firstHeadingIndex !== -1) {
       let insertIndex = firstHeadingIndex + 1
@@ -728,8 +712,7 @@ export class GitOperations {
 
       lines.splice(insertIndex, 0, newEntry)
       changelog = lines.join('\n')
-    }
-    else {
+    } else {
       changelog = `# Changelog\n\n${newEntry}${changelog}`
     }
 
@@ -744,8 +727,7 @@ export class GitOperations {
     try {
       const tags = exec('git tag -l', { silent: true })
       return tags ? tags.split('\n').filter(Boolean) : []
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to get tags', error)
     }
   }
@@ -755,17 +737,17 @@ export class GitOperations {
       // Check if tag already exists
       const existingTags = await this.getTags()
       if (existingTags.includes(tagName)) {
-        throw new Error(`Tag ${tagName} already exists. Please use a different version or delete the existing tag.`)
+        throw new Error(
+          `Tag ${tagName} already exists. Please use a different version or delete the existing tag.`,
+        )
       }
 
       if (message) {
         exec(`git tag -a ${tagName} -m "${message}"`)
-      }
-      else {
+      } else {
         exec(`git tag ${tagName}`)
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof Error && error.message.includes('already exists')) {
         throw error
       }
@@ -778,15 +760,12 @@ export class GitOperations {
       if (specificTag) {
         // Push only the specific tag to avoid conflicts with existing tags
         exec(`git push ${remote} ${specificTag}`, { silent: true })
-      }
-      else if (this.git) {
+      } else if (this.git) {
         await this.git.pushTags(remote)
-      }
-      else {
+      } else {
         exec(`git push ${remote} --tags`, { silent: true })
       }
-    }
-    catch (error) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
 
       // If tags already exist on remote, that's okay - just log and continue
@@ -813,14 +792,7 @@ export class GitOperations {
       // Use dynamic import for execa to avoid bundling issues
       const { execa } = await import('execa')
 
-      const args = [
-        'pr',
-        'create',
-        '--title',
-        title,
-        '--body',
-        options.body || '',
-      ]
+      const args = ['pr', 'create', '--title', title, '--body', options.body || '']
 
       if (options.labels?.length) {
         args.push('--label', options.labels.join(','))
@@ -843,8 +815,7 @@ export class GitOperations {
       }
 
       return prUrl
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError('Failed to create pull request', error)
     }
   }
@@ -853,8 +824,7 @@ export class GitOperations {
     try {
       const { execa } = await import('execa')
       await execa('gh', ['pr', 'merge', prNumber, `--${method}`])
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to merge PR #${prNumber}`, error)
     }
   }
@@ -863,8 +833,7 @@ export class GitOperations {
     try {
       const { execa } = await import('execa')
       await execa('gh', ['pr', 'close', prNumber])
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to close PR #${prNumber}`, error)
     }
   }
@@ -881,8 +850,7 @@ export class GitOperations {
       // Pull latest changes
       if (this.git) {
         await this.git.pull('origin', 'main')
-      }
-      else {
+      } else {
         exec('git pull origin main')
       }
 
@@ -894,17 +862,14 @@ export class GitOperations {
         try {
           if (this.git) {
             await this.git.push('origin', branchName, ['--delete'])
-          }
-          else {
+          } else {
             exec(`git push origin --delete ${branchName}`, { ignoreErrors: true })
           }
-        }
-        catch {
+        } catch {
           // Ignore if remote branch doesn't exist
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       throw this.createGitError(`Failed to cleanup branch: ${branchName}`, error)
     }
   }
@@ -937,16 +902,19 @@ export function hasUncommittedChanges() {
   return status.length > 0
 }
 export function getChangedFiles() {
-  const changedFiles = exec('git diff --name-only HEAD', { silent: true }).split('\n').filter(Boolean)
-  const stagedFiles = exec('git diff --cached --name-only', { silent: true }).split('\n').filter(Boolean)
+  const changedFiles = exec('git diff --name-only HEAD', { silent: true })
+    .split('\n')
+    .filter(Boolean)
+  const stagedFiles = exec('git diff --cached --name-only', { silent: true })
+    .split('\n')
+    .filter(Boolean)
   return [...new Set([...changedFiles, ...stagedFiles])]
 }
 export function isGitRepository() {
   try {
     exec('git status', { silent: true })
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }

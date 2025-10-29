@@ -82,6 +82,7 @@ export async function testErrorRecoveryDirectly(): Promise<void> {
     new Error('TypeScript compilation failed with 3 errors'),
     new Error('Build failed: Cannot resolve module ./missing'),
     new Error('401 Unauthorized: Invalid npm token'),
+    new Error("Test failures detected: Command failed with exit code 1: bun run 'test:ci'"),
     new Error('Unknown error occurred'),
   ]
 

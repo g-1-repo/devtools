@@ -2,17 +2,9 @@
 
 ## [3.13.1] - 2025-10-29
 
-### Other Changes
-- update files
-
 ### Bug Fixes
 - resolve TypeScript errors in code-analyzer
-
-### Other Changes
-- update files
-
-### Other Changes
-- update files
+- apply linting fixes from release process
 
 ### Other Changes
 - update files

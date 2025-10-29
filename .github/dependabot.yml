@@ -1,0 +1,184 @@
+version: 2
+updates:
+  # Root level dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Chicago
+    open-pull-requests-limit: 10
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: deps
+      include: scope
+    labels:
+      - dependencies
+      - automated
+    target-branch: main
+
+  # AI Core package
+  - package-ecosystem: npm
+    directory: /packages/ai-core
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:15'
+      timezone: America/Chicago
+    open-pull-requests-limit: 5
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: 'deps(ai-core)'
+      include: scope
+    labels:
+      - dependencies
+      - ai-core
+      - automated
+    target-branch: main
+
+  # Test package
+  - package-ecosystem: npm
+    directory: /packages/test
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:30'
+      timezone: America/Chicago
+    open-pull-requests-limit: 5
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: 'deps(test)'
+      include: scope
+    labels:
+      - dependencies
+      - test
+      - automated
+    target-branch: main
+
+  # Util package
+  - package-ecosystem: npm
+    directory: /packages/util
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:45'
+      timezone: America/Chicago
+    open-pull-requests-limit: 10
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: 'deps(util)'
+      include: scope
+    labels:
+      - dependencies
+      - util
+      - automated
+    groups:
+      dev-dependencies:
+        patterns:
+          - '@types/*'
+          - '@biomejs/*'
+          - typescript
+          - vitest
+          - tsup
+          - 'bundlesize*'
+          - webpack-bundle-analyzer
+        update-types:
+          - minor
+          - patch
+      build-tools:
+        patterns:
+          - 'bun*'
+          - '@changesets/*'
+        update-types:
+          - minor
+          - patch
+      production-dependencies:
+        patterns:
+          - '@modelcontextprotocol/*'
+          - nanoid
+          - '@g-1/*'
+        update-types:
+          - minor
+          - patch
+    target-branch: main
+
+  # Workflow package
+  - package-ecosystem: npm
+    directory: /packages/workflow
+    schedule:
+      interval: weekly
+      day: monday
+      time: '10:00'
+      timezone: America/Chicago
+    open-pull-requests-limit: 10
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: 'deps(workflow)'
+      include: scope
+    labels:
+      - dependencies
+      - workflow
+      - automated
+    groups:
+      dev-dependencies:
+        patterns:
+          - '@types/*'
+          - '@biomejs/*'
+          - typescript
+          - vitest
+          - tsup
+          - 'bundlesize*'
+          - webpack-bundle-analyzer
+        update-types:
+          - minor
+          - patch
+      production-dependencies:
+        patterns:
+          - '@g-1/*'
+          - commander
+          - chalk
+          - ora
+          - execa
+          - 'simple-git'
+        update-types:
+          - minor
+          - patch
+    target-branch: main
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '10:15'
+      timezone: America/Chicago
+    open-pull-requests-limit: 3
+    reviewers:
+      - golive-dev
+    assignees:
+      - golive-dev
+    commit-message:
+      prefix: ci
+      include: scope
+    labels:
+      - github-actions
+      - automated
+      - ci/cd
+    target-branch: main

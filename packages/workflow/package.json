@@ -3,14 +3,14 @@
   "version": "3.13.1",
   "description": "G1 Enterprise Workflow System. Badass, production-ready release automation that serves as the backbone for major development organizations. Features intelligent error recovery, beautiful UI, and enterprise-scale reliability.",
   "license": "MIT",
-  "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/workflow#readme",
+  "homepage": "https://github.com/g-1-repo/devtools/tree/main/packages/workflow#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/g-1-repo/devtools.git",
     "directory": "packages/workflow"
   },
   "bugs": {
-    "url": "https://github.com/g-1-repo/studio/issues"
+    "url": "https://github.com/g-1-repo/devtools/issues"
   },
   "keywords": [
     "workflow",
@@ -49,46 +49,25 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "tsup --watch",
     "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
-    "typecheck": "tsc --noEmit",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "echo 'Skipping prepublish checks for initial release'",
-    "size-check": "bun run build && bundlesize",
-    "analyze": "bun run build && webpack-bundle-analyzer dist/index.js --no-open",
-    "release": "node dist/cli.js release",
-    "dev:cli": "tsup --watch && node dist/cli.js"
+    "lint": "bunx @biomejs/biome@^2.3.0 check src/",
+    "lint:fix": "bunx @biomejs/biome@^2.3.0 check --write src/",
+    "format": "bunx @biomejs/biome@^2.3.0 format --write src/",
+    "test": "vitest --no-watch",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --no-watch --coverage",
+    "typecheck": "tsc --noEmit",
+    "release": "node dist/cli.js release"
   },
-  "bundlesize": [
-    {
-      "path": "./dist/index.js",
-      "maxSize": "50kb",
-      "compression": "gzip"
-    },
-    {
-      "path": "./dist/cli.js",
-      "maxSize": "100kb",
-      "compression": "gzip"
-    },
-    {
-      "path": "./dist/chunks/*.js",
-      "maxSize": "15kb",
-      "compression": "gzip"
-    }
-  ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
     "@g-1/ai-core": "^1.0.0",
-    "@g-1/util": "^2.0.0",
+    "@g-1/util": "^3.5.15",
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "conventional-commits-parser": "^6.2.1",
@@ -107,10 +86,8 @@
     "@types/semver": "^7.7.1",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^3.2.4",
-    "bundlesize2": "^0.0.35",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "vitest": "^3.2.4"
   }
 }

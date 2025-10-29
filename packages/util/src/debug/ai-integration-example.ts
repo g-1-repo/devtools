@@ -5,17 +5,24 @@
  * within the util package ecosystem.
  */
 
-import { analyzeErrorWithAI, defaultAIErrorAnalyzer, getAICodeSuggestions } from './ai-error-analyzer.js'
+import {
+  analyzeErrorWithAI,
+  defaultAIErrorAnalyzer,
+  getAICodeSuggestions,
+} from './ai-error-analyzer.js'
 import { ErrorFormatter } from './error-formatter.js'
 
 /**
  * Example: Enhanced error handling with AI analysis
  */
-export async function enhancedErrorHandler(error: Error, context?: {
-  filePath?: string
-  codeSnippet?: string
-  operation?: string
-}) {
+export async function enhancedErrorHandler(
+  error: Error,
+  context?: {
+    filePath?: string
+    codeSnippet?: string
+    operation?: string
+  },
+) {
   // Format the error using existing utilities
   const formattedError = ErrorFormatter.formatError(error, 'critical')
   console.error(formattedError.message)
@@ -33,8 +40,7 @@ export async function enhancedErrorHandler(error: Error, context?: {
     console.log(`\n${enhancedOutput}`)
 
     return analysis
-  }
-  catch {
+  } catch {
     console.warn('AI analysis failed, falling back to basic error handling')
     return null
   }
@@ -56,14 +62,12 @@ export async function reviewCodeWithAI(codeSnippet: string, language = 'typescri
       suggestions.forEach((suggestion, index) => {
         console.log(`  ${index + 1}. ${suggestion}`)
       })
-    }
-    else {
+    } else {
       console.log('\n✅ No AI suggestions - code looks good!')
     }
 
     return suggestions
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('AI code review failed:', error)
     return []
   }
@@ -123,11 +127,12 @@ export async function getPerformanceOptimizations(codeSnippet: string) {
       purpose: 'performance-optimization',
     })
 
-    const performanceSuggestions = suggestions.filter(s =>
-      s.toLowerCase().includes('performance')
-      || s.toLowerCase().includes('optimize')
-      || s.toLowerCase().includes('faster')
-      || s.toLowerCase().includes('memory'),
+    const performanceSuggestions = suggestions.filter(
+      (s) =>
+        s.toLowerCase().includes('performance') ||
+        s.toLowerCase().includes('optimize') ||
+        s.toLowerCase().includes('faster') ||
+        s.toLowerCase().includes('memory'),
     )
 
     if (performanceSuggestions.length > 0) {
@@ -138,8 +143,7 @@ export async function getPerformanceOptimizations(codeSnippet: string) {
     }
 
     return performanceSuggestions
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Performance analysis failed:', error)
     return []
   }
@@ -153,9 +157,8 @@ export async function demonstrateAIIntegration() {
 
   // Example 1: Error analysis
   try {
-    throw new Error('ENOENT: no such file or directory, open \'/missing/file.txt\'')
-  }
-  catch (error) {
+    throw new Error("ENOENT: no such file or directory, open '/missing/file.txt'")
+  } catch (error) {
     await enhancedErrorHandler(error as Error, {
       filePath: '/src/utils/file-reader.ts',
       operation: 'file-read',

@@ -19,5 +19,7 @@ export default defineConfig({
     },
     testTimeout: 15000,
     setupFiles: [],
+    isolate: true,
+    pool: 'forks',
   },
 })

@@ -6,8 +6,8 @@
  */
 
 import type { CodeAnalysisResult } from '@g-1/ai-core'
-import type { FormattedError } from './error-formatter.js'
 import { AIConfigManager, CloudflareWorkersAI, CodeAnalyzer } from '@g-1/ai-core'
+import type { FormattedError } from './error-formatter.js'
 import { ErrorFormatter } from './error-formatter.js'
 
 export interface AIErrorAnalysis {
@@ -63,10 +63,7 @@ export class AIErrorAnalyzer {
   /**
    * Analyze an error and provide AI-powered suggestions
    */
-  async analyzeError(
-    error: Error | string,
-    context?: ErrorContext,
-  ): Promise<AIErrorAnalysis> {
+  async analyzeError(error: Error | string, context?: ErrorContext): Promise<AIErrorAnalysis> {
     const startTime = Date.now()
 
     if (!this.config.enabled) {
@@ -101,8 +98,7 @@ export class AIErrorAnalyzer {
       }
 
       return result
-    }
-    catch (analysisError) {
+    } catch (analysisError) {
       console.warn('AI error analysis failed:', analysisError)
       return this.createBasicAnalysis(error, startTime)
     }
@@ -119,8 +115,7 @@ export class AIErrorAnalyzer {
     try {
       const result = await this.codeAnalyzer.analyzeFile(content, filePath)
       return result
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('Code analysis failed:', error)
       return null
     }
@@ -142,13 +137,16 @@ export class AIErrorAnalyzer {
     }
 
     try {
-      const suggestions = await this.codeAnalyzer.getRefactoringSuggestions(codeSnippet, 'temp.ts', {
-        language: context.language || 'typescript',
-      })
+      const suggestions = await this.codeAnalyzer.getRefactoringSuggestions(
+        codeSnippet,
+        'temp.ts',
+        {
+          language: context.language || 'typescript',
+        },
+      )
 
       return suggestions.map((s: any) => s.description || s.suggestion || String(s))
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('Failed to get AI suggestions:', error)
       return []
     }
@@ -190,7 +188,7 @@ export class AIErrorAnalyzer {
   private async performAIAnalysis(
     formattedError: FormattedError,
     context?: ErrorContext,
-  ): Promise<{ suggestions: string[], codeAnalysis?: CodeAnalysisResult, confidence: number }> {
+  ): Promise<{ suggestions: string[]; codeAnalysis?: CodeAnalysisResult; confidence: number }> {
     const errorMessage = formattedError.message
     const stackTrace = formattedError.context || context?.stackTrace || ''
 
@@ -225,12 +223,12 @@ Format as a JSON array of suggestion strings.
       }
 
       return {
-        suggestions: suggestions.length > 0 ? suggestions : this.getDefaultSuggestions(errorMessage),
+        suggestions:
+          suggestions.length > 0 ? suggestions : this.getDefaultSuggestions(errorMessage),
         ...(codeAnalysis && { codeAnalysis }),
         confidence: suggestions.length > 0 ? 0.8 : 0.5,
       }
-    }
-    catch {
+    } catch {
       return {
         suggestions: this.getDefaultSuggestions(errorMessage),
         confidence: 0.3,
@@ -282,10 +280,7 @@ Format as a JSON array of suggestion strings.
     return suggestions
   }
 
-  private createCacheKey(
-    message: string,
-    context?: ErrorContext,
-  ): string {
+  private createCacheKey(message: string, context?: ErrorContext): string {
     const contextStr = context ? JSON.stringify(context) : ''
     return `${message}:${contextStr}`.slice(0, 100) // Limit key length
   }

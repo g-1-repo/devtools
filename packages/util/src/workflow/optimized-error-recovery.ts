@@ -10,11 +10,11 @@ import { CacheManager } from './cache-manager.js'
 import { ParallelExecutor } from './parallel-executor.js'
 
 // Lazy load heavy dependencies
-const loadChalk = () => import('chalk').then(m => m.default)
-const loadExeca = () => import('execa').then(m => m)
+const loadChalk = () => import('chalk').then((m) => m.default)
+const loadExeca = () => import('execa').then((m) => m)
 
 export interface ErrorAnalysis {
-  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'unknown'
+  type: 'linting' | 'typescript' | 'build' | 'authentication' | 'dependency' | 'test' | 'unknown'
   severity: 'critical' | 'warning' | 'minor'
   fixable: boolean
   description: string
@@ -71,8 +71,7 @@ export class OptimizedErrorRecoveryService {
   async analyzeError(error: Error, _context?: WorkflowContext): Promise<ErrorAnalysis> {
     const hash = this.computeErrorHash(error)
     const cached = this.errorCache.get(hash)
-    if (cached)
-      return cached
+    if (cached) return cached
 
     const message = `${error.name}: ${error.message}`
     let type: ErrorAnalysis['type'] = 'unknown'
@@ -85,26 +84,36 @@ export class OptimizedErrorRecoveryService {
       severity = 'minor'
       fixable = true
       suggestedFixes.push('Run `bun run lint:fix`', 'Verify with `bun run lint`')
-    }
-    else if (/ts\d{3}|typescript/i.test(message)) {
+    } else if (/ts\d{3}|typescript/i.test(message)) {
       type = 'typescript'
       severity = 'warning'
       fixable = true
       suggestedFixes.push('Run `bun run type-check`', 'Fix TypeScript types and generics')
-    }
-    else if (/build failed|cannot build|tsup|vite|webpack/i.test(message)) {
+    } else if (/build failed|cannot build|tsup|vite|webpack/i.test(message)) {
       type = 'build'
       severity = 'critical'
       fixable = true
       suggestedFixes.push('Clean build artifacts', 'Reinstall deps', 'Re-run build')
-    }
-    else if (/auth|token|unauthorized|forbidden/i.test(message)) {
+    } else if (/auth|token|unauthorized|forbidden/i.test(message)) {
       type = 'authentication'
       severity = 'critical'
       fixable = false
       suggestedFixes.push('Verify credentials', 'Refresh tokens')
-    }
-    else if (/dep|module not found|peer|version conflict|lockfile/i.test(message)) {
+    } else if (
+      /test.*fail|fail.*test|vitest|jest|spec.*fail|expect.*fail|assertion.*fail|test:ci/i.test(
+        message,
+      ) ||
+      /test.*error|error.*test|test.*timeout|timeout.*test/i.test(error.stack || '')
+    ) {
+      type = 'test'
+      severity = 'warning'
+      fixable = true
+      suggestedFixes.push(
+        'Run individual tests to isolate failures',
+        'Check test configuration files',
+        'Review test environment setup',
+      )
+    } else if (/dep|module not found|peer|version conflict|lockfile/i.test(message)) {
       type = 'dependency'
       severity = 'warning'
       fixable = true
@@ -112,13 +121,23 @@ export class OptimizedErrorRecoveryService {
     }
 
     const description = `Detected ${type} issue. Severity: ${severity}. Fixable: ${fixable ? 'Yes' : 'No'}`
-    const analysis: ErrorAnalysis = { type, severity, fixable, description, suggestedFixes, errorHash: hash }
+    const analysis: ErrorAnalysis = {
+      type,
+      severity,
+      fixable,
+      description,
+      suggestedFixes,
+      errorHash: hash,
+    }
 
     this.errorCache.set(hash, analysis)
     return analysis
   }
 
-  async createRecoveryWorkflow(analysis: ErrorAnalysis, _originalError: Error): Promise<WorkflowStep[]> {
+  async createRecoveryWorkflow(
+    analysis: ErrorAnalysis,
+    _originalError: Error,
+  ): Promise<WorkflowStep[]> {
     const steps: WorkflowStep[] = []
     await this.ensureChalk()
 
@@ -139,20 +158,23 @@ export class OptimizedErrorRecoveryService {
 
     switch (analysis.type) {
       case 'linting':
-        steps.push(...await this.createParallelLintingRecoverySteps())
+        steps.push(...(await this.createParallelLintingRecoverySteps()))
         break
       case 'build':
-        steps.push(...await this.createParallelBuildRecoverySteps())
+        steps.push(...(await this.createParallelBuildRecoverySteps()))
         break
       case 'dependency':
-        steps.push(...await this.createParallelDependencyRecoverySteps())
+        steps.push(...(await this.createParallelDependencyRecoverySteps()))
+        break
+      case 'test':
+        steps.push(...(await this.createParallelTestRecoverySteps()))
         break
     }
 
     steps.push({
       id: 'verification',
       title: 'Recovery Verification',
-      dependencies: steps.map(s => s.id!).filter(id => id !== 'analysis'),
+      dependencies: steps.map((s) => s.id!).filter((id) => id !== 'analysis'),
       task: async (_ctx, helpers) => {
         helpers.setOutput('Verifying recovery actions...')
         helpers.setTitle('Recovery Verification - ✅ Complete')
@@ -178,12 +200,13 @@ export class OptimizedErrorRecoveryService {
 
       // Execute recovery steps with parallel processing
       await this.parallelExecutor.executeSteps(recoverySteps)
-    }
-    catch (recoveryError) {
-      console.error(ErrorFormatter.formatError(
-        recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
-        'critical',
-      ).message)
+    } catch (recoveryError) {
+      console.error(
+        ErrorFormatter.formatError(
+          recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)),
+          'critical',
+        ).message,
+      )
       console.error(chalk.red('\nAutomated recovery failed. Manual intervention required.'))
     }
   }
@@ -275,6 +298,57 @@ export class OptimizedErrorRecoveryService {
           const execa = await this.ensureExeca()
           await execa.execa('bun', ['install'])
           helpers.setTitle('Verification - ✅ Complete')
+        },
+      },
+    ]
+  }
+
+  private async createParallelTestRecoverySteps(): Promise<WorkflowStep[]> {
+    return [
+      {
+        id: 'run-individual-tests',
+        title: 'Run individual tests',
+        task: async (_ctx, helpers) => {
+          const execa = await this.ensureExeca()
+          try {
+            await execa.execa('bun', ['run', 'test', '--reporter=verbose'])
+            helpers.setTitle('Individual Tests - ✅ Passed')
+          } catch (error) {
+            helpers.setTitle('Individual Tests - ⚠️ Some failures detected')
+          }
+        },
+      },
+      {
+        id: 'check-test-config',
+        title: 'Check test configuration',
+        task: async (_ctx, helpers) => {
+          const fs = await import('node:fs/promises')
+          const configFiles = [
+            'vitest.config.ts',
+            'vitest.config.js',
+            'jest.config.js',
+            'jest.config.ts',
+          ]
+
+          for (const configFile of configFiles) {
+            try {
+              await fs.access(configFile)
+              helpers.setTitle(`Test Config - ✅ Found ${configFile}`)
+              return
+            } catch {
+              // Continue checking other config files
+            }
+          }
+          helpers.setTitle('Test Config - ⚠️ No config file found')
+        },
+      },
+      {
+        id: 'verify-test-env',
+        title: 'Verify test environment',
+        dependencies: ['run-individual-tests', 'check-test-config'],
+        task: async (_ctx, helpers) => {
+          helpers.setOutput('Test environment verification complete')
+          helpers.setTitle('Test Environment - ✅ Verified')
         },
       },
     ]

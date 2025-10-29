@@ -68,6 +68,12 @@ program
   .option('-t, --type <type>', 'Version bump type', /^(patch|minor|major)$/)
   .option('--skip-tests', 'Skip running tests')
   .option('--skip-lint', 'Skip linting')
+  .option('--skip-typecheck', 'Skip TypeScript type checking')
+  .option(
+    '--typescript-autofix <mode>',
+    'TypeScript error handling mode: auto, manual, continue, exit',
+    'auto'
+  )
   .option('--skip-build', 'Skip build step')
   .option('--skip-publish', 'Skip publishing to npm')
   .option('--skip-cloudflare', 'Skip Cloudflare deployment')
@@ -183,7 +189,7 @@ program
           const config = await loadWorkflowConfig()
           if (config.ai?.enabled && config.ai?.features?.versionBump?.enabled) {
             try {
-              const aiService = new AIService(config.ai)
+              const aiService = new AIService(config.ai, process.cwd())
               // Map util CommitInfo to workflow CommitInfo by adding files property
               const workflowCommits = commits.map((commit) => ({
                 ...commit,

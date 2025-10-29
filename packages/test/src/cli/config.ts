@@ -12,10 +12,12 @@ const TestRunnerConfigSchema = z.object({
   database: z.enum(['memory', 'sqlite', 'd1', 'drizzle-sqlite', 'drizzle-d1']).optional(),
 
   // Test selection
-  categories: z.union([
-    z.record(z.string(), z.string()), // category name -> pattern (config file)
-    z.array(z.string()), // category names (CLI override)
-  ]).optional(),
+  categories: z
+    .union([
+      z.record(z.string(), z.string()), // category name -> pattern (config file)
+      z.array(z.string()), // category names (CLI override)
+    ])
+    .optional(),
   patterns: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),
 
@@ -50,24 +52,32 @@ const TestRunnerConfigSchema = z.object({
   forceExit: z.boolean().optional(),
 
   // Enterprise features
-  telemetry: z.object({
-    enabled: z.boolean().optional(),
-    endpoint: z.string().url().optional(),
-    apiKey: z.string().optional(),
-  }).optional(),
+  telemetry: z
+    .object({
+      enabled: z.boolean().optional(),
+      endpoint: z.string().url().optional(),
+      apiKey: z.string().optional(),
+    })
+    .optional(),
 
-  notifications: z.object({
-    enabled: z.boolean().optional(),
-    slack: z.object({
-      webhook: z.string().url(),
-      channel: z.string().optional(),
-    }).optional(),
-    email: z.object({
-      smtp: z.string(),
-      from: z.string().email(),
-      to: z.array(z.string().email()),
-    }).optional(),
-  }).optional(),
+  notifications: z
+    .object({
+      enabled: z.boolean().optional(),
+      slack: z
+        .object({
+          webhook: z.string().url(),
+          channel: z.string().optional(),
+        })
+        .optional(),
+      email: z
+        .object({
+          smtp: z.string(),
+          from: z.string().email(),
+          to: z.array(z.string().email()),
+        })
+        .optional(),
+    })
+    .optional(),
 })
 
 export type TestRunnerConfig = z.infer<typeof TestRunnerConfigSchema>
@@ -119,8 +129,7 @@ export class ConfigLoader {
         filepath: result.filepath,
         isEmpty: false,
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         throw new ConfigValidationError('Invalid configuration', error)
       }
@@ -136,8 +145,7 @@ export class ConfigLoader {
       // cosmiconfig v9 doesn't have searchSync - use async version
       // For now, return empty config and load async later
       return { config: {}, isEmpty: true }
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         throw new ConfigValidationError('Invalid configuration', error)
       }
@@ -155,7 +163,9 @@ export class ConfigLoader {
   /**
    * Detect package information from package.json
    */
-  async detectPackage(searchFrom?: string): Promise<{ name?: string, type?: string, testScript?: string }> {
+  async detectPackage(
+    searchFrom?: string,
+  ): Promise<{ name?: string; type?: string; testScript?: string }> {
     try {
       const { readFile } = await import('node:fs/promises')
       const { join } = await import('node:path')
@@ -168,8 +178,7 @@ export class ConfigLoader {
         type: this.inferPackageType(packageJson),
         testScript: packageJson.scripts?.test,
       }
-    }
-    catch {
+    } catch {
       return {}
     }
   }
@@ -178,12 +187,10 @@ export class ConfigLoader {
    * Infer package type from package.json
    */
   private inferPackageType(packageJson: any): string {
-    if (packageJson.main && packageJson.bin)
-      return 'cli'
+    if (packageJson.main && packageJson.bin) return 'cli'
     if (packageJson.dependencies?.hono || packageJson.dependencies?.['@hono/zod-openapi'])
       return 'api'
-    if (packageJson.type === 'module' && !packageJson.main)
-      return 'library'
+    if (packageJson.type === 'module' && !packageJson.main) return 'library'
     return 'library'
   }
 }
@@ -192,7 +199,10 @@ export class ConfigLoader {
  * Configuration validation error
  */
 export class ConfigValidationError extends Error {
-  constructor(message: string, public zodError: z.ZodError) {
+  constructor(
+    message: string,
+    public zodError: z.ZodError,
+  ) {
     super(message)
     this.name = 'ConfigValidationError'
   }
@@ -201,10 +211,12 @@ export class ConfigValidationError extends Error {
    * Get formatted error message
    */
   getFormattedError(): string {
-    const issues = this.zodError.issues.map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join('.') : 'root'
-      return `  - ${path}: ${issue.message}`
-    }).join('\n')
+    const issues = this.zodError.issues
+      .map((issue) => {
+        const path = issue.path.length > 0 ? issue.path.join('.') : 'root'
+        return `  - ${path}: ${issue.message}`
+      })
+      .join('\n')
 
     return `Configuration validation failed:\n${issues}`
   }

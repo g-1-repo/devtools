@@ -9,9 +9,16 @@ assignees: ''
 ## 🐛 Bug Description
 A clear and concise description of what the bug is.
 
+## 📦 Package
+Which package is affected?
+- [ ] `@g-1/ai-core`
+- [ ] `@g-1/test`
+- [ ] `@g-1/util`
+- [ ] `@g-1/workflow`
+
 ## 📋 Steps to Reproduce
-1. Install @g-1/util version: `X.X.X`
-2. Import the utility: `import { ... } from '@g-1/util/...'`
+1. Install package version: `X.X.X`
+2. Import the utility: `import { ... } from '@g-1/...'`
 3. Call the function: `...`
 4. See error
 
@@ -30,7 +37,7 @@ A clear and concise description of what actually happened.
 ## 🔧 Code Example
 ```typescript
 // Minimal code example that reproduces the issue
-import { utilityName } from '@g-1/util/module'
+import { utilityName } from '@g-1/package'
 
 // Your code here
 ```

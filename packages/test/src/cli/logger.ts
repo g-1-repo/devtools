@@ -1,11 +1,6 @@
 import type { LoggerConfig } from '@g-1/util/debug'
+import { ExitCode, LogLevel, StructuredLogger } from '@g-1/util/debug'
 import type { TestRunnerConfig } from './config.js'
-import {
-  ExitCode,
-
-  LogLevel,
-  StructuredLogger,
-} from '@g-1/util/debug'
 
 // Re-export for backward compatibility
 export { ExitCode, LogLevel }

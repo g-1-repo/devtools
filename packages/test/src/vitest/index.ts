@@ -1,8 +1,8 @@
-import type { HonoApp, IsolationLevel, VitestConfig } from '../types.js'
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest'
 import { createDatabaseAdapter, detectBestDatabaseProvider } from '../adapters/database.js'
 import { TestDataFactory } from '../factory.js'
 import { cleanupAllTestStores, getTestStore } from '../store.js'
+import type { HonoApp, IsolationLevel, VitestConfig } from '../types.js'
 import { setupRuntimeSpecificTests, setupTestEnvironment } from '../utils/environment.js'
 import { createHttpTestClient } from '../utils/http-client.js'
 
@@ -45,8 +45,7 @@ export function setupTestFramework(app?: HonoApp, options: Partial<VitestConfig>
         const provider = detectBestDatabaseProvider()
         dbAdapter = createDatabaseAdapter(provider)
         await dbAdapter.initialize()
-      }
-      catch (error) {
+      } catch (error) {
         console.warn('Failed to initialize database adapter:', error)
       }
     }
@@ -94,8 +93,7 @@ export function setupTestFramework(app?: HonoApp, options: Partial<VitestConfig>
       if (dbAdapter) {
         try {
           await dbAdapter.cleanup()
-        }
-        catch (error) {
+        } catch (error) {
           console.warn('Database cleanup failed:', error)
         }
       }
@@ -160,8 +158,7 @@ export function testWithContext(
     const ctx = createTestContext(isolationLevel)
     try {
       await fn(ctx)
-    }
-    finally {
+    } finally {
       await ctx.cleanup()
     }
   })
@@ -170,10 +167,7 @@ export function testWithContext(
 /**
  * Database test helper
  */
-export function dbTest(
-  name: string,
-  fn: (db: any) => void | Promise<void>,
-): void {
+export function dbTest(name: string, fn: (db: any) => void | Promise<void>): void {
   test(name, async () => {
     if (!dbAdapter) {
       throw new Error('Database adapter not initialized. Call setupTestFramework first.')
@@ -184,8 +178,7 @@ export function dbTest(
 
     try {
       await fn(dbAdapter.db)
-    }
-    finally {
+    } finally {
       // Reset database state
       await dbAdapter.reset()
     }
@@ -208,8 +201,7 @@ export function httpTest(
 
     try {
       await fn(testClient)
-    }
-    finally {
+    } finally {
       testClient.clearCookies()
       testClient.clearHistory()
     }
@@ -235,7 +227,10 @@ export function factoryTest(
  */
 export function timeTest(
   name: string,
-  fn: (timeMock: { advance: (ms: number) => void, setTime: (date: Date) => void }) => void | Promise<void>,
+  fn: (timeMock: {
+    advance: (ms: number) => void
+    setTime: (date: Date) => void
+  }) => void | Promise<void>,
   initialTime?: Date,
 ): void {
   test(name, async () => {
@@ -252,9 +247,8 @@ export function timeTest(
       constructor(...args: any[]) {
         if (args.length === 0) {
           super(mockTime)
-        }
-        else {
-          // @ts-ignore
+        } else {
+          // @ts-expect-error
           super(...args)
         }
       }
@@ -275,8 +269,7 @@ export function timeTest(
 
     try {
       await fn(timeMock)
-    }
-    finally {
+    } finally {
       // Restore original time functions
       Date.now = originalNow
       global.Date = originalDateConstructor
@@ -287,10 +280,7 @@ export function timeTest(
 /**
  * Snapshot testing helper
  */
-export function snapshotTest<T>(
-  name: string,
-  fn: () => T | Promise<T>,
-): void {
+export function snapshotTest<T>(name: string, fn: () => T | Promise<T>): void {
   test(name, async () => {
     const result = await fn()
     expect(result).toMatchSnapshot()
@@ -300,11 +290,7 @@ export function snapshotTest<T>(
 /**
  * Performance test helper
  */
-export function perfTest(
-  name: string,
-  fn: () => void | Promise<void>,
-  maxDuration?: number,
-): void {
+export function perfTest(name: string, fn: () => void | Promise<void>, maxDuration?: number): void {
   test(name, async () => {
     const start = Date.now()
     await fn()
@@ -336,14 +322,13 @@ export function retryTest(
       try {
         await fn()
         return // Success
-      }
-      catch (error) {
+      } catch (error) {
         lastError = error as Error
 
         if (attempt < maxRetries - 1) {
           // Wait before retry (exponential backoff)
           const delay = 2 ** attempt * 100
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
     }
@@ -355,12 +340,9 @@ export function retryTest(
 /**
  * Concurrent test helper
  */
-export function concurrentTest(
-  name: string,
-  fns: Array<() => void | Promise<void>>,
-): void {
+export function concurrentTest(name: string, fns: Array<() => void | Promise<void>>): void {
   test(name, async () => {
-    await Promise.all(fns.map(fn => fn()))
+    await Promise.all(fns.map((fn) => fn()))
   })
 }
 

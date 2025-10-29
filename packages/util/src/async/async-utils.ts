@@ -2,7 +2,7 @@
  * Creates a delay/sleep function
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -13,7 +13,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | undefined
-  return function (...args: Parameters<T>) {
+  return (...args: Parameters<T>) => {
     clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
   }
@@ -27,11 +27,13 @@ export function throttle<T extends (...args: any[]) => any>(
   wait: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean
-  return function (...args: Parameters<T>) {
+  return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args)
       inThrottle = true
-      setTimeout(() => inThrottle = false, wait)
+      setTimeout(() => {
+        inThrottle = false
+      }, wait)
     }
   }
 }
@@ -47,10 +49,8 @@ export async function retry<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn()
-    }
-    catch (error) {
-      if (attempt === maxAttempts)
-        throw error
+    } catch (error) {
+      if (attempt === maxAttempts) throw error
 
       const delayTime = baseDelay * 2 ** (attempt - 1)
       await delay(delayTime)

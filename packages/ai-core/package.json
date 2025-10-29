@@ -3,14 +3,14 @@
     "version": "1.0.0",
     "description": "AI-powered core services for G1 DevTools. Provides intelligent code analysis, automated insights, and AI-driven development assistance with Cloudflare Workers AI integration.",
     "license": "MIT",
-    "homepage": "https://github.com/g-1-repo/studio/tree/main/devtools/packages/ai-core#readme",
+    "homepage": "https://github.com/g-1-repo/devtools/tree/main/packages/ai-core#readme",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/g-1-repo/devtools.git",
         "directory": "packages/ai-core"
     },
     "bugs": {
-        "url": "https://github.com/g-1-repo/studio/issues"
+        "url": "https://github.com/g-1-repo/devtools/issues"
     },
     "keywords": [
         "ai",
@@ -25,22 +25,22 @@
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
-            "import": "./dist/index.esm.js",
+            "import": "./dist/index.mjs",
             "require": "./dist/index.js"
         },
         "./providers": {
             "types": "./dist/providers/index.d.ts",
-            "import": "./dist/providers/index.esm.js",
+            "import": "./dist/providers/index.mjs",
             "require": "./dist/providers/index.js"
         },
         "./services": {
             "types": "./dist/services/index.d.ts",
-            "import": "./dist/services/index.esm.js",
+            "import": "./dist/services/index.mjs",
             "require": "./dist/services/index.js"
         }
     },
     "main": "dist/index.js",
-    "module": "dist/index.esm.js",
+    "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
     "files": [
         "CHANGELOG.md",
@@ -53,14 +53,17 @@
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
+        "clean": "rm -rf dist",
+        "lint": "bunx @biomejs/biome@^2.3.0 check src/",
+        "lint:fix": "bunx @biomejs/biome@^2.3.0 check --write src/",
+        "format": "bunx @biomejs/biome@^2.3.0 format --write src/",
         "test": "vitest --no-watch",
         "test:watch": "vitest",
         "test:coverage": "vitest --no-watch --coverage",
-        "typecheck": "tsc --noEmit",
-        "lint": "bunx @biomejs/biome@2.3.0 check src/",
-        "lint:fix": "bunx @biomejs/biome@2.3.0 check --write src/",
-        "format": "bunx @biomejs/biome@2.3.0 format --write src/",
-        "clean": "rm -rf dist"
+        "typecheck": "tsc --noEmit"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "dependencies": {
         "@ai-sdk/provider": "^0.0.24",

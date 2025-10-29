@@ -1,7 +1,7 @@
-import type { TestStore, IsolationLevel } from './types.js'
+import type { IsolationLevel, TestStore } from './types.js'
 
 // Re-export types for direct import
-export type { TestStore, IsolationLevel } from './types.js'
+export type { IsolationLevel, TestStore } from './types.js'
 
 /**
  * Test store implementation with automatic cleanup and state isolation
@@ -163,10 +163,10 @@ export function clearTestStore(isolationLevel: IsolationLevel = 'test'): void {
  * Clean up all test stores
  */
 export async function cleanupAllTestStores(): Promise<void> {
-  const cleanupPromises = Array.from(stores.values()).map(store => store.runCleanup())
+  const cleanupPromises = Array.from(stores.values()).map((store) => store.runCleanup())
   await Promise.allSettled(cleanupPromises)
-  
-  stores.forEach(store => store.clear())
+
+  stores.forEach((store) => store.clear())
 }
 
 /**
@@ -215,8 +215,8 @@ export class ScopedTestData {
    */
   clear(): void {
     const prefix = `${this.scope}:`
-    const keysToDelete = this.store.keys().filter(key => key.startsWith(prefix))
-    keysToDelete.forEach(key => this.store.delete(key))
+    const keysToDelete = this.store.keys().filter((key) => key.startsWith(prefix))
+    keysToDelete.forEach((key) => this.store.delete(key))
   }
 
   /**
@@ -225,14 +225,15 @@ export class ScopedTestData {
   snapshot(name: string = 'default'): void {
     const prefix = `${this.scope}:`
     const scopedData = new Map<string, any>()
-    
-    this.store.keys()
-      .filter(key => key.startsWith(prefix))
-      .forEach(key => {
+
+    this.store
+      .keys()
+      .filter((key) => key.startsWith(prefix))
+      .forEach((key) => {
         const originalKey = key.substring(prefix.length)
         scopedData.set(originalKey, this.store.get(key))
       })
-    
+
     this.snapshots.set(name, scopedData)
   }
 
@@ -261,9 +262,10 @@ export class ScopedTestData {
    */
   keys(): string[] {
     const prefix = `${this.scope}:`
-    return this.store.keys()
-      .filter(key => key.startsWith(prefix))
-      .map(key => key.substring(prefix.length))
+    return this.store
+      .keys()
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.substring(prefix.length))
   }
 
   /**
@@ -277,7 +279,10 @@ export class ScopedTestData {
 /**
  * Create scoped test data manager
  */
-export function createScopedTestData(scope: string, isolationLevel?: IsolationLevel): ScopedTestData {
+export function createScopedTestData(
+  scope: string,
+  isolationLevel?: IsolationLevel,
+): ScopedTestData {
   return new ScopedTestData(scope, isolationLevel)
 }
 
@@ -406,7 +411,7 @@ export class AutoCleanup {
    * Clear all timers
    */
   clearTimers(): void {
-    this.timers.forEach(timer => {
+    this.timers.forEach((timer) => {
       clearTimeout(timer)
       clearInterval(timer)
     })

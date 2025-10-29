@@ -77,6 +77,7 @@ export interface ImpactAnalysis {
 
 export class AIServiceV2 {
   private config: AIConfig
+  private rootPath: string
   private aiProvider?: AIProvider
   private rootPath: string
 

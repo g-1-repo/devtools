@@ -18,6 +18,32 @@ export interface AIConfig {
   generateReleaseNotes: boolean
   apiKey?: string
   model?: string
+  cloudflare?: {
+    accountId?: string
+    apiToken?: string
+    model?: string
+    baseUrl?: string
+  }
+  features?: {
+    changelog?: {
+      enabled?: boolean
+      includeBreakingChanges?: boolean
+      categorizeCommits?: boolean
+      generateSummary?: boolean
+    }
+    versionBump?: {
+      enabled?: boolean
+      analyzeImpact?: boolean
+      suggestBumpType?: boolean
+      confidenceThreshold?: number
+    }
+    impactAnalysis?: {
+      enabled?: boolean
+      crossPackageAnalysis?: boolean
+      riskAssessment?: boolean
+      testingRecommendations?: boolean
+    }
+  }
 }
 
 export interface ChangelogEntry {

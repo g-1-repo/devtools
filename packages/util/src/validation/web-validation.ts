@@ -12,9 +12,9 @@ import { isValidEmail as baseEmailValidator } from './index.js'
 export function validateRequired<T extends Record<string, unknown>>(
   data: T,
   requiredFields: (keyof T)[],
-): { isValid: boolean, missingFields: string[] } {
-  const missing = requiredFields.filter(field =>
-    data[field] === undefined || data[field] === null || data[field] === '',
+): { isValid: boolean; missingFields: string[] } {
+  const missing = requiredFields.filter(
+    (field) => data[field] === undefined || data[field] === null || data[field] === '',
   )
 
   return {
@@ -58,7 +58,7 @@ export function validatePagination(
   page: number | string,
   limit: number | string,
   maxLimit: number = 100,
-): { page: number, limit: number } {
+): { page: number; limit: number } {
   const validatedPage = Math.max(1, Math.floor(Number(page) || 1))
   const validatedLimit = Math.min(Math.max(1, Math.floor(Number(limit) || 20)), maxLimit)
 
@@ -72,7 +72,7 @@ export function validateLength(
   value: string,
   minLength: number = 0,
   maxLength: number = Infinity,
-): { isValid: boolean, error?: string } {
+): { isValid: boolean; error?: string } {
   if (typeof value !== 'string') {
     return { isValid: false, error: 'Value must be a string' }
   }
@@ -95,7 +95,7 @@ export function validateRange(
   value: number,
   min: number = -Infinity,
   max: number = Infinity,
-): { isValid: boolean, error?: string } {
+): { isValid: boolean; error?: string } {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return { isValid: false, error: 'Value must be a number' }
   }
@@ -117,7 +117,7 @@ export function validateRange(
 export function validateEnum<T extends string>(
   value: string,
   allowedValues: T[],
-): { isValid: boolean, error?: string } {
+): { isValid: boolean; error?: string } {
   if (!allowedValues.includes(value as T)) {
     return {
       isValid: false,
@@ -139,7 +139,9 @@ export interface ValidationResult {
 /**
  * Validate multiple fields at once
  */
-export function validateFields(validations: Record<string, () => { isValid: boolean, error?: string }>): ValidationResult {
+export function validateFields(
+  validations: Record<string, () => { isValid: boolean; error?: string }>,
+): ValidationResult {
   const errors: Record<string, string> = {}
 
   for (const [field, validate] of Object.entries(validations)) {
@@ -159,9 +161,9 @@ export function validateFields(validations: Record<string, () => { isValid: bool
  * Create a validation function for common patterns
  */
 export function createValidator<T>(
-  validators: Array<(value: T) => { isValid: boolean, error?: string }>,
+  validators: Array<(value: T) => { isValid: boolean; error?: string }>,
 ) {
-  return (value: T): { isValid: boolean, errors: string[] } => {
+  return (value: T): { isValid: boolean; errors: string[] } => {
     const errors: string[] = []
 
     for (const validator of validators) {

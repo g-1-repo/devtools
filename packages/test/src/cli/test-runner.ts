@@ -1,15 +1,16 @@
-import type { DatabaseProvider, Runtime } from '../types.js'
-import type { TestRunnerConfig } from './config.js'
 import { readdir, stat } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
 import chalk from 'chalk'
 import enquirer from 'enquirer'
 import { execa } from 'execa'
 import { Listr } from 'listr2'
+import type { DatabaseProvider, Runtime } from '../types.js'
 import { detectRuntime, getEnvironmentInfo } from '../utils/environment.js'
-import { configLoader, ConfigValidationError, getDefaultConfig, mergeConfig } from './config.js'
+import type { TestRunnerConfig } from './config.js'
+import { ConfigValidationError, configLoader, getDefaultConfig, mergeConfig } from './config.js'
 import { ExitCode, formatError, Logger, setupErrorHandlers } from './logger.js'
-// @ts-ignore - enquirer doesn't export types properly
+
+// @ts-expect-error - enquirer doesn't export types properly
 const { MultiSelect, Select } = enquirer
 
 interface TestFile {
@@ -51,12 +52,8 @@ export class TestRunner {
       const cliConfig = this.parseCLIArgs()
 
       // Merge: defaults < CLI < overrides
-      return mergeConfig(
-        mergeConfig(getDefaultConfig(), cliConfig),
-        overrides || {},
-      )
-    }
-    catch (error) {
+      return mergeConfig(mergeConfig(getDefaultConfig(), cliConfig), overrides || {})
+    } catch (error) {
       if (error instanceof ConfigValidationError) {
         console.error(chalk.red('❌ Configuration Error:'))
         console.error(error.getFormattedError())
@@ -152,69 +149,71 @@ export class TestRunner {
    * Show help information
    */
   private showHelp(): void {
-    console.log(chalk.cyan(`
+    console.log(
+      chalk.cyan(`
 🧪 @go-corp/test-suite Enterprise Test Runner
 
-`)
-+ chalk.white(`Usage:
+`) +
+        chalk.white(`Usage:
   test-runner [options]
 
-`)
-+ chalk.yellow(`Runtime Options:
-`)
-+ chalk.gray(`  --runtime <runtime>      Runtime (cloudflare-workers, node, bun)
-`)
-+ chalk.gray(`  --database <provider>    Database (memory, sqlite, d1, drizzle-sqlite, drizzle-d1)
+`) +
+        chalk.yellow(`Runtime Options:
+`) +
+        chalk.gray(`  --runtime <runtime>      Runtime (cloudflare-workers, node, bun)
+`) +
+        chalk.gray(`  --database <provider>    Database (memory, sqlite, d1, drizzle-sqlite, drizzle-d1)
 
-`)
-+ chalk.yellow(`Test Selection:
-`)
-+ chalk.gray(`  --categories, -c <cats>  Comma-separated categories to run
-`)
-+ chalk.gray(`  --reporter <reporter>    Test reporter (default, verbose, minimal, json, junit)
+`) +
+        chalk.yellow(`Test Selection:
+`) +
+        chalk.gray(`  --categories, -c <cats>  Comma-separated categories to run
+`) +
+        chalk.gray(`  --reporter <reporter>    Test reporter (default, verbose, minimal, json, junit)
 
-`)
-+ chalk.yellow(`Execution Options:
-`)
-+ chalk.gray(`  --watch, -w             Run in watch mode
-`)
-+ chalk.gray(`  --parallel              Enable parallel execution (default)
-`)
-+ chalk.gray(`  --no-parallel           Disable parallel execution
-`)
-+ chalk.gray(`  --max-workers <n>       Maximum worker threads
-`)
-+ chalk.gray(`  --timeout <ms>          Test timeout in milliseconds
-`)
-+ chalk.gray(`  --coverage              Enable coverage reporting
-`)
-+ chalk.gray(`  --bail                  Stop on first failure
+`) +
+        chalk.yellow(`Execution Options:
+`) +
+        chalk.gray(`  --watch, -w             Run in watch mode
+`) +
+        chalk.gray(`  --parallel              Enable parallel execution (default)
+`) +
+        chalk.gray(`  --no-parallel           Disable parallel execution
+`) +
+        chalk.gray(`  --max-workers <n>       Maximum worker threads
+`) +
+        chalk.gray(`  --timeout <ms>          Test timeout in milliseconds
+`) +
+        chalk.gray(`  --coverage              Enable coverage reporting
+`) +
+        chalk.gray(`  --bail                  Stop on first failure
 
-`)
-+ chalk.yellow(`Output Options:
-`)
-+ chalk.gray(`  --verbose, -v           Enable verbose output
-`)
-+ chalk.gray(`  --silent                Silent mode (no output)
-`)
-+ chalk.gray(`  --help, -h              Show this help message
+`) +
+        chalk.yellow(`Output Options:
+`) +
+        chalk.gray(`  --verbose, -v           Enable verbose output
+`) +
+        chalk.gray(`  --silent                Silent mode (no output)
+`) +
+        chalk.gray(`  --help, -h              Show this help message
 
-`)
-+ chalk.yellow(`Configuration:
-`)
-+ chalk.gray(`  Configuration is loaded from .gotestsuiterc, package.json, or gotestsuite.config.js
+`) +
+        chalk.yellow(`Configuration:
+`) +
+        chalk.gray(`  Configuration is loaded from .gotestsuiterc, package.json, or gotestsuite.config.js
 
-`)
-+ chalk.green(`Examples:
-`)
-+ chalk.white(`  test-runner --runtime node --database sqlite --verbose
-`)
-+ chalk.white(`  test-runner -c unit,integration --coverage
-`)
-+ chalk.white(`  test-runner --watch --max-workers 2
-`)
-+ chalk.white(`  test-runner --reporter json --bail
-`))
+`) +
+        chalk.green(`Examples:
+`) +
+        chalk.white(`  test-runner --runtime node --database sqlite --verbose
+`) +
+        chalk.white(`  test-runner -c unit,integration --coverage
+`) +
+        chalk.white(`  test-runner --watch --max-workers 2
+`) +
+        chalk.white(`  test-runner --reporter json --bail
+`),
+    )
   }
 
   /**
@@ -228,11 +227,15 @@ export class TestRunner {
 
     if (this.testFiles.length === 0) {
       this.logger.warn('No test files found in current directory')
-      this.logger.info('This is normal for library projects - test files will be discovered from consuming projects')
+      this.logger.info(
+        'This is normal for library projects - test files will be discovered from consuming projects',
+      )
       // Don't exit with error - this is not necessarily a failure condition
     }
 
-    this.logger.success(`Found ${this.testFiles.length} test files in ${this.categories.size} categories`)
+    this.logger.success(
+      `Found ${this.testFiles.length} test files in ${this.categories.size} categories`,
+    )
   }
 
   /**
@@ -251,8 +254,7 @@ export class TestRunner {
           if (!entry.startsWith('.') && entry !== 'node_modules' && entry !== 'dist') {
             await this.scanDirectory(fullPath)
           }
-        }
-        else if (this.isTestFile(entry)) {
+        } else if (this.isTestFile(entry)) {
           this.testFiles.push({
             name: entry,
             path: fullPath,
@@ -262,8 +264,7 @@ export class TestRunner {
           })
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Warning: Could not scan directory ${dir}:`, error)
     }
   }
@@ -280,8 +281,10 @@ export class TestRunner {
       /spec\.(js|ts|jsx|tsx)$/,
     ]
 
-    return (ext === '.js' || ext === '.ts' || ext === '.jsx' || ext === '.tsx')
-      && testPatterns.some(pattern => pattern.test(filename))
+    return (
+      (ext === '.js' || ext === '.ts' || ext === '.jsx' || ext === '.tsx') &&
+      testPatterns.some((pattern) => pattern.test(filename))
+    )
   }
 
   /**
@@ -291,28 +294,19 @@ export class TestRunner {
     const relativePath = relative(process.cwd(), fullPath).toLowerCase()
 
     // Category detection rules
-    if (relativePath.includes('unit') || filename.includes('unit'))
-      return 'unit'
+    if (relativePath.includes('unit') || filename.includes('unit')) return 'unit'
     if (relativePath.includes('integration') || filename.includes('integration'))
       return 'integration'
-    if (relativePath.includes('e2e') || filename.includes('e2e'))
-      return 'e2e'
-    if (relativePath.includes('api') || filename.includes('api'))
-      return 'api'
-    if (relativePath.includes('auth') || filename.includes('auth'))
-      return 'auth'
-    if (relativePath.includes('database') || filename.includes('db'))
-      return 'database'
-    if (relativePath.includes('performance') || filename.includes('perf'))
-      return 'performance'
-    if (relativePath.includes('smoke'))
-      return 'smoke'
-    if (relativePath.includes('regression'))
-      return 'regression'
+    if (relativePath.includes('e2e') || filename.includes('e2e')) return 'e2e'
+    if (relativePath.includes('api') || filename.includes('api')) return 'api'
+    if (relativePath.includes('auth') || filename.includes('auth')) return 'auth'
+    if (relativePath.includes('database') || filename.includes('db')) return 'database'
+    if (relativePath.includes('performance') || filename.includes('perf')) return 'performance'
+    if (relativePath.includes('smoke')) return 'smoke'
+    if (relativePath.includes('regression')) return 'regression'
 
     // Default categorization
-    if (relativePath.includes('test'))
-      return 'functional'
+    if (relativePath.includes('test')) return 'functional'
     return 'other'
   }
 
@@ -372,7 +366,7 @@ export class TestRunner {
   /**
    * Interactive test mode selection
    */
-  private async selectTestMode(): Promise<{ mode: string, options: Partial<TestRunnerConfig> }> {
+  private async selectTestMode(): Promise<{ mode: string; options: Partial<TestRunnerConfig> }> {
     // If specific flags are provided, don't show mode selection
     if (this.config.watch || this.config.coverage || this.config.silent || this.config.bail) {
       return {
@@ -427,23 +421,24 @@ export class TestRunner {
       initial: 0,
       // Ensure proper terminal handling
       format: (value: any) => value,
-      validate: (value: any) => value ? true : 'Please select an option',
+      validate: (value: any) => (value ? true : 'Please select an option'),
     })
 
     let selectedMode: string
     try {
       // Ensure terminal is in proper state for prompts
       process.stdout.write('\x1B[?25h') // Show cursor
-      await new Promise(resolve => setTimeout(resolve, 100)) // Small delay
+      await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
 
       selectedMode = await prompt.run()
 
       // Clear any residual prompt output
       console.log()
-    }
-    catch (error) {
+    } catch (error) {
       // Fallback if prompt fails
-      this.logger.warn('Prompt failed, using quick mode', { error: error instanceof Error ? error.message : error })
+      this.logger.warn('Prompt failed, using quick mode', {
+        error: error instanceof Error ? error.message : error,
+      })
       selectedMode = 'quick'
     }
 
@@ -506,11 +501,14 @@ export class TestRunner {
     let configCategories: string[] = []
     try {
       const { config: fileConfig } = await configLoader.load()
-      if (fileConfig.categories && typeof fileConfig.categories === 'object' && !Array.isArray(fileConfig.categories)) {
+      if (
+        fileConfig.categories &&
+        typeof fileConfig.categories === 'object' &&
+        !Array.isArray(fileConfig.categories)
+      ) {
         configCategories = Object.keys(fileConfig.categories)
       }
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.debug('Could not load config for category selection', { error })
     }
 
@@ -553,29 +551,27 @@ export class TestRunner {
     const prompt = new MultiSelect({
       name: 'categories',
       message: 'Select test categories to run:',
-      choices: [
-        { name: '🎯 All categories', value: 'all' },
-        ...categoryChoices,
-      ],
+      choices: [{ name: '🎯 All categories', value: 'all' }, ...categoryChoices],
       initial: ['all'],
       // Ensure proper terminal handling
-      validate: (value: any[]) => value.length > 0 ? true : 'Please select at least one category',
+      validate: (value: any[]) => (value.length > 0 ? true : 'Please select at least one category'),
     })
 
     let selected: string[]
     try {
       // Ensure terminal is in proper state for prompts
       process.stdout.write('\x1B[?25h') // Show cursor
-      await new Promise(resolve => setTimeout(resolve, 100)) // Small delay
+      await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
 
       selected = await prompt.run()
 
       // Clear any residual prompt output
       console.log()
-    }
-    catch (error) {
+    } catch (error) {
       // Fallback if prompt fails
-      this.logger.warn('Category selection failed, using all categories', { error: error instanceof Error ? error.message : error })
+      this.logger.warn('Category selection failed, using all categories', {
+        error: error instanceof Error ? error.message : error,
+      })
       selected = ['all']
     }
 
@@ -614,26 +610,26 @@ export class TestRunner {
         { name: 'cloudflare-workers', value: 'cloudflare-workers' },
         { name: 'node', value: 'node' },
         { name: 'bun', value: 'bun' },
-      ].filter((choice, index, arr) =>
-        index === 0 || !arr.slice(0, index).some(c => c.value === choice.value),
+      ].filter(
+        (choice, index, arr) =>
+          index === 0 || !arr.slice(0, index).some((c) => c.value === choice.value),
       ),
       initial: 0,
       // Ensure proper terminal handling
-      validate: (value: any) => value ? true : 'Please select a runtime',
+      validate: (value: any) => (value ? true : 'Please select a runtime'),
     })
 
     try {
       // Ensure terminal is in proper state for prompts
       process.stdout.write('\x1B[?25h') // Show cursor
-      await new Promise(resolve => setTimeout(resolve, 100)) // Small delay
+      await new Promise((resolve) => setTimeout(resolve, 100)) // Small delay
 
       const result = await prompt.run()
 
       // Clear any residual prompt output
       console.log()
       return result
-    }
-    catch (error) {
+    } catch (error) {
       // Fallback if prompt fails
       this.logger.warn('Runtime selection failed, using detected runtime', {
         error: error instanceof Error ? error.message : error,
@@ -679,19 +675,19 @@ export class TestRunner {
       if (mode === 'custom') {
         selectedCategories = await this.selectCategories()
         selectedRuntime = await this.selectRuntime()
-      }
-      else {
+      } else {
         // Use config or auto-detect for non-custom modes
         const hasCliCategories = Array.isArray(this.config.categories)
-        const hasConfigCategories = this.config.categories && typeof this.config.categories === 'object' && !Array.isArray(this.config.categories)
+        const hasConfigCategories =
+          this.config.categories &&
+          typeof this.config.categories === 'object' &&
+          !Array.isArray(this.config.categories)
 
         if (hasCliCategories) {
           selectedCategories = this.config.categories as string[]
-        }
-        else if (hasConfigCategories) {
+        } else if (hasConfigCategories) {
           selectedCategories = Object.keys(this.config.categories!)
-        }
-        else {
+        } else {
           selectedCategories = ['all']
         }
 
@@ -732,24 +728,27 @@ export class TestRunner {
         options: listrOptions,
       })
 
-      const tasks = new Listr([
-        {
-          title: 'Validating environment',
-          task: () => this.validateEnvironment(),
-        },
-        {
-          title: 'Loading configuration',
-          task: ctx => this.loadRuntimeConfig(ctx),
-        },
-        {
-          title: 'Preparing test execution',
-          task: ctx => this.prepareTestExecution(ctx),
-        },
-        {
-          title: 'Running tests',
-          task: ctx => this.executeTests(ctx),
-        },
-      ], listrOptions)
+      const tasks = new Listr(
+        [
+          {
+            title: 'Validating environment',
+            task: () => this.validateEnvironment(),
+          },
+          {
+            title: 'Loading configuration',
+            task: (ctx) => this.loadRuntimeConfig(ctx),
+          },
+          {
+            title: 'Preparing test execution',
+            task: (ctx) => this.prepareTestExecution(ctx),
+          },
+          {
+            title: 'Running tests',
+            task: (ctx) => this.executeTests(ctx),
+          },
+        ],
+        listrOptions,
+      )
 
       const ctx = await tasks.run(initialContext)
 
@@ -775,8 +774,7 @@ export class TestRunner {
       await this.logger.flush()
 
       process.exit(ctx.testResults?.failed ? ExitCode.TEST_FAILURE : ExitCode.SUCCESS)
-    }
-    catch (error) {
+    } catch (error) {
       sessionTimer()
 
       if (error instanceof Error && error.message === 'cancelled') {
@@ -784,8 +782,7 @@ export class TestRunner {
         this.logger.trackTelemetry('test_runner_cancelled')
         await this.logger.flush()
         process.exit(ExitCode.INTERRUPTED)
-      }
-      else {
+      } else {
         const err = error instanceof Error ? error : new Error(String(error))
         this.logger.error('Test runner failed', err)
         this.logger.trackTelemetry('test_runner_error', {
@@ -815,8 +812,7 @@ export class TestRunner {
     // Check for required binaries
     try {
       await execa('npx', ['--version'], { timeout: 5000 })
-    }
-    catch {
+    } catch {
       throw new Error('npx not found - please ensure npm is properly installed')
     }
 
@@ -857,8 +853,7 @@ export class TestRunner {
           finalConfig = mergeConfig(finalConfig, ctx.modeOptions)
         }
         this.config = finalConfig
-      }
-      else {
+      } else {
         this.logger.debug('Loaded configuration from file', { filepath })
 
         // Merge: defaults < package defaults < file config < CLI args < mode options
@@ -879,15 +874,18 @@ export class TestRunner {
         }
         this.config = finalConfig
       }
-    }
-    catch (error) {
-      this.logger.warn('Failed to load configuration file', { error: error instanceof Error ? error.message : error })
+    } catch (error) {
+      this.logger.warn('Failed to load configuration file', {
+        error: error instanceof Error ? error.message : error,
+      })
     }
 
     // Re-apply mode options after config loading to ensure they take precedence
     if (ctx.modeOptions) {
       this.config = mergeConfig(this.config, ctx.modeOptions)
-      this.logger.debug('Re-applied mode options after config loading', { modeOptions: ctx.modeOptions })
+      this.logger.debug('Re-applied mode options after config loading', {
+        modeOptions: ctx.modeOptions,
+      })
     }
 
     this.logger.debug('Runtime configuration loaded', {
@@ -919,7 +917,11 @@ export class TestRunner {
     }
 
     // If we have category patterns defined in config, use them
-    if (this.config.categories && typeof this.config.categories === 'object' && !Array.isArray(this.config.categories)) {
+    if (
+      this.config.categories &&
+      typeof this.config.categories === 'object' &&
+      !Array.isArray(this.config.categories)
+    ) {
       const { glob } = await import('glob')
 
       for (const categoryName of selectedCategories) {
@@ -927,40 +929,42 @@ export class TestRunner {
           // Run all categories
           for (const [, pattern] of Object.entries(this.config.categories)) {
             const matchedFiles = await glob(pattern, { cwd: process.cwd() })
-            selectedFiles.push(...matchedFiles.map(path => ({
+            selectedFiles.push(
+              ...matchedFiles.map((path) => ({
+                name: path.split('/').pop() || path,
+                path,
+                category: categoryName,
+                size: 0,
+                lastModified: new Date(),
+              })),
+            )
+          }
+          break
+        } else if (this.config.categories[categoryName]) {
+          // Use specific category pattern
+          const pattern = this.config.categories[categoryName]
+          const matchedFiles = await glob(pattern, { cwd: process.cwd() })
+          selectedFiles.push(
+            ...matchedFiles.map((path) => ({
               name: path.split('/').pop() || path,
               path,
               category: categoryName,
               size: 0,
               lastModified: new Date(),
-            })))
-          }
-          break
-        }
-        else if (this.config.categories[categoryName]) {
-          // Use specific category pattern
-          const pattern = this.config.categories[categoryName]
-          const matchedFiles = await glob(pattern, { cwd: process.cwd() })
-          selectedFiles.push(...matchedFiles.map(path => ({
-            name: path.split('/').pop() || path,
-            path,
-            category: categoryName,
-            size: 0,
-            lastModified: new Date(),
-          })))
+            })),
+          )
         }
       }
-    }
-    else {
+    } else {
       // Use discovered test files by category
-      selectedFiles = this.testFiles.filter(file =>
-        selectedCategories.includes('all') || selectedCategories.includes(file.category),
+      selectedFiles = this.testFiles.filter(
+        (file) => selectedCategories.includes('all') || selectedCategories.includes(file.category),
       )
     }
 
     // Remove duplicates by path
-    const uniqueFiles = selectedFiles.filter((file, index, self) =>
-      index === self.findIndex(f => f.path === file.path),
+    const uniqueFiles = selectedFiles.filter(
+      (file, index, self) => index === self.findIndex((f) => f.path === file.path),
     )
 
     if (uniqueFiles.length === 0) {
@@ -1125,8 +1129,7 @@ export class TestRunner {
         success: result.exitCode === 0,
         duration: ctx.duration,
       })
-    }
-    catch (error: any) {
+    } catch (error: any) {
       timer()
 
       // Parse test results even from failed execution
@@ -1138,8 +1141,7 @@ export class TestRunner {
           exitCode: error.exitCode,
           filesCount: selectedFiles.length,
         })
-      }
-      else {
+      } else {
         throw error
       }
     }
@@ -1166,12 +1168,12 @@ export class TestRunner {
    */
   private async sendNotifications(testResults: any): Promise<void> {
     const config = this.config.notifications
-    if (!config?.enabled)
-      return
+    if (!config?.enabled) return
 
-    const message = testResults.failed > 0
-      ? `❌ Tests failed: ${testResults.failed} failed, ${testResults.passed} passed`
-      : `✅ All tests passed: ${testResults.passed} tests`
+    const message =
+      testResults.failed > 0
+        ? `❌ Tests failed: ${testResults.failed} failed, ${testResults.passed} passed`
+        : `✅ All tests passed: ${testResults.passed} tests`
 
     // Slack notification
     if (config.slack?.webhook) {
@@ -1185,8 +1187,7 @@ export class TestRunner {
           }),
         })
         this.logger.debug('Slack notification sent')
-      }
-      catch (error) {
+      } catch (error) {
         this.logger.warn('Failed to send Slack notification', { error })
       }
     }
@@ -1200,7 +1201,10 @@ export class TestRunner {
   /**
    * Get package-specific default configuration
    */
-  private getPackageDefaults(packageInfo: { name?: string, type?: string }): Partial<TestRunnerConfig> {
+  private getPackageDefaults(packageInfo: {
+    name?: string
+    type?: string
+  }): Partial<TestRunnerConfig> {
     const defaults: Partial<TestRunnerConfig> = {}
 
     // Set package metadata

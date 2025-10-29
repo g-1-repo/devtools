@@ -42,28 +42,26 @@ export interface RunOptions {
   cwd?: string
 }
 
-export class PackageManagerAdapterFactory {
-  static create(
-    monorepoType: MonorepoType,
-    packageManager: PackageManager,
-    rootPath: string
-  ): PackageManagerAdapter {
-    switch (monorepoType) {
-      case 'lerna':
-        return new LernaAdapter(rootPath, packageManager)
-      case 'nx':
-        return new NxAdapter(rootPath, packageManager)
-      case 'yarn-workspaces':
-        return new YarnWorkspacesAdapter(rootPath)
-      case 'pnpm-workspaces':
-        return new PnpmWorkspacesAdapter(rootPath)
-      case 'rush':
-        return new RushAdapter(rootPath)
-      case 'single-package':
-        return new SinglePackageAdapter(rootPath, packageManager)
-      default:
-        throw new Error(`Unsupported monorepo type: ${monorepoType}`)
-    }
+export function createPackageManagerAdapter(
+  monorepoType: MonorepoType,
+  packageManager: PackageManager,
+  rootPath: string
+): PackageManagerAdapter {
+  switch (monorepoType) {
+    case 'lerna':
+      return new LernaAdapter(rootPath, packageManager)
+    case 'nx':
+      return new NxAdapter(rootPath, packageManager)
+    case 'yarn-workspaces':
+      return new YarnWorkspacesAdapter(rootPath)
+    case 'pnpm-workspaces':
+      return new PnpmWorkspacesAdapter(rootPath)
+    case 'rush':
+      return new RushAdapter(rootPath)
+    case 'single-package':
+      return new SinglePackageAdapter(rootPath, packageManager)
+    default:
+      throw new Error(`Unsupported monorepo type: ${monorepoType}`)
   }
 }
 
@@ -152,25 +150,83 @@ export class LernaAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }
@@ -233,25 +289,83 @@ export class NxAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }
@@ -315,25 +429,83 @@ export class YarnWorkspacesAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }
@@ -397,25 +569,83 @@ export class PnpmWorkspacesAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }
@@ -474,25 +704,83 @@ export class RushAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }
@@ -545,25 +833,83 @@ export class SinglePackageAdapter implements PackageManagerAdapter {
       const child = spawn('sh', ['-c', command], {
         cwd: cwd || this.rootPath,
         stdio: returnOutput ? 'pipe' : 'inherit',
+        detached: false, // Ensure child processes are part of the same process group
       })
 
       let output = ''
+      let isResolved = false
+
+      // Cleanup function to properly terminate child process
+      const cleanup = () => {
+        if (!child.killed && child.pid) {
+          try {
+            // Try graceful termination first
+            child.kill('SIGTERM')
+
+            // Force kill after timeout if still running
+            setTimeout(() => {
+              if (!child.killed && child.pid) {
+                child.kill('SIGKILL')
+              }
+            }, 5000)
+          } catch (error) {
+            // Process might already be dead, ignore errors
+          }
+        }
+      }
+
+      // Handle process termination signals
+      const signalHandler = () => {
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(new Error(`Process terminated: ${command}`))
+        }
+      }
+
+      process.once('SIGINT', signalHandler)
+      process.once('SIGTERM', signalHandler)
+      process.once('exit', cleanup)
 
       if (returnOutput) {
         child.stdout?.on('data', (data) => {
           output += data.toString()
         })
+
+        // Handle stderr for better error reporting
+        child.stderr?.on('data', (data) => {
+          output += data.toString()
+        })
       }
 
       child.on('close', (code) => {
-        if (code === 0) {
-          resolve(output)
-        } else {
-          reject(new Error(`Command failed with exit code ${code}: ${command}`))
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        if (!isResolved) {
+          isResolved = true
+          if (code === 0) {
+            resolve(output)
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${command}`))
+          }
         }
       })
 
-      child.on('error', reject)
+      child.on('error', (error) => {
+        // Remove signal handlers
+        process.removeListener('SIGINT', signalHandler)
+        process.removeListener('SIGTERM', signalHandler)
+        process.removeListener('exit', cleanup)
+
+        cleanup()
+        if (!isResolved) {
+          isResolved = true
+          reject(error)
+        }
+      })
     })
   }
 }

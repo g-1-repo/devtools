@@ -79,9 +79,8 @@ export async function confirm(options: ConfirmOptions): Promise<boolean> {
     output: process.stdout as NodeJS.WritableStream,
   })
 
-  const defaultText = options.default !== undefined
-    ? (options.default ? ' (Y/n)' : ' (y/N)')
-    : ' (y/n)'
+  const defaultText =
+    options.default !== undefined ? (options.default ? ' (Y/n)' : ' (y/N)') : ' (y/n)'
   const prompt = `${options.message}${defaultText}: `
 
   return new Promise((resolve) => {
@@ -96,11 +95,9 @@ export async function confirm(options: ConfirmOptions): Promise<boolean> {
 
       if (trimmed === 'y' || trimmed === 'yes') {
         resolve(true)
-      }
-      else if (trimmed === 'n' || trimmed === 'no') {
+      } else if (trimmed === 'n' || trimmed === 'no') {
         resolve(false)
-      }
-      else {
+      } else {
         console.log('❌ Please answer y/yes or n/no')
         confirm(options).then(resolve)
       }
@@ -166,9 +163,10 @@ export async function multiselect<T>(options: MultiSelectOptions<T>): Promise<T[
 
   return new Promise((resolve) => {
     const askForChoices = () => {
-      const defaultHint = options.initialValues && options.initialValues.length > 0
-        ? ` (default: ${options.initialValues.map((_, i) => i + 1).join(',')})`
-        : ''
+      const defaultHint =
+        options.initialValues && options.initialValues.length > 0
+          ? ` (default: ${options.initialValues.map((_, i) => i + 1).join(',')})`
+          : ''
 
       rl.question(`\nSelect options${defaultHint}: `, (answer) => {
         const trimmed = answer.trim()
@@ -191,9 +189,10 @@ export async function multiselect<T>(options: MultiSelectOptions<T>): Promise<T[
           return
         }
 
-        const choices = trimmed.split(',')
-          .map(c => Number.parseInt(c.trim()))
-          .filter(c => !Number.isNaN(c) && c >= 1 && c <= options.options.length)
+        const choices = trimmed
+          .split(',')
+          .map((c) => Number.parseInt(c.trim()))
+          .filter((c) => !Number.isNaN(c) && c >= 1 && c <= options.options.length)
 
         if (choices.length === 0) {
           console.log('❌ No valid choices selected')
@@ -201,7 +200,7 @@ export async function multiselect<T>(options: MultiSelectOptions<T>): Promise<T[
         }
 
         rl.close()
-        resolve(choices.map(choice => options.options[choice - 1]!.value))
+        resolve(choices.map((choice) => options.options[choice - 1]!.value))
       })
     }
 
@@ -247,19 +246,16 @@ export async function password(options: PromptOptions): Promise<string> {
         }
 
         resolve(passwordValue || options.default || '')
-      }
-      else if (key === '\u0003') {
+      } else if (key === '\u0003') {
         // Ctrl+C
         process.exit(1)
-      }
-      else if (key === '\u007F' || key === '\u0008') {
+      } else if (key === '\u007F' || key === '\u0008') {
         // Backspace
         if (passwordValue.length > 0) {
           passwordValue = passwordValue.slice(0, -1)
           process.stdout.write('\b \b')
         }
-      }
-      else if (key.charCodeAt(0) >= 32) {
+      } else if (key.charCodeAt(0) >= 32) {
         // Printable character
         passwordValue += key
         process.stdout.write('*')

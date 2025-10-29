@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Type check all packages
+        run: |
+          echo "🔍 Running TypeScript checks..."
+          cd packages/ai-core && bun run typecheck
+          cd ../test && bun run typecheck
+          cd ../util && bun run typecheck
+          cd ../workflow && bun run typecheck
+        
+      - name: Lint all packages
+        run: |
+          echo "🧹 Running linting checks..."
+          cd packages/ai-core && bun run lint
+          cd ../test && bun run lint
+          cd ../util && bun run lint
+          cd ../workflow && bun run lint
+        
+      - name: Test all packages
+        run: |
+          echo "🧪 Running tests..."
+          cd packages/ai-core && bun run test
+          cd ../test && bun run test
+          cd ../util && bun run test
+          cd ../workflow && bun run test
+        
+      - name: Build all packages
+        run: |
+          echo "🏗️ Building packages..."
+          cd packages/ai-core && bun run build
+          cd ../test && bun run build
+          cd ../util && bun run build
+          cd ../workflow && bun run build
+        
+      - name: Verify build outputs
+        run: |
+          echo "✅ Verifying build outputs exist..."
+          ls -la packages/ai-core/dist/
+          ls -la packages/test/dist/
+          ls -la packages/util/dist/
+          ls -la packages/workflow/dist/

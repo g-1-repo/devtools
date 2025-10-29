@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, vi, type MockInstance } from 'vitest'
+import { afterEach, beforeAll, type MockInstance, vi } from 'vitest'
 
 export interface TestSetupOptions {
   /** Mock console methods to reduce noise during tests */
@@ -15,12 +15,7 @@ export interface TestSetupOptions {
  * Set up test environment with common configurations
  */
 export function setupTestEnvironment(options: TestSetupOptions = {}): void {
-  const {
-    mockConsole = true,
-    consoleMethods = ['info', 'debug'],
-    env = {},
-    cleanup = []
-  } = options
+  const { mockConsole = true, consoleMethods = ['info', 'debug'], env = {}, cleanup = [] } = options
 
   // Store original console methods and environment variables
   const originalConsole: Record<string, any> = {}
@@ -90,11 +85,11 @@ export function ensureTestEnv(requiredVars: Record<string, string>): void {
  */
 export function withTestEnv<T>(
   env: Record<string, string>,
-  fn: () => T | Promise<T>
+  fn: () => T | Promise<T>,
 ): () => Promise<T> {
   return async () => {
     const originalEnv: Record<string, string | undefined> = {}
-    
+
     // Set test environment variables
     Object.entries(env).forEach(([key, value]) => {
       originalEnv[key] = process.env[key]
@@ -135,9 +130,9 @@ export class MockTime {
    */
   start(): void {
     const mockTime = this.mockDate.getTime()
-    
+
     Date.now = vi.fn(() => mockTime)
-    
+
     // Mock Date constructor
     const originalDate = this.originalDate
     global.Date = class MockDate extends originalDate {
@@ -145,11 +140,11 @@ export class MockTime {
         if (args.length === 0) {
           super(mockTime)
         } else {
-          // @ts-ignore - We need to spread args here
+          // @ts-expect-error - We need to spread args here
           super(...args)
         }
       }
-      
+
       static now(): number {
         return mockTime
       }
@@ -162,7 +157,7 @@ export class MockTime {
   advance(ms: number): void {
     this.mockDate = new Date(this.mockDate.getTime() + ms)
     const newMockTime = this.mockDate.getTime()
-    
+
     Date.now = vi.fn(() => newMockTime)
     ;(global.Date as any).now = () => newMockTime
   }
@@ -173,7 +168,7 @@ export class MockTime {
   setTime(date: Date): void {
     this.mockDate = date
     const mockTime = date.getTime()
-    
+
     Date.now = vi.fn(() => mockTime)
     ;(global.Date as any).now = () => mockTime
   }
@@ -204,7 +199,7 @@ export function setupCloudflareWorkerTests(): void {
     env: {
       // Ensure dummy environment variables for services that require them
       RESEND_API_KEY: 're_test_mock_api_key_for_testing',
-      NODE_ENV: 'test'
-    }
+      NODE_ENV: 'test',
+    },
   })
 }

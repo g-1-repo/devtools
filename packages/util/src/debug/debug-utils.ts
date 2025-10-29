@@ -35,7 +35,7 @@ export function prettyPrint(obj: any, indent: number = 2): void {
 export async function measureTime<T>(
   fn: () => T | Promise<T>,
   label: string = 'Function',
-): Promise<{ result: T, duration: number }> {
+): Promise<{ result: T; duration: number }> {
   const start = performance.now()
   const result = await fn()
   const end = performance.now()

@@ -362,6 +362,8 @@ export interface ReleaseOptions extends CliOptions {
   tag?: string
   skipTests?: boolean
   skipLint?: boolean
+  skipTypecheck?: boolean
+  typescriptAutofix?: 'auto' | 'manual' | 'continue' | 'exit'
   skipCloudflare?: boolean
   skipNpm?: boolean | string[] // true to skip all, array of package names to skip specific packages
   skipNpmPackages?: string[] | boolean // array of package names or true for interactive selection

@@ -1,9 +1,4 @@
-import type {
-  HonoApp,
-  HttpClientOptions,
-  TestRequestOptions,
-  TestResponse,
-} from '../types.js'
+import type { HonoApp, HttpClientOptions, TestRequestOptions, TestResponse } from '../types.js'
 
 // Re-export types for direct import
 export type { HttpClientOptions, TestRequestOptions, TestResponse } from '../types.js'
@@ -15,7 +10,11 @@ export class HttpTestClient {
   private app: HonoApp
   private options: HttpClientOptions
   private cookieJars = new Map<string, string>()
-  private requestHistory: Array<{ request: TestRequestOptions, response: TestResponse, timestamp: Date }> = []
+  private requestHistory: Array<{
+    request: TestRequestOptions
+    response: TestResponse
+    timestamp: Date
+  }> = []
   private defaultTimeout = 5000
 
   constructor(app: HonoApp, options: HttpClientOptions = {}) {
@@ -36,11 +35,10 @@ export class HttpTestClient {
   private async makeAppRequest(path: string, init: RequestInit): Promise<Response> {
     try {
       // Try Cloudflare Workers test environment
-      // @ts-ignore - Dynamic import may not be available
+      // @ts-expect-error - Dynamic import may not be available
       const { env } = await import('cloudflare:test')
       return await this.app.request(path, init, env)
-    }
-    catch {
+    } catch {
       // Fallback to standard Hono request
       return await this.app.request(path, init)
     }
@@ -79,13 +77,11 @@ export class HttpTestClient {
         options.headers.forEach((value, key) => {
           headers.set(key, value)
         })
-      }
-      else if (Array.isArray(options.headers)) {
+      } else if (Array.isArray(options.headers)) {
         options.headers.forEach(([key, value]) => {
           headers.set(key, value)
         })
-      }
-      else {
+      } else {
         Object.entries(options.headers).forEach(([key, value]) => {
           headers.set(key, value)
         })
@@ -105,7 +101,12 @@ export class HttpTestClient {
   /**
    * Handle response and extract cookies
    */
-  private handleResponse(response: Response, cookieJar: string, startTime: number, requestOptions: TestRequestOptions): TestResponse {
+  private handleResponse(
+    response: Response,
+    cookieJar: string,
+    startTime: number,
+    requestOptions: TestRequestOptions,
+  ): TestResponse {
     // Extract and store cookies
     const setCookie = response.headers.get('set-cookie')
     if (setCookie) {
@@ -166,7 +167,9 @@ export class HttpTestClient {
 
           if (!expected.includes(response.status)) {
             const body = await response.text()
-            throw new Error(`Expected status ${expected.join(' or ')}, got ${response.status}: ${body}`)
+            throw new Error(
+              `Expected status ${expected.join(' or ')}, got ${response.status}: ${body}`,
+            )
           }
         }
 
@@ -178,8 +181,7 @@ export class HttpTestClient {
         })
 
         return enhancedResponse
-      }
-      catch (error) {
+      } catch (error) {
         lastError = error as Error
 
         // Don't retry on expected status errors
@@ -194,7 +196,7 @@ export class HttpTestClient {
 
         // Wait before retry (exponential backoff)
         const delay = 2 ** attempt * 100
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
 
@@ -211,7 +213,10 @@ export class HttpTestClient {
   /**
    * Convenience method for POST requests
    */
-  async post(path: string, options: Omit<TestRequestOptions, 'method'> = {}): Promise<TestResponse> {
+  async post(
+    path: string,
+    options: Omit<TestRequestOptions, 'method'> = {},
+  ): Promise<TestResponse> {
     return this.request(path, { ...options, method: 'POST' })
   }
 
@@ -225,21 +230,33 @@ export class HttpTestClient {
   /**
    * Convenience method for DELETE requests
    */
-  async delete(path: string, options: Omit<TestRequestOptions, 'method'> = {}): Promise<TestResponse> {
+  async delete(
+    path: string,
+    options: Omit<TestRequestOptions, 'method'> = {},
+  ): Promise<TestResponse> {
     return this.request(path, { ...options, method: 'DELETE' })
   }
 
   /**
    * Convenience method for PATCH requests
    */
-  async patch(path: string, options: Omit<TestRequestOptions, 'method'> = {}): Promise<TestResponse> {
+  async patch(
+    path: string,
+    options: Omit<TestRequestOptions, 'method'> = {},
+  ): Promise<TestResponse> {
     return this.request(path, { ...options, method: 'PATCH' })
   }
 
   /**
    * POST request with JSON body
    */
-  async postJSON<_T = any>(path: string, body: any, options: Omit<TestRequestOptions, 'method' | 'body' | 'headers'> & { headers?: Record<string, string> } = {}): Promise<TestResponse> {
+  async postJSON<_T = any>(
+    path: string,
+    body: any,
+    options: Omit<TestRequestOptions, 'method' | 'body' | 'headers'> & {
+      headers?: Record<string, string>
+    } = {},
+  ): Promise<TestResponse> {
     return this.post(path, {
       ...options,
       headers: {
@@ -253,7 +270,13 @@ export class HttpTestClient {
   /**
    * PUT request with JSON body
    */
-  async putJSON<_T = any>(path: string, body: any, options: Omit<TestRequestOptions, 'method' | 'body' | 'headers'> & { headers?: Record<string, string> } = {}): Promise<TestResponse> {
+  async putJSON<_T = any>(
+    path: string,
+    body: any,
+    options: Omit<TestRequestOptions, 'method' | 'body' | 'headers'> & {
+      headers?: Record<string, string>
+    } = {},
+  ): Promise<TestResponse> {
     return this.put(path, {
       ...options,
       headers: {
@@ -267,7 +290,10 @@ export class HttpTestClient {
   /**
    * GET request with automatic JSON parsing
    */
-  async getJSON<T = any>(path: string, options: Omit<TestRequestOptions, 'method'> = {}): Promise<{ response: TestResponse, json: T }> {
+  async getJSON<T = any>(
+    path: string,
+    options: Omit<TestRequestOptions, 'method'> = {},
+  ): Promise<{ response: TestResponse; json: T }> {
     const response = await this.get(path, options)
     const json = await response.json<T>()
     return { response, json }
@@ -276,7 +302,10 @@ export class HttpTestClient {
   /**
    * Request with automatic JSON parsing
    */
-  async requestJSON<T = any>(path: string, options: TestRequestOptions = {}): Promise<{ response: TestResponse, json: T }> {
+  async requestJSON<T = any>(
+    path: string,
+    options: TestRequestOptions = {},
+  ): Promise<{ response: TestResponse; json: T }> {
     const response = await this.request(path, options)
     const json = await response.json<T>()
     return { response, json }
@@ -288,8 +317,7 @@ export class HttpTestClient {
   clearCookies(jarKey?: string): void {
     if (jarKey) {
       this.cookieJars.delete(jarKey)
-    }
-    else {
+    } else {
       this.cookieJars.clear()
     }
   }
@@ -311,7 +339,7 @@ export class HttpTestClient {
   /**
    * Get request history
    */
-  getHistory(): Array<{ request: TestRequestOptions, response: TestResponse, timestamp: Date }> {
+  getHistory(): Array<{ request: TestRequestOptions; response: TestResponse; timestamp: Date }> {
     return [...this.requestHistory]
   }
 
@@ -325,7 +353,9 @@ export class HttpTestClient {
   /**
    * Get last request
    */
-  getLastRequest(): { request: TestRequestOptions, response: TestResponse, timestamp: Date } | undefined {
+  getLastRequest():
+    | { request: TestRequestOptions; response: TestResponse; timestamp: Date }
+    | undefined {
     return this.requestHistory[this.requestHistory.length - 1]
   }
 

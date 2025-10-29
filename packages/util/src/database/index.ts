@@ -23,7 +23,10 @@
  * Generic error class for database query operations
  */
 export class DatabaseQueryError extends Error {
-  constructor(message: string, public readonly code?: string) {
+  constructor(
+    message: string,
+    public readonly code?: string,
+  ) {
     super(message)
     this.name = 'DatabaseQueryError'
   }
@@ -63,10 +66,7 @@ export function takeFirst<T>(values: T[]): T | null {
  * @returns First element
  * @throws QueryNotFoundError if array is empty
  */
-export function takeFirstOrThrow<T>(
-  values: T[],
-  errorMessage: string = 'Record not found',
-): T {
+export function takeFirstOrThrow<T>(values: T[], errorMessage: string = 'Record not found'): T {
   const value = takeFirst(values)
   if (value === null) {
     throw new QueryNotFoundError(errorMessage)
@@ -92,10 +92,7 @@ export function takeLast<T>(values: T[]): T | null {
  * @returns Last element
  * @throws QueryNotFoundError if array is empty
  */
-export function takeLastOrThrow<T>(
-  values: T[],
-  errorMessage: string = 'Record not found',
-): T {
+export function takeLastOrThrow<T>(values: T[], errorMessage: string = 'Record not found'): T {
   const value = takeLast(values)
   if (value === null) {
     throw new QueryNotFoundError(errorMessage)
@@ -115,10 +112,7 @@ export function takeLastOrThrow<T>(
  * @throws QueryNotFoundError if array is empty
  * @throws DatabaseQueryError if array has more than one element
  */
-export function takeExactlyOne<T>(
-  values: T[],
-  errorMessage: string = 'Record not found',
-): T {
+export function takeExactlyOne<T>(values: T[], errorMessage: string = 'Record not found'): T {
   if (values.length === 0) {
     throw new QueryNotFoundError(errorMessage)
   }

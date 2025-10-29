@@ -226,7 +226,10 @@ export function cached(ttl?: number) {
     const originalMethod = descriptor.value;
     const cache = new AICache({ ttl });
 
-    descriptor.value = async function (this: unknown, ...args: unknown[]) {
+    descriptor.value = async function (
+      this: { constructor: { name: string } },
+      ...args: unknown[]
+    ) {
       const key = createAIRequestKey(this.constructor.name, propertyKey, args);
 
       return cache.getOrSet(key, () => originalMethod.apply(this, args), ttl);

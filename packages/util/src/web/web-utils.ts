@@ -16,8 +16,7 @@ export function getQueryParams(url: string): Record<string, string> {
  * Formats bytes to human readable format
  */
 export function formatBytes(bytes: number, decimals: number = 2): string {
-  if (bytes === 0)
-    return '0 Bytes'
+  if (bytes === 0) return '0 Bytes'
 
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals
@@ -50,12 +49,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     try {
       document.execCommand('copy')
       return true
-    }
-    finally {
+    } finally {
       textArea.remove()
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Copy to clipboard failed', error)
     return false
   }

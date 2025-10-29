@@ -81,7 +81,7 @@ describe('testDataFactory', () => {
       expect(users[2]).toBeDefined()
 
       // Each user should have unique ID
-      const ids = users.map(u => u.id)
+      const ids = users.map((u) => u.id)
       expect(new Set(ids).size).toBe(3)
     })
 

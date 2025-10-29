@@ -38,21 +38,22 @@ export function groupBy<T, K extends string | number>(
   array: T[],
   keyFn: (item: T) => K,
 ): Record<K, T[]> {
-  return array.reduce((groups, item) => {
-    const key = keyFn(item)
-    if (!groups[key])
-      groups[key] = []
-    groups[key]!.push(item)
-    return groups
-  }, {} as Record<K, T[]>)
+  return array.reduce(
+    (groups, item) => {
+      const key = keyFn(item)
+      if (!groups[key]) groups[key] = []
+      groups[key]!.push(item)
+      return groups
+    },
+    {} as Record<K, T[]>,
+  )
 }
 
 /**
  * Chunks an array into smaller arrays of specified size
  */
 export function chunk<T>(array: T[], size: number): T[][] {
-  if (size <= 0)
-    return []
+  if (size <= 0) return []
   const chunks: T[][] = []
   for (let i = 0; i < array.length; i += size) {
     chunks.push(array.slice(i, i + size))

@@ -9,6 +9,14 @@ assignees: ''
 ## 🚀 Feature Description
 A clear and concise description of the feature you'd like to see added.
 
+## 📦 Package
+Which package should this feature be added to?
+- [ ] `@g-1/ai-core` - AI/LLM utilities and providers
+- [ ] `@g-1/test` - Testing utilities and helpers
+- [ ] `@g-1/util` - General utility functions
+- [ ] `@g-1/workflow` - CLI and workflow tools
+- [ ] New package: `@g-1/____`
+
 ## 💡 Motivation
 Explain the problem this feature would solve or the use case it addresses.
 
@@ -18,13 +26,13 @@ Describe the solution you'd like in detail.
 ### API Design
 ```typescript
 // Example of how you'd like the API to work
-import { newUtility } from '@g-1/util/module'
+import { newUtility } from '@g-1/package'
 
 const result = newUtility(/* parameters */)
 ```
 
-### Module Location
-Which module should this utility belong to?
+### Module Location (for @g-1/util)
+If this is for `@g-1/util`, which module should this utility belong to?
 - [ ] `@g-1/util/array`
 - [ ] `@g-1/util/async`
 - [ ] `@g-1/util/crypto`

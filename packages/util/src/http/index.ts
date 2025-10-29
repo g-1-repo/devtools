@@ -72,8 +72,8 @@ export const {
 } = HTTP_STATUS_CODES
 
 // Type definitions for better TypeScript support
-export type HttpStatusCode = typeof HTTP_STATUS_CODES[keyof typeof HTTP_STATUS_CODES]
-export type HttpStatusPhrase = typeof HTTP_STATUS_PHRASES[keyof typeof HTTP_STATUS_PHRASES]
+export type HttpStatusCode = (typeof HTTP_STATUS_CODES)[keyof typeof HTTP_STATUS_CODES]
+export type HttpStatusPhrase = (typeof HTTP_STATUS_PHRASES)[keyof typeof HTTP_STATUS_PHRASES]
 
 /**
  * Check if a status code indicates success (2xx)
@@ -101,7 +101,7 @@ export function isServerError(statusCode: number): boolean {
  */
 export function getStatusPhrase(statusCode: HttpStatusCode): HttpStatusPhrase | undefined {
   const key = Object.keys(HTTP_STATUS_CODES).find(
-    k => HTTP_STATUS_CODES[k as keyof typeof HTTP_STATUS_CODES] === statusCode,
+    (k) => HTTP_STATUS_CODES[k as keyof typeof HTTP_STATUS_CODES] === statusCode,
   ) as keyof typeof HTTP_STATUS_PHRASES | undefined
 
   return key ? HTTP_STATUS_PHRASES[key] : undefined

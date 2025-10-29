@@ -42,8 +42,7 @@ export function exec(command: string, options: ExecOptions = {}): string {
       cwd: options.cwd,
     })
     return result ? result.toString().trim() : ''
-  }
-  catch (error: any) {
+  } catch (error: any) {
     if (!options.ignoreErrors) {
       log(`❌ Command failed: ${command}`, COLORS.red)
       log(error.message || 'Unknown error', COLORS.red)
@@ -72,8 +71,12 @@ export function hasUncommittedChanges(): boolean {
  * Get list of changed files
  */
 export function getChangedFiles(): string[] {
-  const changedFiles = exec('git diff --name-only HEAD', { silent: true }).split('\n').filter(Boolean)
-  const stagedFiles = exec('git diff --cached --name-only', { silent: true }).split('\n').filter(Boolean)
+  const changedFiles = exec('git diff --name-only HEAD', { silent: true })
+    .split('\n')
+    .filter(Boolean)
+  const stagedFiles = exec('git diff --cached --name-only', { silent: true })
+    .split('\n')
+    .filter(Boolean)
   return [...new Set([...changedFiles, ...stagedFiles])]
 }
 
@@ -128,7 +131,10 @@ export function getCurrentVersion(packagePath: string = 'package.json'): string 
 /**
  * Update version in package.json
  */
-export function updatePackageVersion(newVersion: string, packagePath: string = 'package.json'): void {
+export function updatePackageVersion(
+  newVersion: string,
+  packagePath: string = 'package.json',
+): void {
   const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'))
   packageJson.version = newVersion
   writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
@@ -157,34 +163,24 @@ export function analyzeChangesForVersionBump(): VersionAnalysis {
   const changesList: string[] = []
 
   // Check for breaking changes (major)
-  const breakingIndicators = [
-    /BREAKING[\s\-_]*CHANGE/i,
-    /^feat!:/i,
-    /^fix!:/i,
-    /!:/,
-    /breaking/i,
-  ]
+  const breakingIndicators = [/BREAKING[\s\-_]*CHANGE/i, /^feat!:/i, /^fix!:/i, /!:/, /breaking/i]
 
-  const majorChanges = commits.some(commit =>
-    breakingIndicators.some(pattern => pattern.test(commit)),
+  const majorChanges = commits.some((commit) =>
+    breakingIndicators.some((pattern) => pattern.test(commit)),
   )
 
   // Check for new features (minor)
-  const featureIndicators = [
-    /^feat[(:]|^feature[(:]|^add[(:]|new feature/i,
-    /^enhancement/i,
-  ]
+  const featureIndicators = [/^feat[(:]|^feature[(:]|^add[(:]|new feature/i, /^enhancement/i]
 
-  const minorChanges = commits.some(commit =>
-    featureIndicators.some(pattern => pattern.test(commit)),
+  const minorChanges = commits.some((commit) =>
+    featureIndicators.some((pattern) => pattern.test(commit)),
   )
 
   if (majorChanges) {
     versionBump = 'major'
     changeType = 'Major Changes'
     changesList.push('**BREAKING CHANGES**: Major updates that may require code changes')
-  }
-  else if (minorChanges) {
+  } else if (minorChanges) {
     versionBump = 'minor'
     changeType = 'Minor Changes'
   }
@@ -228,7 +224,7 @@ function analyzeFileChanges(files: string[]): string[] {
   ]
 
   for (const pattern of patterns) {
-    if (files.some(file => pattern.pattern.test(file))) {
+    if (files.some((file) => pattern.pattern.test(file))) {
       changes.push(pattern.desc)
     }
   }
@@ -246,8 +242,14 @@ function analyzeCommitMessages(commits: string[]): string[] {
     { pattern: /^fix[(:]|bug|error|issue/i, desc: 'Fix bugs and resolve issues' },
     { pattern: /^feat[(:]|feature|add/i, desc: 'Add new features and functionality' },
     { pattern: /^style[(:]|css|design|ui|ux/i, desc: 'Improve visual design and user experience' },
-    { pattern: /^perf[(:]|performance|optimization|speed/i, desc: 'Enhance performance and optimization' },
-    { pattern: /^refactor[(:]|cleanup|reorganize/i, desc: 'Refactor code for better maintainability' },
+    {
+      pattern: /^perf[(:]|performance|optimization|speed/i,
+      desc: 'Enhance performance and optimization',
+    },
+    {
+      pattern: /^refactor[(:]|cleanup|reorganize/i,
+      desc: 'Refactor code for better maintainability',
+    },
     { pattern: /^docs[(:]|documentation|readme/i, desc: 'Update documentation' },
     { pattern: /^test[(:]|testing|spec/i, desc: 'Improve testing coverage' },
     { pattern: /^chore[(:]|maintenance|update/i, desc: 'General maintenance and updates' },
@@ -272,22 +274,26 @@ function analyzeCommitMessages(commits: string[]): string[] {
 /**
  * Update CHANGELOG.md with new version entry
  */
-export function updateChangelog(version: string, changeType: string, changesList: string[], changelogPath: string = 'CHANGELOG.md'): void {
+export function updateChangelog(
+  version: string,
+  changeType: string,
+  changesList: string[],
+  changelogPath: string = 'CHANGELOG.md',
+): void {
   let changelog: string
 
   if (existsSync(changelogPath)) {
     changelog = readFileSync(changelogPath, 'utf8')
-  }
-  else {
+  } else {
     // Create new changelog if it doesn't exist
     changelog = '# Changelog\n\n'
   }
 
-  const newEntry = `## ${version}\n\n### ${changeType}\n\n${changesList.map(change => `- ${change}`).join('\n')}\n\n`
+  const newEntry = `## ${version}\n\n### ${changeType}\n\n${changesList.map((change) => `- ${change}`).join('\n')}\n\n`
 
   // Insert new entry after the first heading
   const lines = changelog.split('\n')
-  const firstHeadingIndex = lines.findIndex(line => line.startsWith('# '))
+  const firstHeadingIndex = lines.findIndex((line) => line.startsWith('# '))
 
   if (firstHeadingIndex !== -1) {
     // Find the next heading or end of existing entries
@@ -298,8 +304,7 @@ export function updateChangelog(version: string, changeType: string, changesList
 
     lines.splice(insertIndex, 0, newEntry)
     changelog = lines.join('\n')
-  }
-  else {
+  } else {
     changelog = `# Changelog\n\n${newEntry}${changelog}`
   }
 
@@ -325,8 +330,7 @@ export function isGitRepository(): boolean {
   try {
     exec('git status', { silent: true })
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }

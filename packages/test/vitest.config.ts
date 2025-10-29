@@ -4,19 +4,16 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    pool: 'forks',
+    isolate: true,
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['dist', 'build', 'coverage'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'coverage/**',
-        'dist/**',
-        '**/*.d.ts',
-        '**/*.config.*',
-        'src/**/*.test.*'
-      ]
+      exclude: ['coverage/**', 'dist/**', '**/*.d.ts', '**/*.config.*', 'src/**/*.test.*'],
     },
-    testTimeout: 10000
-  }
+    testTimeout: 10000,
+    setupFiles: [],
+  },
 })

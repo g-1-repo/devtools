@@ -29,7 +29,7 @@ export function isValidPhone(phone: string): boolean {
     /^\d{10}$/, // 1234567890
   ]
 
-  return patterns.some(pattern => pattern.test(cleanPhone))
+  return patterns.some((pattern) => pattern.test(cleanPhone))
 }
 
 /**

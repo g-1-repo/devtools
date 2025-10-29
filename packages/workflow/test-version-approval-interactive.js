@@ -5,8 +5,8 @@
  * This creates a simple test scenario to trigger the version approval prompt
  */
 
-import { spawn } from 'child_process'
-import { setTimeout } from 'timers/promises'
+import { spawn } from 'node:child_process'
+import { setTimeout } from 'node:timers/promises'
 
 console.log('🧪 Testing version approval functionality...\n')
 

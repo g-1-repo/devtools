@@ -1,9 +1,6 @@
 import type { MonorepoConfig } from '../config/workflow-config'
 import { MonorepoDetector, type MonorepoInfo } from './monorepo-detector'
-import {
-  type PackageManagerAdapter,
-  PackageManagerAdapterFactory,
-} from './package-manager-adapters'
+import { createPackageManagerAdapter, type PackageManagerAdapter } from './package-manager-adapters'
 import {
   type OperationResult,
   type SelectiveOperationOptions,
@@ -53,7 +50,7 @@ export class MonorepoManager {
     }
 
     // Create package manager adapter
-    this.adapter = PackageManagerAdapterFactory.create(
+    this.adapter = createPackageManagerAdapter(
       this.monorepoInfo.type,
       this.monorepoInfo.packageManager,
       this.options.rootPath
