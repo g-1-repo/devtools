@@ -3,8 +3,8 @@
  */
 
 import type { CommitInfo } from '@g-1/ai-core'
-import type { ChangelogEntry } from '@g-1/ai-core/services'
 import { AIServiceV2 } from '@g-1/ai-core'
+import type { ChangelogEntry } from '@g-1/ai-core/services'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the AI service
