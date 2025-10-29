@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.2.1] - 2025-10-29
+
+### Bug Fixes
+
+- apply linting fixes from release process
+- resolve TypeScript errors in code-analyzer
+
+### Other Changes
+
+- chore: stage changes for release
+- resolve merge conflicts from remote branch
+- chore: release v3.13.1
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore(packages): update files
+- chore: release v3.13.1
+
+
 ## [4.2.0] - 2025-10-28
 
 ### Features
