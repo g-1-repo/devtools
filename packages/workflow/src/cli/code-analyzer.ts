@@ -39,6 +39,7 @@ export interface CodeAnalyzerCommandOptions {
   securityOnly?: boolean
   performanceOnly?: boolean
   qualityOnly?: boolean
+  language?: string
 }
 
 /**
@@ -361,7 +362,7 @@ async function runCompareCommand(
     await displayComparisonResult(comparison, options)
 
     if (options.output) {
-      await saveAnalysisResult(comparison, options.output, options.format || 'text')
+      await saveComparisonResult(comparison, options.output, options.format || 'text')
       g1Log.success(`Results saved to ${options.output}`)
     }
 
@@ -546,6 +547,32 @@ async function saveAnalysisResult(
   await fs.writeFile(outputPath, content, 'utf-8')
 }
 
+async function saveComparisonResult(
+  result: {
+    oldMetrics: any
+    newMetrics: any
+    improvement: number
+    regressions: string[]
+    improvements: string[]
+  },
+  outputPath: string,
+  format: string
+): Promise<void> {
+  const fs = await import('node:fs/promises')
+
+  let content: string
+
+  if (format === 'json') {
+    content = JSON.stringify(result, null, 2)
+  } else if (format === 'markdown') {
+    content = formatComparisonAsMarkdown(result)
+  } else {
+    content = formatComparisonAsText(result)
+  }
+
+  await fs.writeFile(outputPath, content, 'utf-8')
+}
+
 /**
  * Format result as markdown
  */
@@ -588,4 +615,71 @@ function getSeverityColor(severity: string): string {
     default:
       return chalk.gray('⚪')
   }
+}
+
+/**
+ * Format comparison result as markdown
+ */
+function formatComparisonAsMarkdown(result: {
+  oldMetrics: any
+  newMetrics: any
+  improvement: number
+  regressions: string[]
+  improvements: string[]
+}): string {
+  return `# Code Quality Comparison
+
+## Summary
+- **Improvement Score**: ${result.improvement}
+- **Regressions**: ${result.regressions.length}
+- **Improvements**: ${result.improvements.length}
+
+## Regressions
+${result.regressions.map(r => `- ${r}`).join('\n')}
+
+## Improvements
+${result.improvements.map(i => `- ${i}`).join('\n')}
+
+## Detailed Metrics
+### Old Metrics
+\`\`\`json
+${JSON.stringify(result.oldMetrics, null, 2)}
+\`\`\`
+
+### New Metrics
+\`\`\`json
+${JSON.stringify(result.newMetrics, null, 2)}
+\`\`\`
+`
+}
+
+/**
+ * Format comparison result as text
+ */
+function formatComparisonAsText(result: {
+  oldMetrics: any
+  newMetrics: any
+  improvement: number
+  regressions: string[]
+  improvements: string[]
+}): string {
+  return `Code Quality Comparison
+
+Summary:
+- Improvement Score: ${result.improvement}
+- Regressions: ${result.regressions.length}
+- Improvements: ${result.improvements.length}
+
+Regressions:
+${result.regressions.map(r => `- ${r}`).join('\n')}
+
+Improvements:
+${result.improvements.map(i => `- ${i}`).join('\n')}
+
+Old Metrics:
+${JSON.stringify(result.oldMetrics, null, 2)}
+
+New Metrics:
+${JSON.stringify(result.newMetrics, null, 2)}
+`
 }

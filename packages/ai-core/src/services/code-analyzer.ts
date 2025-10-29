@@ -29,6 +29,7 @@ export interface FileAnalysisResult extends CodeAnalysisResult {
   filePath: string;
   language: string;
   analysisTime: number;
+  overallScore: number;
 }
 
 export interface ProjectAnalysisResult {
@@ -122,11 +123,13 @@ export class CodeAnalyzer {
     if (this.config.enableCaching && this.cache.has(cacheKey)) {
       const cachedResult = this.cache.get(cacheKey);
       if (cachedResult) {
+        const overallScore = this.calculateOverallScore(cachedResult);
         return {
           ...cachedResult,
           filePath,
           language,
           analysisTime: Date.now() - startTime,
+          overallScore,
         };
       }
     }
@@ -146,11 +149,15 @@ export class CodeAnalyzer {
       this.cache.set(cacheKey, result);
     }
 
+    // Calculate overall score based on quality metrics
+    const overallScore = this.calculateOverallScore(result);
+
     return {
       ...result,
       filePath,
       language,
       analysisTime: Date.now() - startTime,
+      overallScore,
     };
   }
 
@@ -434,5 +441,75 @@ export class CodeAnalyzer {
     }
 
     return recommendations;
+  }
+
+  /**
+   * Calculate overall score based on analysis results
+   */
+  private calculateOverallScore(result: CodeAnalysisResult): number {
+    let score = 100;
+
+    // Deduct points for quality issues
+    if (result.quality) {
+      // Lower maintainability reduces score
+      if (result.quality.maintainability < 50) {
+        score -= 20;
+      } else if (result.quality.maintainability < 70) {
+        score -= 10;
+      }
+
+      // Higher complexity reduces score
+      if (result.quality.complexity > 20) {
+        score -= 15;
+      } else if (result.quality.complexity > 10) {
+        score -= 8;
+      }
+
+      // Code smells reduce score
+      score -= Math.min(result.quality.codeSmells.length * 2, 20);
+    }
+
+    // Deduct points for security issues
+    if (result.security) {
+      result.security.forEach((issue) => {
+        switch (issue.severity) {
+          case 'critical':
+            score -= 25;
+            break;
+          case 'high':
+            score -= 15;
+            break;
+          case 'medium':
+            score -= 8;
+            break;
+          case 'low':
+            score -= 3;
+            break;
+        }
+      });
+    }
+
+    // Deduct points for performance issues
+    if (result.performance) {
+      result.performance.forEach((issue) => {
+        switch (issue.severity) {
+          case 'critical':
+            score -= 20;
+            break;
+          case 'high':
+            score -= 12;
+            break;
+          case 'medium':
+            score -= 6;
+            break;
+          case 'low':
+            score -= 2;
+            break;
+        }
+      });
+    }
+
+    // Ensure score is between 0 and 100
+    return Math.max(0, Math.min(100, score));
   }
 }
