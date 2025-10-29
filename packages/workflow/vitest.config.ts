@@ -1,6 +1,12 @@
 import { defineConfig } from 'vitest/config'
+import path from 'path'
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@g-1/ai-core': path.resolve(__dirname, '../ai-core/src'),
+    },
+  },
   test: {
     globals: true,
     environment: 'node',
